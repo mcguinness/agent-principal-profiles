@@ -141,7 +141,9 @@ tests, and these common checks:
 * Where the bound profile is required, a grant without `cnf` is rejected
   with `invalid_grant`, with no fallback.
 * A bound grant redeemed without its proof is rejected with
-  `invalid_grant`.
+  `invalid_grant` or `invalid_dpop_proof`.
+* A bound grant presented with `jwt-bearer` instead of `jwt-dpop` is
+  rejected with `invalid_grant`.
 * An access token presented in another tenant, even with a valid proof,
   is rejected with HTTP 401 `invalid_token`.
 * Where the API introspects opaque tokens, an otherwise valid request
@@ -750,7 +752,7 @@ are for the evaluator.
 |---|---|---|---|---|---|
 | IdP: delegated realization of the core, with dedicated-client resolution through `private_key_jwt` and ID Token subjects | Delegated access | The delegated recipe's transaction and rejection tests | | | |
 | IdP: self-acting realization of the core | Self-acting access | The self-acting recipe's transaction and rejection tests | | | |
-| IdP and RAS: bound governed agent access, with DPoP at grant issuance and redemption | Bound grant protection | Step 3: a grant without `cnf`, and a bound grant without its proof, fail with `invalid_grant` | | | |
+| IdP and RAS: bound governed agent access, with DPoP at grant issuance and redemption | Bound grant protection | Step 3: a grant without `cnf` fails with `invalid_grant`, and a bound grant without its proof with `invalid_grant` or `invalid_dpop_proof` | | | |
 | IdP: a workload-identity input that distinguishes a shared client's agents; the existing platform JWT input for generic shared-client interoperability | A shared platform client | The shared-client variation's tests | | | |
 | RAS: redemption for each realization served, with correlation by the exact (issuer, agent identifier) pair | Always | The recipes' redemption steps; the self-acting correlation test | | | |
 | API: resource processing, including tenant checks, the actor gate, and the agent's own authority | Always | Step 3's other-tenant test; the delegated recipe's missing-`act` test | | | |

@@ -27,7 +27,7 @@ Response section; it is not yet assessed.
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
 | WAG | Alignment on protection, linking, and subject presentation (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
-| ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
+| ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof (below) | Both errors are permitted |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
 | COAZ-MCP error transport | Which HTTP status accompanies each JSON-RPC error on Streamable HTTP, whether a JSON-RPC error body on a non-2xx response satisfies Section 10, when the enforcement point decides, and how an actor denial is identified (below) | The implementer's guide gives a proposed interpretation: the core's status, with COAZ-MCP's error in the body. How the core's denial responses compose with COAZ-MCP is open |
@@ -89,10 +89,15 @@ Coordination is needed on:
 
 #### ID-JAG Bound Grants
 
-Section 4.4 of ID-JAG requires `jwt-bearer` while its bound-grant example
-uses `jwt-dpop`. This profile follows the normative grant type with
-explicit confirmation processing (`redemption`) and takes no
-dependency on JWT DPoP Grant.
+Section 4.4 of ID-JAG-06 redeems a DPoP-bound ID-JAG with `jwt-dpop`,
+and Section 5.2 of JWT DPoP Grant -02 forbids a server that supports
+`jwt-dpop` from accepting a DPoP-bound assertion with `jwt-bearer`. The
+core now redeems every grant containing `cnf` with `jwt-dpop`
+(`redemption-request`), and the continuation profile follows Section
+5.5.5 of ICA. One difference remains: for a bound grant redeemed
+without a proof, Section 9.11.1.2.2 of ID-JAG returns `invalid_grant`
+and Section 5 of JWT DPoP Grant returns `invalid_dpop_proof`. The core
+permits either (`grant-protection`).
 
 #### Grant Replay and Re-redemption
 
@@ -589,13 +594,13 @@ rule that stays local to the profile:
   value for handle binding of governed ID-JAGs and WAGs, because its
   access-token protection and redemption differ from what
   `id-jag-continuation` advertises.
-* **Redemption grant type:** Section 5.5.5 of ICA redeems onward
-  ID-JAGs with `jwt-dpop`, citing Section 9.8.1.2.1 of ID-JAG. Section
-  4.4 of ID-JAG-04 requires `jwt-bearer`, and `jwt-dpop` appears only in
-  the key-bound example; JWT DPoP Grant -01 expired in August 2026. The
-  companion redeems with `jwt-bearer` and the core's confirmation
-  checks, and drops the requirement of Section 7.2 of ICA to advertise
-  `jwt-dpop`.
+* **Redemption grant type:** resolved by ID-JAG-06. Section 5.5.5 of
+  ICA redeems onward ID-JAGs with `jwt-dpop` (citing Section 9.8.1.2.1
+  of ID-JAG-04, now 9.11.1.2.1), and Section 4.4 of ID-JAG-06 names
+  `jwt-dpop` for a DPoP-bound ID-JAG. The core redeems every grant
+  containing `cnf` with `jwt-dpop`, so the companion follows ICA here,
+  and the core's metadata rule meets the `jwt-dpop` advertisement that
+  Section 7.2 of ICA requires.
 * **Access-token protection and bearer ingress:** Step 3 of Section 5.2
   of ICA requires a DPoP-bound access token for a continuation-capable
   grant carrying `cnf`; ICA tracks bearer ingress as issue #110. The

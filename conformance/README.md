@@ -75,7 +75,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N08 | IdP | No Client Association fails with `actor_unauthorized` | core: negative-test row | Remove the association |
 | N09 | IdP | A withdrawn Delegation Authorization fails with `actor_unauthorized` | core: Delegation Authorization; Issuance Errors; PLAYBOOK recipe | Withdraw the delegation |
 | N10 | RAS | A grant without `cnf` under the bound profile fails with `invalid_grant` | core: negative-test row | Let the IdP issue unbound grants |
-| N11 | RAS | A bound grant redeemed without a proof fails with `invalid_grant` | core: negative-test row; Access-Token Protection | None |
+| N11 | RAS | A bound grant redeemed without a proof fails with `invalid_grant` or `invalid_dpop_proof` | core: negative-test row; Access-Token Protection | None |
 | N12 | RAS | A redemption proven with another key fails with `invalid_grant` | core: Grant Protection | None |
 | N13 | RAS | A grant redeemed by a client other than its `client_id` fails with `invalid_grant` | core: Redemption Request; ID-JAG Section 4.4.1 | None; needs a second RAS client |
 | N14 | RAS | A `resource` parameter other than the grant's fails with `invalid_target` | core: Common Grant Validation | None |
@@ -93,6 +93,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N26 | RAS | A grant whose `scope` claim is missing, empty or an array fails with `invalid_grant` | core: Common Grant Validation | Mint a grant |
 | N27 | RAS | A grant whose `act` names `agent-99`, which the RAS has no correlation for, fails with `invalid_grant` | core: Agent Principal Correlation; Redemption Errors | Mint a grant |
 | N28 | IdP | A request for `files.write`, which the delegation permits but policy categorically prohibits for the agent, fails with `actor_unauthorized` | core: Issuance Authorization; Issuance Errors | Set the delegation's scope; prohibit a scope for the agent |
+| N29 | RAS | A bound grant presented with `jwt-bearer` and a valid proof fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5.2 | None |
+| N30 | RAS | An unbound grant presented with `jwt-dpop` fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5 | Let the IdP issue, and the RAS accept, unbound grants |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `actor_unauthorized` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -185,15 +187,15 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 84 cases runs once for each check it names, with that check
-switched off; eight S cases name two checks, so there are 92 runs, and
-every run fails. Twenty-six N cases fail because the server then accepts
+these 86 cases runs once for each check it names, with that check
+switched off; eight S cases name two checks, so there are 94 runs, and
+every run fails. Twenty-eight N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
 rejects the redemption with `invalid_request`; Access-Token Protection
-states that Grant Protection's checks come first, so `invalid_grant` is
-the required code, and the case no longer depends on the reference's
-own order. N27 fails because the RAS's actor gate then refuses the
+states that Grant Protection's checks come first, so the case requires
+`invalid_grant` or `invalid_dpop_proof`, the two codes Grant Protection
+permits, and no longer depends on the reference's own order. N27 fails because the RAS's actor gate then refuses the
 uncorrelated agent with `actor_unauthorized`, the code Redemption Errors
 keeps for RAS policy that refuses a valid ID-JAG's delegation.
 

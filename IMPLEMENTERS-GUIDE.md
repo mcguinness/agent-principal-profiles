@@ -54,8 +54,10 @@ agents decides which agent a request identifies and what that agent may
 request. The resource domain decides what access it will grant. The core
 profile carries the IdP's decision in one of two grants, both requested
 from the IdP with OAuth Token Exchange and redeemed at the resource
-authorization server (RAS) with the JWT bearer grant type. The [Protocol
-Overview][overview] shows the same transaction as a figure.
+authorization server (RAS) with a JWT grant: `jwt-dpop` when the grant
+is bound to the client's DPoP key, and the JWT bearer grant type when
+it is not. The [Protocol Overview][overview] shows the same transaction
+as a figure.
 
 Both grants begin with agent resolution at the IdP. The client
 authenticates, and the IdP takes an agent-resolution input from that
@@ -331,9 +333,9 @@ suite](conformance/README.md) and how far they go:
 | Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | Client registration and keys at the RAS, with the RAS issuer as the assertion's `aud` | Client, through registration | `analysis-api` and its JWK Set | Client metadata or CIMD | Positive path: P2. Direct for the grant's `client_id`: N13 |
-| The client registration's `grant_types`, permitting the JWT bearer grant at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
-| Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the JWT bearer grant, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-bearer` | Yes | Untested: the suite does not retrieve metadata |
-| DPoP at the token endpoint, proven with the grant's key | RAS | `ES256`; the same key K | DPoP algorithms | Direct: N11, N12 |
+| The client registration's `grant_types`, permitting `jwt-dpop` for key-bound grants and the JWT bearer grant for unbound grants at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-dpop` and `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
+| Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the grant type the client will redeem with, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-dpop` | Yes | Untested: the suite does not retrieve metadata |
+| DPoP at the token endpoint, proven with the grant's key, under the `jwt-dpop` grant type | RAS | `ES256`; the same key K | DPoP algorithms; `jwt-dpop` in `grant_types_supported` | Direct: N11, N12; grant type: N29, N30 |
 | Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2 |
 
 ### RAS and API

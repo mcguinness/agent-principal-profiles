@@ -61,6 +61,7 @@ POLL_INTERVAL = 5
 
 TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+JWT_DPOP = "urn:ietf:params:oauth:grant-type:jwt-dpop"
 DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
 REFRESH_GRANT = "refresh_token"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
@@ -107,6 +108,8 @@ CHECKS = {
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
     "ras.proof_key_match": "the redemption proof key matches cnf.jkt",
+    "ras.grant_type_binding": "a grant with cnf is redeemed with jwt-dpop, and one without "
+                              "with jwt-bearer",
     "ras.resource_match": "the resource parameter equals the grant's resource",
     "ras.scope_claim": "the grant's scope claim is a non-empty string",
     "ras.agent_eligibility": "the correlated agent record exists and is active",
@@ -759,8 +762,8 @@ class RAS(Server):
             return _respond(start_response, 200, body)
         form = _form(environ)
         grant_type = form.get("grant_type")
-        if grant_type == [JWT_BEARER]:
-            body = self.redeem(environ, form)
+        if grant_type in ([JWT_BEARER], [JWT_DPOP]):
+            body = self.redeem(environ, form, grant_type[0])
         elif grant_type == [DEFERRED_GRANT]:
             body = self.poll(environ, form)
         elif grant_type == [REFRESH_GRANT]:
@@ -769,7 +772,7 @@ class RAS(Server):
             raise OAuthError("unsupported_grant_type")
         return _respond(start_response, 200, body)
 
-    def redeem(self, environ, form):
+    def redeem(self, environ, form, grant_type=JWT_BEARER):
         client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
         jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
         assertion = _one(form, "assertion")
@@ -801,6 +804,12 @@ class RAS(Server):
                 raise OAuthError("invalid_grant", description="proof required")
             if jkt is not None and jkt != cnf["jkt"] and self.on("ras.proof_key_match"):
                 raise OAuthError("invalid_grant", description="proof key mismatch")
+        # Grant type (core: Redemption Request; JWT DPoP Grant Sections 5
+        # and 5.2): jwt-dpop for a grant with cnf, jwt-bearer otherwise.
+        if (cnf is not None) != (grant_type == JWT_DPOP) and \
+                self.on("ras.grant_type_binding"):
+            raise OAuthError("invalid_grant", description="grant type does not match the "
+                             "grant's binding")
         # Replay: this reference accepts each grant once, bound or not. It
         # records a grant as accepted when it issues an access token, or
         # when it defers the redemption.

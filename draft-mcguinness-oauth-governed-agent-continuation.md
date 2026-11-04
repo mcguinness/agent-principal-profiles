@@ -850,12 +850,10 @@ end of the chain.
 # Onward Redemption and Access {#target-processing}
 
 The continuing client redeems the onward grant under "Redemption
-Request" in {{FEDERATION}}: the `urn:ietf:params:oauth:grant-type:jwt-bearer`
+Request" in {{FEDERATION}}: the `urn:ietf:params:oauth:grant-type:jwt-dpop`
 grant type, client authentication as the client the grant names, and a
-DPoP proof of the grant's `cnf` key. For governed chains, this replaces
-the `jwt-dpop` redemption of {{Section 5.5.5 of ICA}};
-{{Section 4.4 of ID-JAG}} requires `jwt-bearer`, and {{FEDERATION}}
-applies the grant confirmation checks of ID-JAG to it. Every onward
+DPoP proof of the grant's `cnf` key, as in the `jwt-dpop` redemption of
+{{Section 5.5.5 of ICA}}. Every onward
 grant carries `cnf`, so the target RAS needs DPoP support at its token
 endpoint ("Grant Protection" in {{FEDERATION}}), which the continuing
 client verifies under "Capability Discovery" in {{FEDERATION}}.
@@ -887,7 +885,7 @@ To continue a request, a gateway:
 3. verifies the target's capabilities and requests the chain's grant
    type from the IdP ({{continuation-request}},
    {{walkthrough-continuation}});
-4. redeems the onward grant with `jwt-bearer` and a proof of its key
+4. redeems the onward grant with `jwt-dpop` and a proof of its key
    ({{target-processing}});
 5. reuses downstream tokens only within the same context and source
    hop; and
@@ -1015,8 +1013,9 @@ together with the governed profile URIs that identify the grants it
 accepts. The value indicates handle binding under
 {{Section 5.2 of ICA}} with the access-token protection and eligibility
 of {{root-redemption}}, and redemption of onward grants with
-`jwt-bearer` ({{target-processing}}); it does not indicate `jwt-dpop`
-support. A RAS lists ICA's
+`jwt-dpop` ({{target-processing}}), which the RAS also lists in
+`grant_types_supported` ("Authorization Server Metadata" in
+{{FEDERATION}}). A RAS lists ICA's
 `urn:ietf:params:oauth:grant-profile:id-jag-continuation`, with the
 requirements of {{Section 7.2 of ICA}}, only if it also binds handles of
 chains established without this document. Listing
@@ -1442,7 +1441,7 @@ It carries the root's `auth_time`, and its `continuation_via` lists
 ## Redemption at the Target {#walkthrough-target}
 
 The gateway redeems the onward ID-JAG at `https://ras.example/` with the
-`jwt-bearer` grant type, a `private_key_jwt` assertion for
+`jwt-dpop` grant type, a `private_key_jwt` assertion for
 `gateway-files`, and a fresh proof of G. The RAS validates the grant
 and its confirmation, resolves Alice to `user-108`, correlates
 `agent-42`, applies the actor gate, and ignores the handle and
@@ -1733,7 +1732,7 @@ Each case changes the stated conditions; all other checks succeed.
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | GatewayRAS deferred the root redemption until an approver decided ({{OVERSIGHT}}), and the gateway presents the resulting access token, or one refreshed from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
-| The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
+| The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` or `invalid_dpop_proof` |
 | The gateway's source hop has passed its continuation window while the agent's access token at the gateway is still accepted | IdP, then gateway | HTTP 400, `invalid_grant`; the gateway fails the agent's request with an error of its own API, not with HTTP 401 `invalid_token` |
 | Tenant policy lengthens the continuation window after the gateway's source hop was issued, and the gateway requests a continuation after the hop's original deadline | IdP | HTTP 400, `invalid_grant`; lengthening the window does not extend a hop's deadline |
 | Tenant policy sets the actor-lineage depth bound to 1, and `tool-gateway` continues H0, whose lineage is the root client `analysis-client` | IdP, then gateway | HTTP 400, `invalid_grant`; H0 is not unusable, and a continuation from it by `analysis-client`, whose entry merges with the root's, can still succeed; the gateway fails the agent's request without HTTP 401 `invalid_token` |
@@ -1768,9 +1767,8 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Assertion issuance at the token endpoint | Optional; recommended for a RAS acting as CAI ({{Section 5.4.1 of ICA}}) | Required of every CAI that serves a continuing client ({{conformance-claims}}) |
 | Onward `act` | Continuing actor atop IdP-derived lineage ({{Section 5.5.5 of ICA}}) | The Agent Principal alone in an ID-JAG, none in a WAG; hop records unchanged ({{identity-preservation}}) |
 | Path disclosure | Continuing clients as nested actors in `act` ({{Section 5.5.5 of ICA}}) | Continuing clients as intermediaries in `continuation_via`, preserved to the API by targets that support path disclosure ({{continuation-via}}) |
-| Onward redemption | `jwt-dpop` ({{Section 5.5.5 of ICA}}) | `jwt-bearer` with grant confirmation ({{target-processing}}) |
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
-| Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, without `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |
+| Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, with `jwt-dpop` as for any RAS that accepts grants containing `cnf`; the IdP flag only for delegated continuation ({{metadata}}) |
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
 | Continuation window | None | A required, finite per-hop window, checked when a request is received ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
@@ -1795,7 +1793,6 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 | Specification | What this document needs | Consequence until resolved |
 |---|---|---|
 | ICA | The changes of {{ica-changes}}, and a forwarding disclosure mode with `continuation_via` for chains in general | This document applies them to governed chains and defines `continuation_via` itself |
-| ID-JAG | {{Section 4.4 of ID-JAG}} requires `jwt-bearer`, while its key-bound example uses `jwt-dpop`, which {{Section 5.5.5 of ICA}} follows | Onward grants are redeemed with `jwt-bearer` under {{FEDERATION}} |
 | WAG | A WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | Listing `governed-agent-continuation` for WAGs awaits coordination |
 | {{AGENT-MANAGEMENT}} | Administration of Continuation Associations and of an authorization's permission to continue | Configured by each deployment |
 {: title="Dependencies"}

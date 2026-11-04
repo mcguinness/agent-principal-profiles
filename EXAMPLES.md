@@ -170,7 +170,7 @@ Host: ras.example
 Content-Type: application/x-www-form-urlencoded
 DPoP: RAS_DPOP_PROOF
 
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-dpop
 &client_id=analysis-api
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth
 %3Aclient-assertion-type%3Ajwt-bearer
@@ -570,7 +570,7 @@ Host: ras.example
 Content-Type: application/x-www-form-urlencoded
 DPoP: RAS_DPOP_PROOF
 
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-dpop
 &client_id=analysis-api
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth
 %3Aclient-assertion-type%3Ajwt-bearer

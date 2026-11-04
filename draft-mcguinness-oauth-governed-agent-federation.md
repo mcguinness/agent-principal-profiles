@@ -38,6 +38,7 @@ normative:
   INSTANCE: I-D.mcguinness-oauth-client-instance-id
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
+  JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
   RFC7523bis: I-D.ietf-oauth-rfc7523bis
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   OPENID:
@@ -812,10 +813,14 @@ In both profiles:
   silently ignore the proof. At issuance, a valid proof MUST result in
   `cnf.jkt` binding of the grant, as in {{Section 9.11.1.1 of ID-JAG}}.
 * **Bound grant:** A grant containing `cnf` MUST have a valid, supported
-  `jkt` binding. The RAS MUST require a fresh DPoP proof whose public
-  key thumbprint matches exactly, as in {{Section 9.11.1.2 of ID-JAG}}.
-  Missing proof, missing required binding, unsupported confirmation, or
-  key mismatch MUST fail with `invalid_grant`.
+  `jkt` binding, and the client redeems it with the `jwt-dpop` grant
+  type ({{redemption-request}}). The RAS MUST require a fresh DPoP proof
+  whose public key thumbprint matches exactly, as in
+  {{Section 9.11.1.2 of ID-JAG}} and {{Section 5 of JWT-DPOP-GRANT}}.
+  Missing required binding, unsupported confirmation, or key mismatch
+  MUST fail with `invalid_grant`. A missing proof MUST fail with
+  `invalid_grant` ({{Section 9.11.1.2.2 of ID-JAG}}) or
+  `invalid_dpop_proof` ({{Section 5 of JWT-DPOP-GRANT}}).
 * **Unbound grant:** When policy permits a grant without `cnf`, the
   client MAY present a DPoP proof only at redemption to obtain a
   DPoP-bound access token ({{access-token-protection}}). That proof does
@@ -1605,9 +1610,12 @@ Self-acting issuance adds these errors:
 
 ## Redemption Request {#redemption-request}
 
-The client redeems either grant at the RAS token endpoint with the JWT
-bearer grant type, `urn:ietf:params:oauth:grant-type:jwt-bearer`: an
-ID-JAG as in {{Section 4.4 of ID-JAG}}, and a WAG as in {{WAG}}. The
+The client redeems either grant at the RAS token endpoint: an ID-JAG as
+in {{Section 4.4 of ID-JAG}}, and a WAG as in {{WAG}}. A grant
+containing `cnf` is redeemed with the grant type
+`urn:ietf:params:oauth:grant-type:jwt-dpop` ({{JWT-DPOP-GRANT}}), and a
+grant without `cnf` with the JWT bearer grant type,
+`urn:ietf:params:oauth:grant-type:jwt-bearer`. The
 request includes the proof required by {{grant-protection}} and the
 applicable access-token protection. These additional parameters are
 REQUIRED unless marked OPTIONAL:
@@ -1618,8 +1626,9 @@ REQUIRED unless marked OPTIONAL:
 | `scope` | OPTIONAL subset of the grant's scope; if omitted, the grant's scope is the upper bound |
 {: title="Redemption request parameters"}
 
-The confirmation checks of {{Section 9.11.1.2 of ID-JAG}} apply to this
-grant type ({{upstream-gaps}}).
+A grant containing `cnf` presented with `jwt-bearer` is rejected with
+`invalid_grant`, whether or not the request carries a DPoP proof
+({{Section 5.2 of JWT-DPOP-GRANT}}).
 
 ## Common Grant Validation {#redemption-common}
 
@@ -2275,7 +2284,9 @@ Servers MUST publish {{RFC8414}} metadata as follows:
   the base `urn:ietf:params:oauth:grant-profile:wag`
   ({{Section 8 of WAG}}) for self-acting access.
   * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
-    `grant_types_supported` for this profile.
+    `grant_types_supported` for this profile, and
+    `urn:ietf:params:oauth:grant-type:jwt-dpop` when the RAS accepts
+    grants containing `cnf` ({{Section 5.2 of JWT-DPOP-GRANT}}).
 * **IdP:** Advertise Token Exchange in `grant_types_supported`. For
   delegated access, advertise ID-JAG in
   `identity_chaining_requested_token_types_supported` under
@@ -2298,7 +2309,9 @@ metadata under {{Section 8 of ID-JAG}}, including when supplied through
 CIMD. Its `grant_types` MUST permit:
 
 * `urn:ietf:params:oauth:grant-type:token-exchange` at the IdP.
-* `urn:ietf:params:oauth:grant-type:jwt-bearer` at the RAS.
+* At the RAS, `urn:ietf:params:oauth:grant-type:jwt-dpop` for grants
+  containing `cnf`, and `urn:ietf:params:oauth:grant-type:jwt-bearer`
+  for grants without it.
 
 ### Capability Discovery {#capability-discovery}
 
@@ -2308,8 +2321,8 @@ Before using either grant path:
   configuration on issuance support and any options. Generic JWT or
   authentication-method support is insufficient.
 * **RAS capabilities:** The client MUST verify the RAS's profile
-  advertisement, JWT bearer grant support, and compatible access-token
-  protection. If no supported profile satisfies the configured minimum,
+  advertisement, support for the grant type it will redeem with
+  ({{redemption-request}}), and compatible access-token protection. If no supported profile satisfies the configured minimum,
   the client MUST NOT initiate that path.
 * **Metadata consistency:** For delegated access, if the
   `actor_profile_token_exchange` parameter of
@@ -2805,7 +2818,7 @@ Host: ras.example
 Content-Type: application/x-www-form-urlencoded
 DPoP: RAS_DPOP_PROOF
 
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-dpop
 &client_id=analysis-api
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth
 %3Aclient-assertion-type%3Ajwt-bearer
@@ -3132,7 +3145,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
 | WAG | Alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
-| ID-JAG | `jwt-bearer` in the bound-grant example, which uses `jwt-dpop`; confirmation errors distinct from RFC 9449 proof errors | Confirmation checks apply to `jwt-bearer` here ({{redemption-request}}); no dependency on JWT DPoP Grant |
+| ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof: `invalid_grant` in {{Section 9.11.1.2.2 of ID-JAG}}, `invalid_dpop_proof` in {{Section 5 of JWT-DPOP-GRANT}} | Either error is permitted ({{grant-protection}}) |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
 
