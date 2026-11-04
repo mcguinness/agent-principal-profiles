@@ -102,10 +102,14 @@ Section 4.4.3 of ID-JAG-06 profiles `invalid_grant` for an ID-JAG that
 fails validation and `access_denied` for a valid ID-JAG whose user or
 client is not authorized, and permits any other code. Section 4.4.4
 tells a client that gets `invalid_grant` on re-submission to request
-one new ID-JAG. The core keeps `invalid_grant` for an unresolved or
-disabled user and an uncorrelated or disabled agent (#59), and
-`actor_unauthorized` for a refused delegation (`redemption-errors`). A
-generic ID-JAG client therefore requests one more ID-JAG before it
+one new ID-JAG. Section 4.4.1 adds two MUSTs: `access_denied` when none
+of the grant's resources is acceptable, and `invalid_grant` when the
+recipient tenant cannot be determined or a resource is not governed
+for it. The core follows both (`redemption-errors`, `errors`) and keeps
+`actor_unauthorized` for an actor-gate refusal. It also keeps
+`invalid_grant` for an unresolved or disabled user and an uncorrelated
+or disabled agent (#59), where Section 4.4.3 profiles `access_denied`;
+a generic ID-JAG client therefore requests one more ID-JAG before it
 stops. At the IdP the core follows Section 4.3.4.3 of ID-JAG-06 for an
 invalid subject or agent-resolution credential (`invalid_request`). It
 keeps `invalid_grant` for a valid credential that resolves no user,

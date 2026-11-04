@@ -1118,13 +1118,13 @@ def scopes(value):
     return set(str(value or "").split())
 
 
-@case("D01", "RAS", "Refuses with actor_unauthorized, not a deferral, without the opt-in",
+@case("D01", "RAS", "Refuses with access_denied, not a deferral, without the opt-in",
       "oversight: Redemption Opt-In; core: Redemption Errors",
       needs=("set:ras.approval_required",), defeats=("ras.approval_gate",))
 def d01(ctx):
     require_approval(ctx)
     resp = ctx.client.redeem(ctx.grant())
-    expect_error(resp, 400, "actor_unauthorized")
+    expect_error(resp, 400, "access_denied")
     check("deferral_code" not in resp.json(), "the refusal carried a deferral code")
 
 

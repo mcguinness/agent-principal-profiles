@@ -601,7 +601,8 @@ Cache-Control: no-store
 ```
 
 Without the opt-in, the RAS would have refused with
-`actor_unauthorized`, as for any policy refusal, revealing nothing
+`access_denied`, as for any policy refusal outside the actor gate,
+revealing nothing
 about approval. The grant's `exp` at 12:06:03 limits only acceptance:
 until the redemption ends, the same grant presented again with fresh
 client authentication, a fresh proof of K, the opt-in, and the same

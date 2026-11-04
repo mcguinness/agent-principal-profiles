@@ -95,7 +95,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N28 | IdP | A request for `files.write`, which the delegation permits but policy categorically prohibits for the agent, fails with `actor_unauthorized` | core: Issuance Authorization; Issuance Errors | Set the delegation's scope; prohibit a scope for the agent |
 | N29 | RAS | A bound grant presented with `jwt-bearer` and a valid proof fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5.2 | None |
 | N30 | RAS | An unbound grant presented with `jwt-dpop` fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5 | Let the IdP issue, and the RAS accept, unbound grants |
-| D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `actor_unauthorized` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
+| D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
 | D04 | RAS | With a 24 h maximum pending lifetime and an 8 h absolute expiration, `expires_in` is at most 8 h, and an approval after 9 h finds `expired_token` | oversight: Deferring a Redemption | Require approval; set both lifetimes; approve; advance the clock |
@@ -159,8 +159,8 @@ The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
 core's Redemption Errors assigns to an ID-JAG whose `act` agent has no
 authorized correlation or is disabled. N16 asserts `actor_unauthorized`,
-which Redemption Errors assigns when RAS policy refuses a valid
-ID-JAG's delegation. N25 and N28 send a single scope, so they do not
+which Redemption Errors assigns when the actor gate refuses a valid
+ID-JAG's agent. N25 and N28 send a single scope, so they do not
 depend on whether the IdP narrows a request, which Issuance
 Authorization permits but does not require. The time cases use an hour,
 well beyond the few minutes of skew the core contemplates, so they do
@@ -195,9 +195,10 @@ the request. P2 fails because the access token then carries a rewritten
 rejects the redemption with `invalid_request`; Access-Token Protection
 states that Grant Protection's checks come first, so the case requires
 `invalid_grant` or `invalid_dpop_proof`, the two codes Grant Protection
-permits, and no longer depends on the reference's own order. N27 fails because the RAS's actor gate then refuses the
-uncorrelated agent with `actor_unauthorized`, the code Redemption Errors
-keeps for RAS policy that refuses a valid ID-JAG's delegation.
+permits, and no longer depends on the reference's own order. N27 fails
+because the RAS's actor gate then refuses the uncorrelated agent with
+`actor_unauthorized`, the code Redemption Errors
+keeps for an actor-gate refusal of a valid ID-JAG's agent.
 
 The D cases fail without their check in these ways:
 
@@ -205,7 +206,7 @@ The D cases fail without their check in these ways:
   D11, D14, D20, D21 and D22 (after the actor gate reopens);
 * it returns or keeps a deferral where an error is required: D03, D06
   (a new deferral after the denial), D08, D18 and D19;
-* it returns another error: D07 (`actor_unauthorized`);
+* it returns another error: D07 (`access_denied`);
 * it exceeds a bound: D04 and D17 (`expires_in`), D12 (`scope`), D13
   and D15 (the token's `exp`);
 * it opens one access request for two redemptions (D10), or two
@@ -623,9 +624,9 @@ could build differently. An entry marked resolved names the draft change
 that settled it.
 
 1. **The RAS's error for its own actor-gate denial.** Resolved. The
-   core's Redemption Errors now assigns `actor_unauthorized` when RAS
-   policy refuses a valid ID-JAG's delegation, including under the
-   actor gate, and N16 asserts it.
+   core's Redemption Errors assigns `actor_unauthorized` when the actor
+   gate refuses a valid ID-JAG's agent, and N16 asserts it. Since
+   ID-JAG-06, other RAS policy refusals get `access_denied`.
 2. **The RAS's error for a missing or disabled agent record.**
    Resolved. The core's Redemption Errors now assigns `invalid_grant`
    for an ID-JAG whose `act` agent has no authorized correlation or is

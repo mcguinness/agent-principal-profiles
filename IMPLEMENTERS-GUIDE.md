@@ -472,9 +472,14 @@ and N30.
     under explicit policy, each time with a fresh proof that matches its
     `cnf.jkt`;
   * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
-    or restricted.
-* `actor_unauthorized`, with HTTP 400: current policy, including the
-  actor gate, refuses an ID-JAG's delegation.
+    or restricted;
+  * a grant whose resource has no Target Tenant that the RAS can
+    determine, or is not governed for it.
+* `actor_unauthorized`, with HTTP 400: the actor gate refuses an
+  ID-JAG's agent for the user.
+* `access_denied`: other current RAS policy refuses a valid ID-JAG,
+  including a redemption that needs approval and does not opt in to
+  deferral.
 * `invalid_target`: current policy refuses a WAG, or the requested
   resource is not the grant's.
 * `invalid_scope`: a requested scope outside the grant's.

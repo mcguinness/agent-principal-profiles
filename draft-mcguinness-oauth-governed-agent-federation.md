@@ -901,7 +901,8 @@ the applicable input profile. {{issuance-errors}} and
 | Failure | Error |
 |---|---|
 | Unacceptable `resource` parameter at exchange, redemption, or refresh, including multiple values or a target outside the grant or retained authorization | `invalid_target` under RFC 8707 |
-| Target Tenant cannot be resolved for the requested resource | `invalid_target` |
+| At the IdP, Target Tenant cannot be resolved for the requested resource | `invalid_target` |
+| At the RAS, the grant's resource has no Target Tenant that can be determined unambiguously, or is not a resource governed for it | `invalid_grant` ({{Section 4.4.1 of ID-JAG}}) |
 | No client registration association exists for the requested RAS ({{flow-configuration}}) | `invalid_target` |
 | Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued, except where {{issuance-authorization}} assigns `actor_unauthorized` | `invalid_scope` |
 | User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
@@ -1935,7 +1936,8 @@ RAS uses these errors:
 | ID-JAG whose `act` agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction ({{applied-changes}}) | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction | `invalid_grant` |
 | Invalid WAG, including one without `typ` `oauth-wag+jwt` or one that contains `act` | `invalid_grant` |
-| Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| The actor gate refuses a valid ID-JAG's agent for the user ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Other current RAS policy refuses a valid ID-JAG for the user, client, tenant, or resource | `access_denied` ({{Section 4.4.1 of ID-JAG}}) |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
 {: title="Redemption errors"}
 
@@ -2326,8 +2328,9 @@ Before using either grant path:
   authentication-method support is insufficient.
 * **RAS capabilities:** The client MUST verify the RAS's profile
   advertisement, support for the grant type it will redeem with
-  ({{redemption-request}}), and compatible access-token protection. If no supported profile satisfies the configured minimum,
-  the client MUST NOT initiate that path.
+  ({{redemption-request}}), and compatible access-token protection. If
+  no supported profile satisfies the configured minimum, the client
+  MUST NOT initiate that path.
 * **Metadata consistency:** For delegated access, if the
   `actor_profile_token_exchange` parameter of
   {{Section 10.1 of ACTOR-PROFILE}} is published, it MUST describe only
@@ -2400,7 +2403,11 @@ cited are met.
   * `invalid_scope`: the client corrects the requested scope using
     authority it knows is permitted. Reducing a request helps only if
     what remains is permitted.
-  * `invalid_target`: covers an unresolved target or tenant, a missing
+  * `access_denied` at the RAS: the grant is valid, but RAS policy other
+    than the actor gate refuses it; a new grant does not help
+    ({{Section 4.4.3 of ID-JAG}}).
+  * `invalid_target`: covers an unresolved target, or a tenant
+    unresolved at the IdP, a missing
     client registration association, and the refusals of self-acting
     issuance, including an unenforceable approval condition.
   * `actor_unauthorized`: another actor credential or grant path might
@@ -2458,9 +2465,10 @@ Distinguishing `invalid_grant` from `actor_unauthorized`
 not which binding-resolution check failed. That disclosure reaches even
 a holder of stolen bearer evidence who passes the request's other
 authentication. At the RAS, `actor_unauthorized` ({{redemption-errors}})
-tells an authenticated client holding a valid grant that its
-delegation was refused, not why; an uncorrelated or ineligible agent
-gets `invalid_grant`, as at the IdP.
+tells an authenticated client holding a valid grant that the actor gate
+refused its agent, and `access_denied` that other policy refused the
+grant, not why; an uncorrelated or ineligible agent gets
+`invalid_grant`, as at the IdP.
 
 An API that answers differently depending on whether a route, target,
 or tenant exists discloses that existence. Within a namespace the API
@@ -3138,7 +3146,7 @@ referenced sections define each requirement.
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's `invalid_request`, for a valid subject or actor credential that resolves no user or no active binding, agent, or tenant; `actor_unauthorized` for a denied resolved actor, where {{Section 4.3.4.3 of ID-JAG}} profiles `access_denied` for a client or user that is not authorized | {{issuance-errors}} |
-| Redemption errors | `invalid_grant` for an unresolved or disabled user or an uncorrelated or disabled agent, and `actor_unauthorized` for a refused delegation, where {{Section 4.4.3 of ID-JAG}} profiles `access_denied` for a valid ID-JAG that is not authorized | {{redemption-errors}} |
+| Redemption errors | `invalid_grant` for an unresolved or disabled user or an uncorrelated or disabled agent, where {{Section 4.4.3 of ID-JAG}} profiles `access_denied` for a valid ID-JAG that is not authorized; `actor_unauthorized` for an actor-gate refusal | {{redemption-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
 {: title="Additions and narrowings to the base specifications"}
 

@@ -612,7 +612,7 @@ that configuration applies mutual TLS regardless of any DPoP proof.
 When RAS policy requires approval and the RAS does not defer, it MUST
 NOT issue a token. It rejects the redemption with the error it returns
 when its own policy refuses a redemption ("Redemption Errors" in
-{{FEDERATION}}): `actor_unauthorized` for an ID-JAG and
+{{FEDERATION}}): `access_denied` for an ID-JAG and
 `invalid_target` for a WAG. The response therefore does not reveal
 that an approval could be obtained. A client that can wait and handle a
 deferred response can include `deferred` on every redemption that RAS
@@ -1203,8 +1203,8 @@ Each case changes this variant as stated; all other checks succeed.
 
 | Changed condition | Checked by | Required result |
 |---|---|---|
-| The redemption omits `completion_mode=deferred` | RAS | HTTP 400, `actor_unauthorized`; no token and no deferred response |
-| The resource is configured for mutual-TLS access tokens | RAS | HTTP 400, `actor_unauthorized`; no deferral |
+| The redemption omits `completion_mode=deferred` | RAS | HTTP 400, `access_denied`; no token and no deferred response |
+| The resource is configured for mutual-TLS access tokens | RAS | HTTP 400, `access_denied`; no deferral |
 | A poll proves another key | RAS | HTTP 400, `invalid_dpop_proof` |
 | The grant's `exp` passes while the redemption is pending, and the steward then approves | RAS | The access token issues at the next poll |
 | The maximum pending lifetime is 24 hours, and the steward approves nine hours after receipt | RAS | `expires_in` was at most eight hours; HTTP 400, `expired_token`; no token |

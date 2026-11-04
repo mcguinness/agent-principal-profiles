@@ -274,10 +274,12 @@ long each intervention takes to reach the target. For approval of
 actions, the API or MCP server holds the call until an approver decides.
 
 *Exit checks:*
-* Where policy requires approval, a request or redemption without
-  `completion_mode=deferred` fails with `actor_unauthorized` for a
-  delegated grant or `invalid_target` for a self-acting one, and nothing
-  is issued and no deferred response is returned.
+* Where policy requires approval, a request without
+  `completion_mode=deferred` fails at the IdP with `actor_unauthorized`
+  for a delegated grant or `invalid_target` for a self-acting one, and a
+  redemption without it fails at the RAS with `access_denied` for an
+  ID-JAG or `invalid_target` for a WAG. Nothing is issued and no
+  deferred response is returned.
 * The approver authenticates at the strength policy requires and sees
   the agent, the user, the client, the target, and the authority as the
   deferring server resolved them, the IdP for issuance and the RAS for

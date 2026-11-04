@@ -845,9 +845,11 @@ class RAS(Server):
             if not asked or not set(asked) <= set(grant_scope.split()):
                 raise OAuthError("invalid_scope")
             scope = " ".join(asked)
+        # A grant whose resource this RAS does not govern (core: Token
+        # Endpoint Errors; ID-JAG Section 4.4.1).
         config = self.resources.get(resource)
         if config is None:
-            raise OAuthError("invalid_target")
+            raise OAuthError("invalid_grant", description="resource not governed")
         # Local authorization: user, agent correlation, actor gate.
         user = self.user_links.get((claims["iss"], config["tenant"], claims["sub"]))
         if user is None:
@@ -864,7 +866,7 @@ class RAS(Server):
         # Redemption Errors), before access-token protection is considered.
         if self.on("ras.approval_gate") and set(scope.split()) & self.approval_required:
             if not deferred or jkt is None or config["protection"] != "dpop":
-                raise OAuthError("actor_unauthorized", description="RAS policy requires approval")
+                raise OAuthError("access_denied", description="RAS policy requires approval")
             raise Deferred(self.defer(form, digest, grant_key, claims, client_id, jkt, act,
                                       user, config, resource, scope, now))
         if config["protection"] == "dpop" and jkt is None:
