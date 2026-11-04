@@ -760,9 +760,9 @@ The onward ID-JAG uses the format and claims of
 {{Section 5.5.5 of ICA}} applies to the onward ID-JAG and to the IdP's
 hop records, including immutable parent references, ancestry that
 excludes sibling branches, and the merging of consecutive identical
-actors that the actor-lineage depth bound counts. Two of its rules are
-replaced: {{identity-preservation}} replaces the `act` it emits, and
-{{target-processing}} its redemption grant type. The continuing clients
+actors that the actor-lineage depth bound counts. One of its rules is
+replaced: {{identity-preservation}} replaces the `act` it emits. The
+continuing clients
 that its lineage would place in `act` appear in `continuation_via`
 instead.
 

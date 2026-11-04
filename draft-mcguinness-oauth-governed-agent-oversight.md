@@ -825,9 +825,9 @@ without deferral, for the approved authority:
   response's `scope` reports it.
 
 The successful polling response is the token response that the
-redemption would have returned ({{Section 5.5.2 of DTR}}); the JWT
-bearer grant defines no `issued_token_type`. The access token MAY carry
-`txn` for audit
+redemption would have returned ({{Section 5.5.2 of DTR}}); neither JWT
+grant type, `jwt-bearer` or `jwt-dpop`, defines an `issued_token_type`.
+The access token MAY carry `txn` for audit
 correlation, as a grant may ({{resolution}}); an API MUST NOT treat it
 as evidence of approval or as authority.
 

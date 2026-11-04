@@ -106,10 +106,12 @@ one new ID-JAG. The core keeps `invalid_grant` for an unresolved or
 disabled user and an uncorrelated or disabled agent (#59), and
 `actor_unauthorized` for a refused delegation (`redemption-errors`). A
 generic ID-JAG client therefore requests one more ID-JAG before it
-stops. At the IdP the core follows Section 4.3.4.3 of ID-JAG-06:
-`invalid_request` for an invalid subject or agent-resolution
-credential, and `invalid_grant` only for a valid credential that
-resolves no user, binding, agent, or tenant (`issuance-errors`).
+stops. At the IdP the core follows Section 4.3.4.3 of ID-JAG-06 for an
+invalid subject or agent-resolution credential (`invalid_request`). It
+keeps `invalid_grant` for a valid credential that resolves no user,
+binding, agent, or tenant, and `actor_unauthorized`, not
+`access_denied`, for a missing Delegation Authorization
+(`issuance-errors`); Section 4.3.4.3 permits any code.
 
 #### Grant Replay and Re-redemption
 
@@ -362,10 +364,10 @@ OAuth deployment. These profiles need the same identity model:
   the request is pending substitutes another principal. Under
   `external-approval`, approval satisfies a condition and never
   replaces identity resolution, the Client Association, or the
-  delegation. AROP should state this; naming the JWT bearer grant
-  (RFC 7523) as an originating grant would make the mapping
-  explicit. The oversight companion already requires it for deferred
-  redemption at the RAS (`redemption-deferring`).
+  delegation. AROP should state this; naming the JWT grant types
+  (RFC 7523 and JWT DPoP Grant) as originating grants would make the
+  mapping explicit. The oversight companion already requires it for
+  deferred redemption at the RAS (`redemption-deferring`).
 * **Approval binds the governed request.** ARAP binds an approval to
   the Subject, Resource, Action, and authorization-relevant Context of
   the denied evaluation, but its default comparison excludes

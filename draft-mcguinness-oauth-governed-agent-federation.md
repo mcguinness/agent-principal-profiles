@@ -215,8 +215,10 @@ message:
 1. To the IdP token endpoint, an OAuth Token Exchange request
    {{RFC8693}} ({{issuance-request}}). The IdP returns the grant: a
    short-lived JWT, signed by the IdP, for one resource at one RAS.
-2. To the RAS token endpoint, presenting the grant with the JWT bearer
-   grant type ({{redemption-request}}). The RAS returns an access token.
+2. To the RAS token endpoint, presenting the grant with the `jwt-dpop`
+   grant type if it is bound to the client's key, or the JWT bearer
+   grant type if not ({{redemption-request}}). The RAS returns an
+   access token.
 3. To the API, with the access token ({{api-processing}}).
 
 ~~~
@@ -1870,8 +1872,8 @@ validation failure MUST NOT trigger a weaker mode.
 A proof never selects a protection that configuration does not permit.
 The RAS selects access-token protection only after the checks of
 {{grant-protection}} succeed, so a bound grant redeemed without its
-proof fails with `invalid_grant` whatever protection the resource
-requires.
+proof fails as {{grant-protection}} specifies, with `invalid_grant` or
+`invalid_dpop_proof`, whatever protection the resource requires.
 
 | Selected protection | Access token |
 |---|---|
@@ -2311,9 +2313,9 @@ metadata under {{Section 8 of ID-JAG}}, including when supplied through
 CIMD. Its `grant_types` MUST permit:
 
 * `urn:ietf:params:oauth:grant-type:token-exchange` at the IdP.
-* At the RAS, `urn:ietf:params:oauth:grant-type:jwt-dpop` for grants
-  containing `cnf`, and `urn:ietf:params:oauth:grant-type:jwt-bearer`
-  for grants without it.
+* `urn:ietf:params:oauth:grant-type:jwt-bearer` at the RAS, and
+  `urn:ietf:params:oauth:grant-type:jwt-dpop` there when the client
+  redeems grants containing `cnf`.
 
 ### Capability Discovery {#capability-discovery}
 
@@ -2444,8 +2446,8 @@ Credential classification and mutually exclusive validation follow
 alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.
 
-Both grants are JWTs redeemed with the same grant type, so the RAS tells
-them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
+Both grants are JWTs redeemed with the same JWT grant types, so the RAS
+tells them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
 ({{Section 3.1 of ID-JAG}}) and `oauth-wag+jwt` for a WAG
 ({{wag-redemption}}).
 
@@ -2947,7 +2949,7 @@ last column is the required result. Token endpoint errors follow
 | The grant's `scope` claim is missing, empty, or not a string | RAS | HTTP 400, `invalid_grant` ({{redemption-common}}) |
 | The RAS has no authorized correlation for `agent-42`, or `agent-42` is disabled there | RAS | HTTP 400, `invalid_grant`, not `actor_unauthorized` ({{redemption-errors}}) |
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
-| Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
+| Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant` or `invalid_dpop_proof`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
 | Governed agent access: the grant has no `cnf`, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key | RAS | HTTP 400, `invalid_grant`; an access-token proof does not make an unbound grant reusable ({{redemption-common}}) |
 | Self-acting variant ({{wag-example}}) under governed agent access: the WAG has no `cnf`, was redeemed once, and is presented again | RAS | HTTP 400, `invalid_grant`; an unbound WAG is single-use ({{redemption-common}}) |
@@ -3132,10 +3134,10 @@ referenced sections define each requirement.
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Grant binding | `cnf.jkt` from a DPoP proof, redeemed with `jwt-dpop`; no `x5t#S256` certificate binding ({{Section 9.11.2 of ID-JAG}}) | {{grant-protection}}, {{redemption-request}} |
-| Redemption client authentication | Required for every grant, including a bound grant, which {{Section 4.4 of ID-JAG}} lets stand in for it | {{redemption-common}} |
+| Redemption client authentication | Required for every grant, including a bound grant; {{Section 4.4 of ID-JAG}} lets a bound ID-JAG stand in for it, and {{Section 4.1 of JWT-DPOP-GRANT}} makes it optional | {{redemption-common}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
-| Error processing | `invalid_grant`, not RFC 8693's `invalid_request`, for a valid subject or actor credential that resolves no user or no active binding, agent, or tenant; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
+| Error processing | `invalid_grant`, not RFC 8693's `invalid_request`, for a valid subject or actor credential that resolves no user or no active binding, agent, or tenant; `actor_unauthorized` for a denied resolved actor, where {{Section 4.3.4.3 of ID-JAG}} profiles `access_denied` for a client or user that is not authorized | {{issuance-errors}} |
 | Redemption errors | `invalid_grant` for an unresolved or disabled user or an uncorrelated or disabled agent, and `actor_unauthorized` for a refused delegation, where {{Section 4.4.3 of ID-JAG}} profiles `access_denied` for a valid ID-JAG that is not authorized | {{redemption-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
 {: title="Additions and narrowings to the base specifications"}
@@ -3147,7 +3149,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 |---|---|---|
 | Issuer | The Workload Identity Provider of the Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
 | Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
-| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
+| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile; a bound WAG is redeemed with `jwt-dpop`, where {{Section 5 of WAG}} uses `jwt-bearer` ({{redemption-request}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |

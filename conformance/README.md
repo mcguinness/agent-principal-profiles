@@ -481,8 +481,8 @@ Some cases depend on choices made for the reference:
 
 The suite tests nothing outside the path above, including:
 
-* governed agent access with unbound grants, except as the setup for N10
-  and D08;
+* governed agent access with unbound grants, except as the setup for
+  N10, N30, and D08;
 * existing platform JWTs and the inputs of the inputs draft;
 * WAG issuance and redemption, including deferred WAG redemption, the
   removal of a pending WAG redemption's correlation, and the WAG rows of
@@ -641,8 +641,8 @@ that settled it.
    asserts it.
 5. **Check order for a bound redemption without a proof.** Resolved.
    The core's Access-Token Protection states that Grant Protection's
-   checks come first, so N11's `invalid_grant` no longer depends on the
-   reference's order.
+   checks come first, so N11's result, `invalid_grant` or
+   `invalid_dpop_proof`, no longer depends on the reference's order.
 6. **The API's error for a user-authority denial.** Resolved, with
    questions 7 and 8. The core's Error Responses defines the selection
    order, the no-code 403 and the 503. A user-permission denial is HTTP

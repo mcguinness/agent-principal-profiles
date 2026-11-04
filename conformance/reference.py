@@ -780,6 +780,9 @@ class RAS(Server):
     def redeem(self, environ, form, grant_type=JWT_BEARER):
         client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
         jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
+        # JWT DPoP Grant Section 5, step 1: jwt-dpop requires a DPoP proof.
+        if grant_type == JWT_DPOP and jkt is None and self.on("ras.require_proof"):
+            raise OAuthError("invalid_dpop_proof", description="jwt-dpop requires a DPoP proof")
         assertion = _one(form, "assertion")
         deferred = form.get("completion_mode") == ["deferred"]
         # Recovery (oversight: Recovery) matches the byte-identical grant
