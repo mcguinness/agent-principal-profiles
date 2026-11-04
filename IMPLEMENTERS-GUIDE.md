@@ -474,7 +474,7 @@ and N30.
   * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
     or restricted;
   * a grant whose resource has no Target Tenant that the RAS can
-    determine, or is not governed for it.
+    determine unambiguously, or is not governed for it.
 * `actor_unauthorized`, with HTTP 400: the actor gate refuses an
   ID-JAG's agent for the user.
 * `access_denied`: other current RAS policy refuses a valid ID-JAG,
@@ -543,11 +543,13 @@ applies.
   [Redemption Resolution][ov-redemption-resolution]; [Refresh and
   Continuation][ov-redemption-refresh]; cases D01 to D22, at the RAS
   only):
-  * When policy requires approval, a request without the opt-in, or one
-    the RAS cannot defer, gets the ordinary refusal:
-    `actor_unauthorized` for a delegated grant, `invalid_target` for a
-    self-acting one. Without such a policy, a request without the
-    opt-in can succeed at once.
+  * When policy requires approval, a request without the opt-in gets
+    the IdP's ordinary refusal: `actor_unauthorized` for a delegated
+    grant, `invalid_target` for a self-acting one. A redemption without
+    the opt-in, or one the RAS cannot defer, gets the RAS's ordinary
+    refusal: `access_denied` for an ID-JAG, `invalid_target` for a WAG.
+    Without such a policy, a request without the opt-in can succeed at
+    once.
   * Polls: `authorization_pending` or `slow_down` while pending; then
     `access_denied`, `expired_token`, or, for a poll with another key,
     `invalid_dpop_proof`.
