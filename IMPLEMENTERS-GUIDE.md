@@ -188,7 +188,7 @@ configuration object types are prescribed.
   access to the RAS, resource, and authority, for self-acting issuance.
 * **Client registration association** (per target RAS): the
   authoritative mapping from the authenticated client to that client's
-  registration at the RAS (Section 5 of [ID-JAG]). The IdP derives the
+  registration at the RAS (Section 5.1 of [ID-JAG]). The IdP derives the
   grant's `client_id` from it ([Issuance
   Prerequisites][flow-configuration]). No companion profile provisions
   it. If the client uses one identifier at both servers, that mapping is
@@ -1541,7 +1541,7 @@ agent cannot use the token directly.
 [INPUTS]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [AGENT-MANAGEMENT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
-[ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04
+[ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06
 [CIMD]: https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/
 [SCIM-AGENT]: https://datatracker.ietf.org/doc/draft-wzdk-scim-agent-resource/
 [RFC7643]: https://www.rfc-editor.org/rfc/rfc7643

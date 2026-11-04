@@ -96,8 +96,9 @@ dependency on JWT DPoP Grant.
 
 #### Grant Replay and Re-redemption
 
-Section 4.4.3 of ID-JAG lets a client re-submit an unexpired ID-JAG for
-a new access token, and Section 9 of WAG leaves replay open. This
+Section 4.4.4 of ID-JAG lets a client re-submit an unexpired ID-JAG for
+a new access token, and lets the RAS instead accept each ID-JAG only
+once by tracking its `jti`. Section 9 of WAG leaves replay open. This
 profile decides by the grant's own binding (`redemption-common`): an
 unbound grant is single-use, and the RAS may accept a bound grant again
 under explicit policy with a fresh proof matching its `cnf.jkt`.
@@ -157,7 +158,7 @@ authentication context and an approved Identity Binding, without
 or the SPIFFE and Client Attestation identities defined in
 `INPUTS`.
 ID-JAG makes that parameter optional and leaves actor processing to
-extensions (Section 9.7 of ID-JAG); its omission alone does not establish
+extensions (Section 9.10 of ID-JAG); its omission alone does not establish
 this composition.
 
 Appendix A.1 of `RFC8693` describes a subject-only request as

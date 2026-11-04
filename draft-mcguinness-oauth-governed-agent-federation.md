@@ -37,7 +37,7 @@ normative:
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   INSTANCE: I-D.mcguinness-oauth-client-instance-id
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
-  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-04
+  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   RFC7523bis: I-D.ietf-oauth-rfc7523bis
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   OPENID:
@@ -721,7 +721,7 @@ The client identifier MUST NOT stand in for the actor in authorization.
 ## Delegated Access with ID-JAG {#delegated-flow}
 
 This document profiles ID-JAG issuance and redemption through the actor
-extension point in {{Section 9.7 of ID-JAG}}. Where it is silent, ID-JAG
+extension point in {{Section 9.10 of ID-JAG}}. Where it is silent, ID-JAG
 applies unchanged.
 
 ### Relationship to Base Specifications {#profile-additions}
@@ -736,7 +736,7 @@ relationships open:
    OAuth clients, not the agents a shared client serves.
 2. How authority to use that principal is separated from identity
    resolution. ID-JAG leaves two things to extensions
-   ({{Section 9.7 of ID-JAG}}): validating and authorizing an actor,
+   ({{Section 9.10 of ID-JAG}}): validating and authorizing an actor,
    and relating client, subject, and actor.
 3. How the resulting principal is represented and correlated across
    authorization domains. {{RFC8693}} defines the `act` claim. It does
@@ -810,10 +810,10 @@ In both profiles:
   {{RFC9449}}. An endpoint that does not support DPoP MUST reject a
   request containing a DPoP proof with `invalid_request`; it MUST NOT
   silently ignore the proof. At issuance, a valid proof MUST result in
-  `cnf.jkt` binding of the grant, as in {{Section 9.8.1.1 of ID-JAG}}.
+  `cnf.jkt` binding of the grant, as in {{Section 9.11.1.1 of ID-JAG}}.
 * **Bound grant:** A grant containing `cnf` MUST have a valid, supported
   `jkt` binding. The RAS MUST require a fresh DPoP proof whose public
-  key thumbprint matches exactly, as in {{Section 9.8.1.2 of ID-JAG}}.
+  key thumbprint matches exactly, as in {{Section 9.11.1.2 of ID-JAG}}.
   Missing proof, missing required binding, unsupported confirmation, or
   key mismatch MUST fail with `invalid_grant`.
 * **Unbound grant:** When policy permits a grant without `cnf`, the
@@ -952,7 +952,7 @@ identity, client, delegation, and target relationships ({{model}});
 **Downstream client:** The IdP MUST derive the grant's `client_id` from
 an authoritative association between the authenticated IdP client and
 that client's registration at the target RAS
-({{Section 5 of ID-JAG}}). This client registration association is not
+({{Section 5.1 of ID-JAG}}). This client registration association is not
 a Client Association. If the client uses one identifier at both servers,
 such as a Client ID Metadata Document (CIMD) Client Identifier URL
 {{CIMD}}, the association is the identity mapping. A client-supplied downstream client identifier MUST NOT
@@ -1344,7 +1344,7 @@ The ID-JAG is also limited by its subject credential
 WAG, `issued_token_type` is the WAG token type. For a bound grant, the
 client MUST retain the DPoP key for redemption and SHOULD inspect
 the grant to confirm that `cnf.jkt` identifies that key
-({{Section 9.8.1.1 of ID-JAG}}).
+({{Section 9.11.1.1 of ID-JAG}}).
 
 ## Delegated Issuance: ID-JAG {#exchange-request}
 
@@ -1618,7 +1618,7 @@ REQUIRED unless marked OPTIONAL:
 | `scope` | OPTIONAL subset of the grant's scope; if omitted, the grant's scope is the upper bound |
 {: title="Redemption request parameters"}
 
-The confirmation checks of {{Section 9.8.1.2 of ID-JAG}} apply to this
+The confirmation checks of {{Section 9.11.1.2 of ID-JAG}} apply to this
 grant type ({{upstream-gaps}}).
 
 ## Common Grant Validation {#redemption-common}
@@ -1652,10 +1652,11 @@ it has already accepted while that grant remains acceptable. A proof
 used only for client authentication or access-token binding is not such
 a constraint. The RAS MAY accept a bound grant again under explicit
 policy, each time with a fresh proof that matches its `cnf.jkt`
-({{grant-protection}}). This narrows re-submission under
-{{Section 4.4.3 of ID-JAG}} for unbound ID-JAGs, and settles for the WAG
-the replay question that {{Section 9 of WAG}} leaves open. The retention
-rule of {{time-validation}} applies to accepted identifiers.
+({{grant-protection}}). This applies to unbound ID-JAGs the single-use
+option of {{Section 4.4.4 of ID-JAG}} in place of re-submission, and
+settles for the WAG the replay question that {{Section 9 of WAG}}
+leaves open. The retention rule of {{time-validation}} applies to
+accepted identifiers.
 
 ## Agent Principal Correlation {#agent-correlation}
 
@@ -2119,7 +2120,7 @@ or grant for the current context ({{implementation-client}}).
 ## Optional RAS Refresh Tokens {#ras-refresh}
 
 **Issuance:** The RAS SHOULD NOT issue refresh tokens, retaining
-{{Section 4.4.3 of ID-JAG}}, but MAY do so for authorized long-running
+{{Section 4.4.4 of ID-JAG}}, but MAY do so for authorized long-running
 work under explicit policy. A WAG redemption never yields a refresh
 token ({{wag-redemption}}).
 
