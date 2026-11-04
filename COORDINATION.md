@@ -37,7 +37,7 @@ Response section; it is not yet assessed.
 #### WAG
 
 In WAG-02 a Workload Identity Provider, the Platform's issuing
-component, signs the grant (Section 2 of WAG). `wag-issuance` defines
+component, issues the grant (Section 2 of WAG). `wag-issuance` defines
 issuance by an IdP acting as that Workload Identity Provider, with the
 token exchange that Section 5 of WAG anticipates.
 
@@ -52,6 +52,11 @@ three. The core uses them (`wag-claims`, `wag-redemption`,
 
 Coordination is needed on:
 
+* **Issuer metadata:** WAG defines no metadata for the issuer. The core
+  has the IdP advertise the WAG token type in
+  `identity_chaining_requested_token_types_supported`
+  (Section 7.1 of ID-JAG), a use that neither WAG nor ID-JAG defines
+  (`server-metadata`).
 * **Protection:** WAG-02 is a bearer grant; Section 9 of WAG lists proof
   of possession as open. This document proposes DPoP binding at issuance and redemption
   under `grant-protection`.

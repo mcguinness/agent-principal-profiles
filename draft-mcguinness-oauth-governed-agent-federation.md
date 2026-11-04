@@ -3137,7 +3137,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 
 ### WAG {#wag-gaps}
 
-In WAG terms, the IdP is the Workload Identity Provider that signs the
+In WAG terms, the IdP is the Workload Identity Provider that issues the
 grant ({{Section 2 of WAG}}), and {{wag-issuance}} defines that issuance
 with the token exchange that {{Section 5 of WAG}} anticipates. Open
 items are:

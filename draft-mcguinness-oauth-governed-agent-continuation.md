@@ -1019,9 +1019,9 @@ of {{root-redemption}}, and redemption of onward grants with
 support. A RAS lists ICA's
 `urn:ietf:params:oauth:grant-profile:id-jag-continuation`, with the
 requirements of {{Section 7.2 of ICA}}, only if it also binds handles of
-chains established without this document. As for the self-acting
-profile URIs of {{FEDERATION}}, use of this parameter for WAGs awaits
-coordination ({{dependencies}}).
+chains established without this document. Listing
+`governed-agent-continuation` for WAGs in this parameter, which
+{{Section 8 of WAG}} also uses, awaits coordination ({{dependencies}}).
 
 An IdP that supports delegated continuation advertises
 `identity_continuation_supported` ({{Section 7.1 of ICA}}), which
@@ -1796,7 +1796,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 |---|---|---|
 | ICA | The changes of {{ica-changes}}, and a forwarding disclosure mode with `continuation_via` for chains in general | This document applies them to governed chains and defines `continuation_via` itself |
 | ID-JAG | {{Section 4.4 of ID-JAG}} requires `jwt-bearer`, while its key-bound example uses `jwt-dpop`, which {{Section 5.5.5 of ICA}} follows | Onward grants are redeemed with `jwt-bearer` under {{FEDERATION}} |
-| WAG | A WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | `governed-agent-continuation` is advertised for WAGs in the ID-JAG metadata parameter pending coordination |
+| WAG | A WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | Listing `governed-agent-continuation` for WAGs awaits coordination |
 | {{AGENT-MANAGEMENT}} | Administration of Continuation Associations and of an authorization's permission to continue | Configured by each deployment |
 {: title="Dependencies"}
 
