@@ -437,11 +437,11 @@ cases N01 to N09, N21, N22, N25, and N28.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
-* `invalid_request`: a malformed request, or a missing DPoP proof under
-  the bound profile.
-* `invalid_grant`: an invalid subject credential or agent-resolution
-  input, or no resolvable binding, active Agent Principal, or
-  Governance Tenant.
+* `invalid_request`: a malformed request, a missing DPoP proof under
+  the bound profile, or an invalid subject credential or
+  agent-resolution input.
+* `invalid_grant`: a valid credential that resolves no user, or no
+  binding, active Agent Principal, or Governance Tenant.
 * `actor_unauthorized`, with HTTP 400: no Client Association permits
   the binding; no applicable Delegation Authorization covers the agent,
   user, client, and target; or policy categorically prohibits the agent.
@@ -549,8 +549,9 @@ applies.
   * At a CAI, a token from a deferred redemption: `invalid_request`.
 
 A client recovers as the core's [recovery list][implementation-client]
-describes: at most one bounded attempt after `invalid_client` or
-`invalid_grant`, a corrected request after `invalid_scope` or the
+describes: at most one bounded attempt after `invalid_client`, after an
+IdP `invalid_request` for a request that previously succeeded, or after
+a RAS `invalid_grant`; a corrected request after `invalid_scope` or the
 rejection of an invalid argument, a token with more authority after
 `insufficient_scope`, a retry after a 503, and otherwise no automatic
 retry of the unchanged request. After

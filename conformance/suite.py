@@ -774,7 +774,7 @@ def n04(ctx):
       "core: Subject Token Validation; ID-JAG Section 4.3.3",
       defeats=("idp.id_token_audience",))
 def n05(ctx):
-    expect_error(ctx.client.exchange(ctx.id_token(aud="another-client")), 400, "invalid_grant")
+    expect_error(ctx.client.exchange(ctx.id_token(aud="another-client")), 400, "invalid_request")
 
 
 @case("N06", "IdP", "Rejects issuance when the Identity Binding is disabled",
@@ -917,7 +917,7 @@ HOUR = 3600
 def n21(ctx):
     now = int(time.time())
     id_token = ctx.id_token(claims={"iat": now + HOUR, "exp": now + HOUR + 3900})
-    expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
+    expect_error(ctx.client.exchange(id_token), 400, "invalid_request")
 
 
 @case("N22", "IdP", "Rejects a client assertion whose nbf is an hour in the future",

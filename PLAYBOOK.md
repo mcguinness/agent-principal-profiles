@@ -666,7 +666,7 @@ a Client Association permits the shared client to use that binding. The
 core's [AWS example][core-aws-example] shows the input.
 
 * **Extra tests:** a platform JWT that fails validation is rejected
-  with `invalid_grant`, with no retry from the client's authentication
+  with `invalid_request`, with no retry from the client's authentication
   or another credential class; and a token the client holds for
   `agent-42` is not reused for another agent with the same scope.
 
@@ -974,7 +974,7 @@ stay revoked, and ended continuation chains stay ended.
        in step 1.
 * **Verification:** authentication with the retired client key fails
   with `invalid_client`, and a platform JWT signed with the retired key
-  fails with `invalid_grant`; the new key resolves the agent again.
+  fails with `invalid_request`; the new key resolves the agent again.
   Revoking the credential does not retire the Agent Principal, and an
   agent with other valid bindings keeps them.
 * **Residual access:** grants already issued, until they expire, and

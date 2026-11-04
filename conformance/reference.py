@@ -527,17 +527,22 @@ class IdP(Server):
             "token_type": "N_A", "expires_in": exp - now, "scope": claims["scope"]})
 
     def validate_id_token(self, token, client_id):
+        # An invalid subject credential is invalid_request (RFC 8693 Section
+        # 2.2.2; core: Issuance Errors); a valid one naming no known user is
+        # a user resolution failure, invalid_grant.
         try:
             _, claims = jws.verify(token, self.key.public_key(), "RS256")
         except ValueError:
-            raise OAuthError("invalid_grant")
+            raise OAuthError("invalid_request")
         aud = claims.get("aud")
         audiences = aud if isinstance(aud, list) else [aud]
-        if claims.get("iss") != self.issuer or claims.get("sub") not in self.users or \
+        if claims.get("iss") != self.issuer or \
                 not _time_valid(claims, require_iat=True,
                                 check_future=self.on("idp.id_token_time"), now=self.now()):
-            raise OAuthError("invalid_grant")
+            raise OAuthError("invalid_request")
         if client_id not in audiences and self.on("idp.id_token_audience"):
+            raise OAuthError("invalid_request")
+        if claims.get("sub") not in self.users:
             raise OAuthError("invalid_grant")
         return claims["sub"], claims["exp"]
 

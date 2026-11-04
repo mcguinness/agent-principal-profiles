@@ -69,7 +69,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
 | N04 | IdP | Two `resource` parameters fail with `invalid_target` | core: Token Exchange Request | None |
-| N05 | IdP | An ID Token issued to another client fails with `invalid_grant` | core: Subject Token Validation | ID Token for another audience |
+| N05 | IdP | An ID Token issued to another client fails with `invalid_request` | core: Subject Token Validation | ID Token for another audience |
 | N06 | IdP | A disabled Identity Binding fails with `invalid_grant` | core: negative-test row | Disable the binding |
 | N07 | IdP | A disabled Agent Principal fails with `invalid_grant` | core: Issuance Errors; PLAYBOOK runbook | Disable the agent |
 | N08 | IdP | No Client Association fails with `actor_unauthorized` | core: negative-test row | Remove the association |
@@ -85,7 +85,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N18 | API | A delegated-population token without `act` fails with 401 `invalid_token` | core: negative-test row; Profile Applicability | Mint an access token |
 | N19 | API | A request proven with another key fails with 401 `invalid_token` | core: Token Validation; RFC 9449 Section 7.1 | None |
 | N20 | API | A closed actor gate fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Error Responses | Close the actor gate at the API |
-| N21 | IdP | An ID Token whose `iat` is an hour ahead fails with `invalid_grant` | core: Time, Replay, and Key Validation | ID Token with chosen claims |
+| N21 | IdP | An ID Token whose `iat` is an hour ahead fails with `invalid_request` | core: Time, Replay, and Key Validation | ID Token with chosen claims |
 | N22 | IdP | A client assertion whose `nbf` is an hour ahead fails with `invalid_client` | RFC 7523 Section 3; core: Time, Replay, and Key Validation | None |
 | N23 | RAS | A grant whose `nbf` is an hour ahead fails with `invalid_grant` | RFC 7523 Section 3; core: Time, Replay, and Key Validation | Mint a grant |
 | N24 | API | An access token whose `iat` is an hour ahead fails with 401 `invalid_token` | core: Time, Replay, and Key Validation; RFC 9068 Section 4 | Mint an access token |
