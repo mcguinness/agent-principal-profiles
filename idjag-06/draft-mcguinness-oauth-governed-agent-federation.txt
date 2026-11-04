@@ -2886,8 +2886,8 @@ Table of Contents
          server, a client can make one recovery attempt with a new grant
          for the same identity and client (Section 4.4.4 of [ID-JAG]).
          The code does not say which check failed (Section 11.3), and
-         renewal cannot repair a disabled agent, a missing proof, or a
-         malformed grant.
+         renewal cannot repair a disabled agent, a missing proof, a
+         resource the RAS does not govern, or a malformed grant.
 
       -  invalid_scope: the client corrects the requested scope using
          authority it knows is permitted.  Reducing a request helps only
