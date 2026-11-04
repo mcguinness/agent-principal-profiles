@@ -14,7 +14,7 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 ## Dependencies and Deferred Work
 
 These notes record dependencies and deferred work.
-Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
+Assessed revisions: WAG-02, ID-JAG-04, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
 Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 
@@ -26,7 +26,7 @@ Response section; it is not yet assessed.
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
+| WAG | Alignment on protection, linking, and subject presentation (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
@@ -36,33 +36,37 @@ Response section; it is not yet assessed.
 
 #### WAG
 
-In WAG-01 the Platform signs the grant (Section 2 of WAG).
-`wag-issuance` defines issuance by an IdP acting as that Platform.
+In WAG-02 a Workload Identity Provider, the Platform's issuing
+component, signs the grant (Section 2 of WAG). `wag-issuance` defines
+issuance by an IdP acting as that Workload Identity Provider, with the
+token exchange that Section 5 of WAG anticipates.
+
+Resolved in WAG-02: Section 5.1 of WAG defines the JWT type
+`oauth-wag+jwt`, which an authorization server must check (Section 6.1);
+Section 5 names the token type `urn:ietf:params:oauth:token-type:wag`
+for token exchange issuance; Section 8 advertises
+`urn:ietf:params:oauth:grant-profile:wag` in
+`authorization_grant_profiles_supported`; and Section 11 registers all
+three. The core uses them (`wag-claims`, `wag-redemption`,
+`server-metadata`).
+
 Coordination is needed on:
 
-* **Identifiers:** WAG-01 defines neither a token type nor an explicit
-  JWT type. Section 8 of WAG lists the JWT type as open, and Section 9
-  notes the risk of another JWT being taken for the grant. This document
-  uses `urn:ietf:params:oauth:token-type:wag` and `wag+jwt` as
-  provisional values and requires the RAS to check the JWT type.
-  Registering them needs agreement. Advertising them and the self-acting
-  profile URIs in ID-JAG's metadata parameters (`server-metadata`)
-  also needs agreement.
-* **Protection:** WAG-01 is a bearer grant; Section 8 of WAG lists proof
+* **Protection:** WAG-02 is a bearer grant; Section 9 of WAG lists proof
   of possession as open. This document proposes DPoP binding at issuance and redemption
   under `grant-protection`.
 * **Linking:** WAG accepts previously unseen agents on their first
-  assertion (Section 3 of WAG), and Section 9 lets an authorization
+  assertion (Section 3 of WAG), and Section 10 lets an authorization
   server cap new agents. Governed agents
   instead require an authorized local correlation, established in
   advance or, where resource policy permits, just in time
   (`wag-redemption`).
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
-  continuing self-acting access re-issues the grant. Section 5 of WAG-01
+  continuing self-acting access re-issues the grant. Section 5 of WAG-02
   adds that access tokens SHOULD NOT outlive the assertion by a
   significant period; this document leaves access-token lifetime to RAS
   policy. Decision pending: adopt the SHOULD, or state the difference.
-* **Client registration:** Section 5 of WAG-01 says an authorization
+* **Client registration:** Section 5 of WAG-02 says an authorization
   server MUST NOT require a client registration per Agent. This
   document's mandatory path resolves the agent from a dedicated client,
   one Agent Principal per client identity at the IdP. Decision pending:
@@ -88,7 +92,7 @@ dependency on JWT DPoP Grant.
 #### Grant Replay and Re-redemption
 
 Section 4.4.3 of ID-JAG lets a client re-submit an unexpired ID-JAG for
-a new access token, and Section 8 of WAG leaves replay open. This
+a new access token, and Section 9 of WAG leaves replay open. This
 profile decides by the grant's own binding (`redemption-common`): an
 unbound grant is single-use, and the RAS may accept a bound grant again
 under explicit policy with a fresh proof matching its `cnf.jkt`.
@@ -637,11 +641,11 @@ rule that stays local to the profile:
 ### WAG
 
 * A WAG that carries `identity_continuation_handle`, and a WAG issued by
-  an IdP on a continuation exchange rather than from the Platform's own
-  assertion (Section 2 of WAG).
-* Advertising `governed-agent-continuation` for WAGs in ID-JAG's
-  `authorization_grant_profiles_supported`, as for the core's
-  self-acting profile URIs (`wag-gaps` in the core).
+  an IdP on a continuation exchange rather than at the agent's own
+  request to its Workload Identity Provider (Section 3 of WAG).
+* Advertising `governed-agent-continuation` for WAGs in
+  `authorization_grant_profiles_supported`, the parameter that
+  Section 8 of WAG uses for `urn:ietf:params:oauth:grant-profile:wag`.
 
 ### Management
 
