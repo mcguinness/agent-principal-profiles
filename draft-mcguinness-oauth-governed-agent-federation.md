@@ -3113,9 +3113,9 @@ of this document ({{excluded-compositions}}).
 
 This informative appendix records how this document differs from its
 base specifications, what it depends on, and the compositions it does
-not define. They were assessed against WAG-02, ID-JAG-04, ICA-02, Actor
-Profile-01, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client Instance
-Identification-00.
+not define. They were assessed against WAG-02, ID-JAG-06, JWT DPoP
+Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11,
+CIMD-02, and Client Instance Identification-00.
 
 ## Differences from Base Specifications {#base-differences}
 
@@ -3131,9 +3131,12 @@ referenced sections define each requirement.
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
+| Grant binding | `cnf.jkt` from a DPoP proof, redeemed with `jwt-dpop`; no `x5t#S256` certificate binding ({{Section 9.11.2 of ID-JAG}}) | {{grant-protection}}, {{redemption-request}} |
+| Redemption client authentication | Required for every grant, including a bound grant, which {{Section 4.4 of ID-JAG}} lets stand in for it | {{redemption-common}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's `invalid_request`, for a valid subject or actor credential that resolves no user or no active binding, agent, or tenant; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
+| Redemption errors | `invalid_grant` for an unresolved or disabled user or an uncorrelated or disabled agent, and `actor_unauthorized` for a refused delegation, where {{Section 4.4.3 of ID-JAG}} profiles `access_denied` for a valid ID-JAG that is not authorized | {{redemption-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
 {: title="Additions and narrowings to the base specifications"}
 

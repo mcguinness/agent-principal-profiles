@@ -14,13 +14,10 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 ## Dependencies and Deferred Work
 
 These notes record dependencies and deferred work.
-Assessed revisions: WAG-02, ID-JAG-04, ICA-02, Actor
+Assessed revisions: WAG-02, ID-JAG-06, JWT DPoP Grant-02, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
 Identification-00, Client Attester Endorsement-00, and WISE draft 03.
-
-The drafts and the implementer's guide pin ID-JAG to -04. ID-JAG-06
-(2026-10-31) renumbers sections the drafts cite and adds an Error
-Response section; it is not yet assessed.
+The drafts pin WAG to -02, ID-JAG to -06, and JWT DPoP Grant to -02.
 
 ### Upstream Dependencies
 
@@ -98,6 +95,21 @@ core now redeems every grant containing `cnf` with `jwt-dpop`
 without a proof, Section 9.11.1.2.2 of ID-JAG returns `invalid_grant`
 and Section 5 of JWT DPoP Grant returns `invalid_dpop_proof`. The core
 permits either (`grant-protection`).
+
+#### ID-JAG Error Codes
+
+Section 4.4.3 of ID-JAG-06 profiles `invalid_grant` for an ID-JAG that
+fails validation and `access_denied` for a valid ID-JAG whose user or
+client is not authorized, and permits any other code. Section 4.4.4
+tells a client that gets `invalid_grant` on re-submission to request
+one new ID-JAG. The core keeps `invalid_grant` for an unresolved or
+disabled user and an uncorrelated or disabled agent (#59), and
+`actor_unauthorized` for a refused delegation (`redemption-errors`). A
+generic ID-JAG client therefore requests one more ID-JAG before it
+stops. At the IdP the core follows Section 4.3.4.3 of ID-JAG-06:
+`invalid_request` for an invalid subject or agent-resolution
+credential, and `invalid_grant` only for a valid credential that
+resolves no user, binding, agent, or tenant (`issuance-errors`).
 
 #### Grant Replay and Re-redemption
 

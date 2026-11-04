@@ -456,14 +456,17 @@ cases N01 to N09, N21, N22, N25, and N28.
 ### At the RAS
 
 [Redemption Errors][redemption-errors] and [Common Grant
-Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
+Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
+and N30.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
     non-string `scope` claim, or one presented by a client other than
     its `client_id`;
-  * for a bound grant, a missing proof or one of another key, and,
-    where the minimum profile requires binding, a grant without `cnf`;
+  * for a bound grant, a missing proof (or `invalid_dpop_proof`), one of
+    another key, or presentation with `jwt-bearer`; an unbound grant
+    presented with `jwt-dpop`; and, where the minimum profile requires
+    binding, a grant without `cnf`;
   * a prohibited replay: a grant without an enforced sender constraint
     that the RAS already accepted. A bound grant can be accepted again
     under explicit policy, each time with a fresh proof that matches its

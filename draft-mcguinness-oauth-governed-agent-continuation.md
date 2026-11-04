@@ -1746,7 +1746,7 @@ Each case changes the stated conditions; all other checks succeed.
 This informative appendix lists what this document changes in {{ICA}}
 and {{FEDERATION}} and needs from the specifications it profiles,
 assessed against
-ICA-02, ID-JAG-04, WAG-02, and the 2026-10-09 revision of
+ICA-02, ID-JAG-06, WAG-02, and the 2026-10-09 revision of
 {{FEDERATION}}.
 
 ## Changes to ICA {#ica-changes}
