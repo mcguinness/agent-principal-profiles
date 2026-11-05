@@ -89,7 +89,7 @@ informative:
   RFC6755:
   RFC7519:
   RFC7662:
-  WAG: I-D.carleton-workload-authz-grant
+  WAG: I-D.carleton-workload-authz-grant-02
 
 --- abstract
 
@@ -472,7 +472,7 @@ The common parameters and rules of "Token Exchange Request" in
 
 | Parameter | Value |
 |---|---|
-| `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` for a delegated chain; `urn:ietf:params:oauth:token-type:wag` (provisional) for a self-acting chain |
+| `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` for a delegated chain; `urn:ietf:params:oauth:token-type:wag` for a self-acting chain |
 | `audience` | One target RAS issuer identifier |
 | `resource` | Exactly one resource URI under {{RFC8707}}, served by the RAS named in `audience` |
 | `scope` | Non-empty scope string for the requested resource |
@@ -1019,9 +1019,9 @@ of {{root-redemption}}, and redemption of onward grants with
 support. A RAS lists ICA's
 `urn:ietf:params:oauth:grant-profile:id-jag-continuation`, with the
 requirements of {{Section 7.2 of ICA}}, only if it also binds handles of
-chains established without this document. As for the self-acting
-profile URIs of {{FEDERATION}}, use of this parameter for WAGs awaits
-coordination ({{dependencies}}).
+chains established without this document. Listing
+`governed-agent-continuation` for WAGs in this parameter, which
+{{Section 8 of WAG}} also uses, awaits coordination ({{dependencies}}).
 
 An IdP that supports delegated continuation advertises
 `identity_continuation_supported` ({{Section 7.1 of ICA}}), which
@@ -1500,7 +1500,7 @@ the gateway treats it as self-acting. With an assertion for this
 chain's handle, issued at 1789646585, the gateway requests a WAG. The
 self-acting Continuation Association, the Agent Authorization of
 `agent-42` for `files.read`, and the agent session all hold, and the
-IdP issues this onward WAG with `typ` `wag+jwt`:
+IdP issues this onward WAG with `typ` `oauth-wag+jwt`:
 
 ~~~ json
 {
@@ -1747,7 +1747,7 @@ Each case changes the stated conditions; all other checks succeed.
 This informative appendix lists what this document changes in {{ICA}}
 and {{FEDERATION}} and needs from the specifications it profiles,
 assessed against
-ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
+ICA-02, ID-JAG-04, WAG-02, and the 2026-10-09 revision of
 {{FEDERATION}}.
 
 ## Changes to ICA {#ica-changes}
@@ -1796,7 +1796,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 |---|---|---|
 | ICA | The changes of {{ica-changes}}, and a forwarding disclosure mode with `continuation_via` for chains in general | This document applies them to governed chains and defines `continuation_via` itself |
 | ID-JAG | {{Section 4.4 of ID-JAG}} requires `jwt-bearer`, while its key-bound example uses `jwt-dpop`, which {{Section 5.5.5 of ICA}} follows | Onward grants are redeemed with `jwt-bearer` under {{FEDERATION}} |
-| WAG | Registration of the provisional token type and JWT type; a WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | Provisional values; `governed-agent-continuation` is advertised for WAGs in the ID-JAG metadata parameter pending coordination |
+| WAG | A WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | Listing `governed-agent-continuation` for WAGs awaits coordination |
 | {{AGENT-MANAGEMENT}} | Administration of Continuation Associations and of an authorization's permission to continue | Configured by each deployment |
 {: title="Dependencies"}
 

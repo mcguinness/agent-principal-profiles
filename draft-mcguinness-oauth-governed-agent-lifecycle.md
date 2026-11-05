@@ -87,7 +87,7 @@ informative:
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   RFC7009:
-  WAG: I-D.carleton-workload-authz-grant
+  WAG: I-D.carleton-workload-authz-grant-02
 --- abstract
 
 This document profiles SCIM for provisioning issuer-qualified Agent

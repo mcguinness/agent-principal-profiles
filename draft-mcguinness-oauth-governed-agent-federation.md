@@ -132,7 +132,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   RFC6755:
-  WAG: I-D.carleton-workload-authz-grant
+  WAG: I-D.carleton-workload-authz-grant-02
   SPIFFE-CONCEPTS:
     title: "SPIFFE Concepts"
     target: https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/
@@ -758,8 +758,8 @@ correlation, and grant protection. Generic WAG support does not imply
 these requirements. This document defines the complete wire contract it
 relies on, so {{WAG}} is an informative reference, and the composition
 remains subject to alignment with the evolving WAG specification
-({{wag-gaps}}). The WAG token and JWT types are provisional.
-{{base-differences}} compares this composition with WAG-01.
+({{wag-gaps}}). {{base-differences}} compares this composition with
+WAG-02.
 
 ## Adoption Profiles {#adoption-profiles}
 
@@ -1506,7 +1506,7 @@ token carries the agent-resolution input and is not processed under
 
 | Parameter | Value |
 |---|---|
-| `requested_token_type` | `urn:ietf:params:oauth:token-type:wag` (provisional) |
+| `requested_token_type` | `urn:ietf:params:oauth:token-type:wag` ({{Section 5 of WAG}}) |
 | `subject_token`, `subject_token_type` | Per resolution mode, below |
 | `actor_token`, `actor_token_type` | MUST be absent |
 {: title="WAG token exchange parameters"}
@@ -1542,9 +1542,9 @@ of {{actor-inputs}} apply. In this mode:
 
 The WAG subject identifies the governed Agent Principal, not the
 credential subject from which it was resolved. The grant is a JWT with
-`typ` `wag+jwt` (provisional) whose claims are aligned with the claim
-set of {{Section 5.1 of WAG}}: the common claims of {{grant-common}} and
-the following:
+`typ` `oauth-wag+jwt` ({{Section 5.1 of WAG}}) whose claims are aligned
+with the claim set of that section: the common claims of
+{{grant-common}} and the following:
 
 | Claim | Value |
 |---|---|
@@ -1553,7 +1553,9 @@ the following:
 | `aud` | The target RAS issuer identifier |
 {: title="WAG issuer, subject, and audience claims"}
 
-The WAG MUST NOT contain `act`.
+The WAG MUST NOT contain `act`. A `nickname` claim, if present, is for
+display only; it is not an input to agent correlation or authorization
+({{Section 10 of WAG}}).
 
 **Unambiguous context:** The IdP MUST NOT issue a WAG unless the Agent
 Principal, downstream client, and tenant are unambiguous.
@@ -1652,7 +1654,7 @@ a constraint. The RAS MAY accept a bound grant again under explicit
 policy, each time with a fresh proof that matches its `cnf.jkt`
 ({{grant-protection}}). This narrows re-submission under
 {{Section 4.4.3 of ID-JAG}} for unbound ID-JAGs, and settles for the WAG
-the replay question that {{Section 8 of WAG}} leaves open. The retention
+the replay question that {{Section 9 of WAG}} leaves open. The retention
 rule of {{time-validation}} applies to accepted identifiers.
 
 ## Agent Principal Correlation {#agent-correlation}
@@ -1773,10 +1775,10 @@ The RAS:
 
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
    {{Section 5 of WAG}}. Require the JWT `typ` header parameter
-   `wag+jwt` ({{Section 3.11 of RFC8725}}), so that an ID-JAG or another
-   JWT from the same issuer cannot be accepted as a WAG. Require `iss`
-   to be a configured governing IdP for the asserted agent namespace.
-   Reject a WAG that contains `act` with `invalid_grant`.
+   `oauth-wag+jwt` ({{Section 6.1 of WAG}}), so that an ID-JAG or
+   another JWT from the same issuer cannot be accepted as a WAG. Require
+   `iss` to be a configured governing IdP for the asserted agent
+   namespace. Reject a WAG that contains `act` with `invalid_grant`.
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
 3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
@@ -1918,7 +1920,7 @@ RAS uses these errors:
 | Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
 | ID-JAG whose `act` agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction ({{applied-changes}}) | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction | `invalid_grant` |
-| Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
+| Invalid WAG, including one without `typ` `oauth-wag+jwt` or one that contains `act` | `invalid_grant` |
 | Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
 {: title="Redemption errors"}
@@ -2266,18 +2268,19 @@ configured minimums.
 
 Servers MUST publish {{RFC8414}} metadata as follows:
 
-* **RAS:** Include each supported governed profile URI, and for
-  delegated access the base
-  `urn:ietf:params:oauth:grant-profile:id-jag`, in
-  `authorization_grant_profiles_supported`. The self-acting URIs use the
-  same parameter, pending coordination ({{wag-gaps}}).
+* **RAS:** Include each supported governed profile URI in
+  `authorization_grant_profiles_supported`, with the base
+  `urn:ietf:params:oauth:grant-profile:id-jag` for delegated access and
+  the base `urn:ietf:params:oauth:grant-profile:wag`
+  ({{Section 8 of WAG}}) for self-acting access.
   * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
     `grant_types_supported` for this profile.
 * **IdP:** Advertise Token Exchange in `grant_types_supported`. For
   delegated access, advertise ID-JAG in
   `identity_chaining_requested_token_types_supported` under
   {{Section 7.1 of ID-JAG}}. For self-acting access, advertise the WAG
-  token type in the same parameter, pending coordination ({{wag-gaps}}).
+  token type in the same parameter; {{WAG}} defines no metadata for the
+  issuer, so this use is specific to this profile.
   * Include `private_key_jwt` in
     `token_endpoint_auth_methods_supported`.
 * **Both:** Advertise supported client authentication methods and, when
@@ -2418,7 +2421,7 @@ resolve or exercise an agent.
 
 Both grants are JWTs redeemed with the same grant type, so the RAS tells
 them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
-({{Section 3.1 of ID-JAG}}) and `wag+jwt` for a WAG
+({{Section 3.1 of ID-JAG}}) and `oauth-wag+jwt` for a WAG
 ({{wag-redemption}}).
 
 ## Error Disclosure {#security-errors}
@@ -2661,10 +2664,10 @@ This document also requests:
 * Change Controller: IETF
 * Specification Document: {{metadata}} of this document.
 
-This document does not request registration of the provisional WAG
-token type `urn:ietf:params:oauth:token-type:wag` or JWT type
-`wag+jwt`. {{WAG}} does not yet define either; registration awaits
-coordination ({{wag-gaps}}).
+{{Section 11 of WAG}} registers the WAG token type
+`urn:ietf:params:oauth:token-type:wag`, the media type `oauth-wag+jwt`
+used as the JWT type, and `urn:ietf:params:oauth:grant-profile:wag`.
+This document requests no registration for them.
 
 --- back
 
@@ -2975,7 +2978,7 @@ The IdP resolves `analysis-client` to `agent-42`. It verifies a Client
 Association for self-acting issuance and the agent's own authorization
 for `files.read` at the resource. It returns `issued_token_type`
 `urn:ietf:params:oauth:token-type:wag` with `token_type` `N_A`. The
-decoded WAG uses `typ=wag+jwt` and this payload:
+decoded WAG uses `typ=oauth-wag+jwt` and this payload:
 
 ~~~ json
 {
@@ -3085,7 +3088,7 @@ of this document ({{excluded-compositions}}).
 
 This informative appendix records how this document differs from its
 base specifications, what it depends on, and the compositions it does
-not define. They were assessed against WAG-01, ID-JAG-04, ICA-02, Actor
+not define. They were assessed against WAG-02, ID-JAG-04, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client Instance
 Identification-00.
 
@@ -3112,12 +3115,11 @@ referenced sections define each requirement.
 For self-acting access, this profile composes {{WAG}} as follows
 ({{wag-flow}}):
 
-| Area | WAG-01 | This profile |
+| Area | WAG-02 | This profile |
 |---|---|---|
-| Issuer | The Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
+| Issuer | The Workload Identity Provider of the Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
 | Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
 | Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
-| Explicit type | None defined | `typ` `wag+jwt`, checked at redemption ({{wag-redemption}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
@@ -3128,20 +3130,18 @@ For self-acting access, this profile composes {{WAG}} as follows
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Type registration; alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Provisional type values |
+| WAG | Alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
 | ID-JAG | `jwt-bearer` in the bound-grant example, which uses `jwt-dpop`; confirmation errors distinct from RFC 9449 proof errors | Confirmation checks apply to `jwt-bearer` here ({{redemption-request}}); no dependency on JWT DPoP Grant |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
 
 ### WAG {#wag-gaps}
 
-In WAG terms, the IdP is the Platform that signs the grant
-({{Section 2 of WAG}}), and {{wag-issuance}} defines that issuance. Open
+In WAG terms, the IdP is the Workload Identity Provider that issues the
+grant ({{Section 2 of WAG}}), and {{wag-issuance}} defines that issuance
+with the token exchange that {{Section 5 of WAG}} anticipates. Open
 items are:
 
-* a token type and an explicit JWT type for the grant, which
-  {{Section 8 of WAG}} lists as open, their registration, and their
-  advertisement with the self-acting profile URIs ({{server-metadata}});
 * DPoP binding ({{grant-protection}});
 * authorized correlation in place of WAG's acceptance of previously
   unseen agents ({{Section 3 of WAG}});

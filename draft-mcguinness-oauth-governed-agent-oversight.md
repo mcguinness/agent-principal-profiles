@@ -108,7 +108,7 @@ informative:
   OVERSIGHT-ACTS: I-D.ehstand-oversight-acts
   RFC7009:
   RFC8417:
-  WAG: I-D.carleton-workload-authz-grant
+  WAG: I-D.carleton-workload-authz-grant-02
 
 --- abstract
 
