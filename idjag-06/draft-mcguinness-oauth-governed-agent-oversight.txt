@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         4 November 2026
-Expires: 8 May 2027
+Intended status: Standards Track                         5 November 2026
+Expires: 9 May 2027
 
 
          Human Oversight Profile for Governed Agent Federation
@@ -69,7 +69,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 8 May 2027.
+   This Internet-Draft will expire on 9 May 2027.
 
 Copyright Notice
 
@@ -880,7 +880,7 @@ Table of Contents
 
    *  deferred in completion_mode; and
 
-   *  the same resource, scope, and authorization_details.
+   *  the same grant_type, resource, scope, and authorization_details.
 
    Recovery matches the stored grant and does not validate it again, so
    it succeeds after the grant's exp.  It is not an acceptance, opens no
@@ -894,8 +894,8 @@ Table of Contents
 
    The RAS rejects any other presentation of an accepted grant under the
    replay rule of Section 5.2, with invalid_grant.  This includes a
-   presentation without deferred and any presentation after the pending
-   governed redemption ends.
+   presentation without deferred or with another grant type, and any
+   presentation after the pending governed redemption ends.
 
 5.5.  Redemption Resolution
 
@@ -1597,12 +1597,17 @@ A.5.  Deferred Redemption
    | After the grant's exp,       | RAS     | The same deferral code,  |
    | the client repeats the       |         | with the remaining       |
    | redemption with the same     |         | expires_in               |
-   | grant, key, opt-in, and      |         |                          |
-   | parameters                   |         |                          |
+   | grant, grant type, key,      |         |                          |
+   | opt-in, and parameters       |         |                          |
    +------------------------------+---------+--------------------------+
    | The repeated redemption      | RAS     | HTTP 400,                |
    | reuses the DPoP proof of     |         | invalid_dpop_proof       |
    | the first                    |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The repeated redemption      | RAS     | HTTP 400, invalid_grant; |
+   | presents the grant,          |         | no deferral code         |
+   | which contains cnf, with     |         |                          |
+   | jwt-bearer                   |         |                          |
    +------------------------------+---------+--------------------------+
    | After a successful token     | RAS     | HTTP 400, invalid_grant  |
    | response, the client         |         |                          |
