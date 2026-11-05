@@ -54,8 +54,10 @@ agents decides which agent a request identifies and what that agent may
 request. The resource domain decides what access it will grant. The core
 profile carries the IdP's decision in one of two grants, both requested
 from the IdP with OAuth Token Exchange and redeemed at the resource
-authorization server (RAS) with the JWT bearer grant type. The [Protocol
-Overview][overview] shows the same transaction as a figure.
+authorization server (RAS) with a JWT grant: `jwt-dpop` when the grant
+is bound to the client's DPoP key, and the JWT bearer grant type when
+it is not. The [Protocol Overview][overview] shows the same transaction
+as a figure.
 
 Both grants begin with agent resolution at the IdP. The client
 authenticates, and the IdP takes an agent-resolution input from that
@@ -188,7 +190,7 @@ configuration object types are prescribed.
   access to the RAS, resource, and authority, for self-acting issuance.
 * **Client registration association** (per target RAS): the
   authoritative mapping from the authenticated client to that client's
-  registration at the RAS (Section 5 of [ID-JAG]). The IdP derives the
+  registration at the RAS (Section 5.1 of [ID-JAG]). The IdP derives the
   grant's `client_id` from it ([Issuance
   Prerequisites][flow-configuration]). No companion profile provisions
   it. If the client uses one identifier at both servers, that mapping is
@@ -331,9 +333,9 @@ suite](conformance/README.md) and how far they go:
 | Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | Client registration and keys at the RAS, with the RAS issuer as the assertion's `aud` | Client, through registration | `analysis-api` and its JWK Set | Client metadata or CIMD | Positive path: P2. Direct for the grant's `client_id`: N13 |
-| The client registration's `grant_types`, permitting the JWT bearer grant at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
-| Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the JWT bearer grant, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-bearer` | Yes | Untested: the suite does not retrieve metadata |
-| DPoP at the token endpoint, proven with the grant's key | RAS | `ES256`; the same key K | DPoP algorithms | Direct: N11, N12 |
+| The client registration's `grant_types`, permitting `jwt-dpop` for key-bound grants and the JWT bearer grant for unbound grants at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-dpop` and `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
+| Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the grant type the client will redeem with, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-dpop` | Yes | Untested: the suite does not retrieve metadata |
+| DPoP at the token endpoint, proven with the grant's key, under the `jwt-dpop` grant type | RAS | `ES256`; the same key K | DPoP algorithms; `jwt-dpop` in `grant_types_supported` | Direct: N11, N12; grant type: N29, N30 |
 | Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2 |
 
 ### RAS and API
@@ -431,15 +433,15 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, and N28.
+cases N01 to N09, N21, N22, N25, N28, N31, and N32.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
-* `invalid_request`: a malformed request, or a missing DPoP proof under
-  the bound profile.
-* `invalid_grant`: an invalid subject credential or agent-resolution
-  input, or no resolvable binding, active Agent Principal, or
-  Governance Tenant.
+* `invalid_request`: a malformed request, a missing DPoP proof under
+  the bound profile, or an invalid subject credential or
+  agent-resolution input.
+* `invalid_grant`: a valid credential that resolves no user, or no
+  binding, active Agent Principal, or Governance Tenant.
 * `actor_unauthorized`, with HTTP 400: no Client Association permits
   the binding; no applicable Delegation Authorization covers the agent,
   user, client, and target; or policy categorically prohibits the agent.
@@ -454,22 +456,30 @@ cases N01 to N09, N21, N22, N25, and N28.
 ### At the RAS
 
 [Redemption Errors][redemption-errors] and [Common Grant
-Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
+Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
+and N30.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
     non-string `scope` claim, or one presented by a client other than
     its `client_id`;
-  * for a bound grant, a missing proof or one of another key, and,
-    where the minimum profile requires binding, a grant without `cnf`;
+  * for a bound grant, a missing proof (or `invalid_dpop_proof`), one of
+    another key, or presentation with `jwt-bearer`; an unbound grant
+    presented with `jwt-dpop`; and, where the minimum profile requires
+    binding, a grant without `cnf`;
   * a prohibited replay: a grant without an enforced sender constraint
     that the RAS already accepted. A bound grant can be accepted again
     under explicit policy, each time with a fresh proof that matches its
     `cnf.jkt`;
   * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
-    or restricted.
-* `actor_unauthorized`, with HTTP 400: current policy, including the
-  actor gate, refuses an ID-JAG's delegation.
+    or restricted;
+  * a grant whose resource has no Target Tenant that the RAS can
+    determine unambiguously, or is not governed for it.
+* `actor_unauthorized`, with HTTP 400: the actor gate refuses an
+  ID-JAG's agent for the user.
+* `access_denied`: other current RAS policy refuses a valid ID-JAG,
+  including a redemption that needs approval and does not opt in to
+  deferral.
 * `invalid_target`: current policy refuses a WAG, or the requested
   resource is not the grant's.
 * `invalid_scope`: a requested scope outside the grant's.
@@ -531,13 +541,15 @@ applies.
 * **Oversight, at the IdP and the RAS** ([Client Opt-In][ov-opt-in];
   [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery];
   [Redemption Resolution][ov-redemption-resolution]; [Refresh and
-  Continuation][ov-redemption-refresh]; cases D01 to D22, at the RAS
+  Continuation][ov-redemption-refresh]; cases D01 to D23, at the RAS
   only):
-  * When policy requires approval, a request without the opt-in, or one
-    the RAS cannot defer, gets the ordinary refusal:
-    `actor_unauthorized` for a delegated grant, `invalid_target` for a
-    self-acting one. Without such a policy, a request without the
-    opt-in can succeed at once.
+  * When policy requires approval, a request without the opt-in gets
+    the IdP's ordinary refusal: `actor_unauthorized` for a delegated
+    grant, `invalid_target` for a self-acting one. A redemption without
+    the opt-in, or one the RAS cannot defer, gets the RAS's ordinary
+    refusal: `access_denied` for an ID-JAG, `invalid_target` for a WAG.
+    Without such a policy, a request without the opt-in can succeed at
+    once.
   * Polls: `authorization_pending` or `slow_down` while pending; then
     `access_denied`, `expired_token`, or, for a poll with another key,
     `invalid_dpop_proof`.
@@ -547,8 +559,9 @@ applies.
   * At a CAI, a token from a deferred redemption: `invalid_request`.
 
 A client recovers as the core's [recovery list][implementation-client]
-describes: at most one bounded attempt after `invalid_client` or
-`invalid_grant`, a corrected request after `invalid_scope` or the
+describes: at most one bounded attempt after `invalid_client`, after an
+IdP `invalid_request` for a request that previously succeeded, or after
+a RAS `invalid_grant`; a corrected request after `invalid_scope` or the
 rejection of an invalid argument, a token with more authority after
 `insufficient_scope`, a retry after a 503, and otherwise no automatic
 retry of the unchanged request. After
@@ -641,13 +654,13 @@ A deployment that uses oversight adds this configuration to the
 |---|---|
 | IdP | The mode in issuance policy, configured at the IdP directly, since the SCIM management profile has no attribute for it; the approvers each policy designates, and the authentication strength each requires; an approval channel, such as [CIBA] with a `binding_message` that describes the request; a maximum pending lifetime for each policy; Deferred Token Response in polling mode, with deferral codes bound to the client and its DPoP key; for supervised issuance, the overseers and the channel that gives them each grant's issuer, `jti`, request context, and issuance time |
 | RAS, for deferred redemption | The mode in RAS policy, and the approvers it designates; `deferred_token_response_supported` in its metadata; an approval channel, such as an access request service under [ARAP], with one access request for each pending redemption and the approval kept unchanged; a maximum pending lifetime and an absolute authorization expiration that starts when the grant is accepted; no deferral for a resource configured for mutual-TLS access tokens; the accepted grant, or its digest, kept for recovery; the resulting authorization never eligible for continuation |
-| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
+| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant and grant type, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
 | Gateway | The client behavior above for its continuation exchanges; reporting the wait to the agent through its own interface, such as an MCP task |
 | API or MCP server | Per-action policy and its approvers; holding a call, or refusing it in a way the agent can request; an approval page that authenticates the approver and binds the decision to the call, its arguments, and the token's subject, agent, client, and tenant |
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
 
 The conformance suite tests deferred redemption against the reference,
-whose Access Request Service it controls: D01 to D22. WAG deferral,
+whose Access Request Service it controls: D01 to D23. WAG deferral,
 mutual-TLS resources, continuation ineligibility, and grant-derived
 revocation while pending are untested.
 
@@ -1541,7 +1554,7 @@ agent cannot use the token directly.
 [INPUTS]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [AGENT-MANAGEMENT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
-[ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04
+[ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06
 [CIMD]: https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/
 [SCIM-AGENT]: https://datatracker.ietf.org/doc/draft-wzdk-scim-agent-resource/
 [RFC7643]: https://www.rfc-editor.org/rfc/rfc7643

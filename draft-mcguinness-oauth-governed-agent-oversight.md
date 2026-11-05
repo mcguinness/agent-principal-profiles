@@ -612,7 +612,7 @@ that configuration applies mutual TLS regardless of any DPoP proof.
 When RAS policy requires approval and the RAS does not defer, it MUST
 NOT issue a token. It rejects the redemption with the error it returns
 when its own policy refuses a redemption ("Redemption Errors" in
-{{FEDERATION}}): `actor_unauthorized` for an ID-JAG and
+{{FEDERATION}}): `access_denied` for an ID-JAG and
 `invalid_target` for a WAG. The response therefore does not reveal
 that an approval could be obtained. A client that can wait and handle a
 deferred response can include `deferred` on every redemption that RAS
@@ -756,7 +756,7 @@ request that presents:
 * authentication of the same client and a DPoP proof of the same key,
   each fresh under its own replay rules;
 * `deferred` in `completion_mode`; and
-* the same `resource`, `scope`, and `authorization_details`.
+* the same `grant_type`, `resource`, `scope`, and `authorization_details`.
 
 Recovery matches the stored grant and does not validate it again, so it
 succeeds after the grant's `exp`. It is not an acceptance, opens no
@@ -769,8 +769,8 @@ no token, so it cannot yield a second token while a poll succeeds.
 
 The RAS rejects any other presentation of an accepted grant under the
 replay rule of {{redemption-deferring}}, with `invalid_grant`. This
-includes a presentation without `deferred` and any presentation after
-the pending governed redemption ends.
+includes a presentation without `deferred` or with another grant type,
+and any presentation after the pending governed redemption ends.
 
 ## Redemption Resolution {#redemption-resolution}
 
@@ -825,9 +825,9 @@ without deferral, for the approved authority:
   response's `scope` reports it.
 
 The successful polling response is the token response that the
-redemption would have returned ({{Section 5.5.2 of DTR}}); the JWT
-bearer grant defines no `issued_token_type`. The access token MAY carry
-`txn` for audit
+redemption would have returned ({{Section 5.5.2 of DTR}}); neither JWT
+grant type, `jwt-bearer` or `jwt-dpop`, defines an `issued_token_type`.
+The access token MAY carry `txn` for audit
 correlation, as a grant may ({{resolution}}); an API MUST NOT treat it
 as evidence of approval or as authority.
 
@@ -1203,8 +1203,8 @@ Each case changes this variant as stated; all other checks succeed.
 
 | Changed condition | Checked by | Required result |
 |---|---|---|
-| The redemption omits `completion_mode=deferred` | RAS | HTTP 400, `actor_unauthorized`; no token and no deferred response |
-| The resource is configured for mutual-TLS access tokens | RAS | HTTP 400, `actor_unauthorized`; no deferral |
+| The redemption omits `completion_mode=deferred` | RAS | HTTP 400, `access_denied`; no token and no deferred response |
+| The resource is configured for mutual-TLS access tokens | RAS | HTTP 400, `access_denied`; no deferral |
 | A poll proves another key | RAS | HTTP 400, `invalid_dpop_proof` |
 | The grant's `exp` passes while the redemption is pending, and the steward then approves | RAS | The access token issues at the next poll |
 | The maximum pending lifetime is 24 hours, and the steward approves nine hours after receipt | RAS | `expires_in` was at most eight hours; HTTP 400, `expired_token`; no token |
@@ -1213,8 +1213,9 @@ Each case changes this variant as stated; all other checks succeed.
 | Grant-derived revocation of the ID-JAG arrives while the redemption is pending, at a participating RAS | RAS | HTTP 400, `access_denied` at the next poll |
 | The steward denies, and the client presents the grant again | RAS | HTTP 400, `access_denied`; then `invalid_grant` |
 | While the redemption is pending, the client presents the grant without `completion_mode` | RAS | HTTP 400, `invalid_grant` |
-| After the grant's `exp`, the client repeats the redemption with the same grant, key, opt-in, and parameters | RAS | The same deferral code, with the remaining `expires_in` |
+| After the grant's `exp`, the client repeats the redemption with the same grant, grant type, key, opt-in, and parameters | RAS | The same deferral code, with the remaining `expires_in` |
 | The repeated redemption reuses the DPoP proof of the first | RAS | HTTP 400, `invalid_dpop_proof` |
+| The repeated redemption presents the grant, which contains `cnf`, with `jwt-bearer` | RAS | HTTP 400, `invalid_grant`; no deferral code |
 | After a successful token response, the client repeats the redemption | RAS | HTTP 400, `invalid_grant` |
 | Two identical redemptions arrive together | RAS | One pending governed redemption and one approval request; both responses carry its deferral code |
 | While the redemption is pending, `agent-43` redeems its own ID-JAG through the same client, for the same user, resource, and scope | RAS | A separate pending governed redemption and approval request; approving the first issues nothing for it |

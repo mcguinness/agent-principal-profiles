@@ -14,20 +14,17 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 ## Dependencies and Deferred Work
 
 These notes record dependencies and deferred work.
-Assessed revisions: WAG-02, ID-JAG-04, ICA-02, Actor
+Assessed revisions: WAG-02, ID-JAG-06, JWT DPoP Grant-02, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
 Identification-00, Client Attester Endorsement-00, and WISE draft 03.
-
-The drafts and the implementer's guide pin ID-JAG to -04. ID-JAG-06
-(2026-10-31) renumbers sections the drafts cite and adds an Error
-Response section; it is not yet assessed.
+The drafts pin WAG to -02, ID-JAG to -06, and JWT DPoP Grant to -02.
 
 ### Upstream Dependencies
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
 | WAG | Alignment on protection, linking, and subject presentation (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
-| ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
+| ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof (below) | Both errors are permitted |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
 | COAZ-MCP error transport | Which HTTP status accompanies each JSON-RPC error on Streamable HTTP, whether a JSON-RPC error body on a non-2xx response satisfies Section 10, when the enforcement point decides, and how an actor denial is identified (below) | The implementer's guide gives a proposed interpretation: the core's status, with COAZ-MCP's error in the body. How the core's denial responses compose with COAZ-MCP is open |
@@ -89,15 +86,42 @@ Coordination is needed on:
 
 #### ID-JAG Bound Grants
 
-Section 4.4 of ID-JAG requires `jwt-bearer` while its bound-grant example
-uses `jwt-dpop`. This profile follows the normative grant type with
-explicit confirmation processing (`redemption`) and takes no
-dependency on JWT DPoP Grant.
+Section 4.4 of ID-JAG-06 redeems a DPoP-bound ID-JAG with `jwt-dpop`,
+and Section 5.2 of JWT DPoP Grant -02 forbids a server that supports
+`jwt-dpop` from accepting a DPoP-bound assertion with `jwt-bearer`. The
+core now redeems every grant containing `cnf` with `jwt-dpop`
+(`redemption-request`), and the continuation profile follows Section
+5.5.5 of ICA. One difference remains: for a bound grant redeemed
+without a proof, Section 9.11.1.2.2 of ID-JAG returns `invalid_grant`
+and Section 5 of JWT DPoP Grant returns `invalid_dpop_proof`. The core
+permits either (`grant-protection`).
+
+#### ID-JAG Error Codes
+
+Section 4.4.3 of ID-JAG-06 profiles `invalid_grant` for an ID-JAG that
+fails validation and `access_denied` for a valid ID-JAG whose user or
+client is not authorized, and permits any other code. Section 4.4.4
+tells a client that gets `invalid_grant` on re-submission to request
+one new ID-JAG. Section 4.4.1 adds two MUSTs: `access_denied` when none
+of the grant's resources is acceptable, and `invalid_grant` when the
+recipient tenant cannot be determined or a resource is not governed
+for it. The core follows both (`redemption-errors`, `errors`) and keeps
+`actor_unauthorized` for an actor-gate refusal. It also keeps
+`invalid_grant` for an unresolved or disabled user and an uncorrelated
+or disabled agent (#59), where Section 4.4.3 profiles `access_denied`;
+a generic ID-JAG client therefore requests one more ID-JAG before it
+stops. At the IdP the core follows Section 4.3.4.3 of ID-JAG-06 for an
+invalid subject or agent-resolution credential (`invalid_request`). It
+keeps `invalid_grant` for a valid credential that resolves no user,
+binding, agent, or tenant, and `actor_unauthorized`, not
+`access_denied`, for a missing Delegation Authorization
+(`issuance-errors`); Section 4.3.4.3 permits any code.
 
 #### Grant Replay and Re-redemption
 
-Section 4.4.3 of ID-JAG lets a client re-submit an unexpired ID-JAG for
-a new access token, and Section 9 of WAG leaves replay open. This
+Section 4.4.4 of ID-JAG lets a client re-submit an unexpired ID-JAG for
+a new access token, and lets the RAS instead accept each ID-JAG only
+once by tracking its `jti`. Section 9 of WAG leaves replay open. This
 profile decides by the grant's own binding (`redemption-common`): an
 unbound grant is single-use, and the RAS may accept a bound grant again
 under explicit policy with a fresh proof matching its `cnf.jkt`.
@@ -157,7 +181,7 @@ authentication context and an approved Identity Binding, without
 or the SPIFFE and Client Attestation identities defined in
 `INPUTS`.
 ID-JAG makes that parameter optional and leaves actor processing to
-extensions (Section 9.7 of ID-JAG); its omission alone does not establish
+extensions (Section 9.10 of ID-JAG); its omission alone does not establish
 this composition.
 
 Appendix A.1 of `RFC8693` describes a subject-only request as
@@ -344,10 +368,10 @@ OAuth deployment. These profiles need the same identity model:
   the request is pending substitutes another principal. Under
   `external-approval`, approval satisfies a condition and never
   replaces identity resolution, the Client Association, or the
-  delegation. AROP should state this; naming the JWT bearer grant
-  (RFC 7523) as an originating grant would make the mapping
-  explicit. The oversight companion already requires it for deferred
-  redemption at the RAS (`redemption-deferring`).
+  delegation. AROP should state this; naming the JWT grant types
+  (RFC 7523 and JWT DPoP Grant) as originating grants would make the
+  mapping explicit. The oversight companion already requires it for
+  deferred redemption at the RAS (`redemption-deferring`).
 * **Approval binds the governed request.** ARAP binds an approval to
   the Subject, Resource, Action, and authorization-relevant Context of
   the denied evaluation, but its default comparison excludes
@@ -588,13 +612,13 @@ rule that stays local to the profile:
   value for handle binding of governed ID-JAGs and WAGs, because its
   access-token protection and redemption differ from what
   `id-jag-continuation` advertises.
-* **Redemption grant type:** Section 5.5.5 of ICA redeems onward
-  ID-JAGs with `jwt-dpop`, citing Section 9.8.1.2.1 of ID-JAG. Section
-  4.4 of ID-JAG-04 requires `jwt-bearer`, and `jwt-dpop` appears only in
-  the key-bound example; JWT DPoP Grant -01 expired in August 2026. The
-  companion redeems with `jwt-bearer` and the core's confirmation
-  checks, and drops the requirement of Section 7.2 of ICA to advertise
-  `jwt-dpop`.
+* **Redemption grant type:** resolved by ID-JAG-06. Section 5.5.5 of
+  ICA redeems onward ID-JAGs with `jwt-dpop` (citing Section 9.8.1.2.1
+  of ID-JAG-04, now 9.11.1.2.1), and Section 4.4 of ID-JAG-06 names
+  `jwt-dpop` for a DPoP-bound ID-JAG. The core redeems every grant
+  containing `cnf` with `jwt-dpop`, so the companion follows ICA here,
+  and the core's metadata rule meets the `jwt-dpop` advertisement that
+  Section 7.2 of ICA requires.
 * **Access-token protection and bearer ingress:** Step 3 of Section 5.2
   of ICA requires a DPoP-bound access token for a continuation-capable
   grant carrying `cnf`; ICA tracks bearer ingress as issue #110. The

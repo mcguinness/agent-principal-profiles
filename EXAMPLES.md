@@ -170,7 +170,7 @@ Host: ras.example
 Content-Type: application/x-www-form-urlencoded
 DPoP: RAS_DPOP_PROOF
 
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-dpop
 &client_id=analysis-api
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth
 %3Aclient-assertion-type%3Ajwt-bearer
@@ -570,7 +570,7 @@ Host: ras.example
 Content-Type: application/x-www-form-urlencoded
 DPoP: RAS_DPOP_PROOF
 
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-dpop
 &client_id=analysis-api
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth
 %3Aclient-assertion-type%3Ajwt-bearer
@@ -601,7 +601,8 @@ Cache-Control: no-store
 ```
 
 Without the opt-in, the RAS would have refused with
-`actor_unauthorized`, as for any policy refusal, revealing nothing
+`access_denied`, as for any policy refusal outside the actor gate,
+revealing nothing
 about approval. The grant's `exp` at 12:06:03 limits only acceptance:
 until the redemption ends, the same grant presented again with fresh
 client authentication, a fresh proof of K, the opt-in, and the same

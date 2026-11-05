@@ -141,7 +141,9 @@ tests, and these common checks:
 * Where the bound profile is required, a grant without `cnf` is rejected
   with `invalid_grant`, with no fallback.
 * A bound grant redeemed without its proof is rejected with
-  `invalid_grant`.
+  `invalid_grant` or `invalid_dpop_proof`.
+* A bound grant presented with `jwt-bearer` instead of `jwt-dpop` is
+  rejected with `invalid_grant`.
 * An access token presented in another tenant, even with a valid proof,
   is rejected with HTTP 401 `invalid_token`.
 * Where the API introspects opaque tokens, an otherwise valid request
@@ -272,10 +274,12 @@ long each intervention takes to reach the target. For approval of
 actions, the API or MCP server holds the call until an approver decides.
 
 *Exit checks:*
-* Where policy requires approval, a request or redemption without
-  `completion_mode=deferred` fails with `actor_unauthorized` for a
-  delegated grant or `invalid_target` for a self-acting one, and nothing
-  is issued and no deferred response is returned.
+* Where policy requires approval, a request without
+  `completion_mode=deferred` fails at the IdP with `actor_unauthorized`
+  for a delegated grant or `invalid_target` for a self-acting one, and a
+  redemption without it fails at the RAS with `access_denied` for an
+  ID-JAG or `invalid_target` for a WAG. Nothing is issued and no
+  deferred response is returned.
 * The approver authenticates at the strength policy requires and sees
   the agent, the user, the client, the target, and the authority as the
   deferring server resolved them, the IdP for issuance and the RAS for
@@ -664,7 +668,7 @@ a Client Association permits the shared client to use that binding. The
 core's [AWS example][core-aws-example] shows the input.
 
 * **Extra tests:** a platform JWT that fails validation is rejected
-  with `invalid_grant`, with no retry from the client's authentication
+  with `invalid_request`, with no retry from the client's authentication
   or another credential class; and a token the client holds for
   `agent-42` is not reused for another agent with the same scope.
 
@@ -750,7 +754,7 @@ are for the evaluator.
 |---|---|---|---|---|---|
 | IdP: delegated realization of the core, with dedicated-client resolution through `private_key_jwt` and ID Token subjects | Delegated access | The delegated recipe's transaction and rejection tests | | | |
 | IdP: self-acting realization of the core | Self-acting access | The self-acting recipe's transaction and rejection tests | | | |
-| IdP and RAS: bound governed agent access, with DPoP at grant issuance and redemption | Bound grant protection | Step 3: a grant without `cnf`, and a bound grant without its proof, fail with `invalid_grant` | | | |
+| IdP and RAS: bound governed agent access, with DPoP at grant issuance and redemption | Bound grant protection | Step 3: a grant without `cnf` fails with `invalid_grant`, and a bound grant without its proof with `invalid_grant` or `invalid_dpop_proof` | | | |
 | IdP: a workload-identity input that distinguishes a shared client's agents; the existing platform JWT input for generic shared-client interoperability | A shared platform client | The shared-client variation's tests | | | |
 | RAS: redemption for each realization served, with correlation by the exact (issuer, agent identifier) pair | Always | The recipes' redemption steps; the self-acting correlation test | | | |
 | API: resource processing, including tenant checks, the actor gate, and the agent's own authority | Always | Step 3's other-tenant test; the delegated recipe's missing-`act` test | | | |
@@ -972,7 +976,7 @@ stay revoked, and ended continuation chains stay ended.
        in step 1.
 * **Verification:** authentication with the retired client key fails
   with `invalid_client`, and a platform JWT signed with the retired key
-  fails with `invalid_grant`; the new key resolves the agent again.
+  fails with `invalid_request`; the new key resolves the agent again.
   Revoking the credential does not retire the Agent Principal, and an
   agent with other valid bindings keeps them.
 * **Residual access:** grants already issued, until they expire, and

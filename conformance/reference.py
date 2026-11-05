@@ -61,6 +61,7 @@ POLL_INTERVAL = 5
 
 TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+JWT_DPOP = "urn:ietf:params:oauth:grant-type:jwt-dpop"
 DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
 REFRESH_GRANT = "refresh_token"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
@@ -95,6 +96,7 @@ CHECKS = {
     "idp.single_resource": "exactly one resource parameter",
     "idp.id_token_audience": "ID Token audience is the authenticated client",
     "idp.id_token_time": "ID Token iat and nbf are not in the future",
+    "idp.id_token_sub": "ID Token sub is a non-empty string",
     "idp.binding_enabled": "Identity Binding is enabled",
     "idp.agent_active": "Agent Principal is active",
     "idp.client_association": "Client Association permits delegated use of the binding",
@@ -107,6 +109,8 @@ CHECKS = {
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
     "ras.proof_key_match": "the redemption proof key matches cnf.jkt",
+    "ras.grant_type_binding": "a grant with cnf is redeemed with jwt-dpop, and one without "
+                              "with jwt-bearer",
     "ras.resource_match": "the resource parameter equals the grant's resource",
     "ras.scope_claim": "the grant's scope claim is a non-empty string",
     "ras.agent_eligibility": "the correlated agent record exists and is active",
@@ -121,7 +125,8 @@ CHECKS = {
     "ras.grant_consumed": "a deferred redemption consumes the grant; another presentation "
                           "fails with invalid_grant",
     "ras.single_pending": "identical deferred redemptions share one pending redemption and task",
-    "ras.recovery_match": "recovery needs the same client, key, opt-in and request parameters",
+    "ras.recovery_match": "recovery needs the same client, key, opt-in, grant type and request "
+                          "parameters",
     "ras.recovery_window": "recovery ends when the pending redemption is redeemed or ends",
     "ras.recovery_no_extension": "recovery never resets the pending deadline",
     "ras.task_per_redemption": "each pending redemption opens its own access request",
@@ -524,17 +529,26 @@ class IdP(Server):
             "token_type": "N_A", "expires_in": exp - now, "scope": claims["scope"]})
 
     def validate_id_token(self, token, client_id):
+        # An invalid subject credential, including one whose sub is not a
+        # string, is invalid_request (RFC 8693 Section 2.2.2; core: Issuance
+        # Errors); a valid one naming no known user is a user resolution
+        # failure, invalid_grant.
         try:
             _, claims = jws.verify(token, self.key.public_key(), "RS256")
         except ValueError:
-            raise OAuthError("invalid_grant")
+            raise OAuthError("invalid_request")
         aud = claims.get("aud")
         audiences = aud if isinstance(aud, list) else [aud]
-        if claims.get("iss") != self.issuer or claims.get("sub") not in self.users or \
+        if claims.get("iss") != self.issuer or \
                 not _time_valid(claims, require_iat=True,
                                 check_future=self.on("idp.id_token_time"), now=self.now()):
-            raise OAuthError("invalid_grant")
+            raise OAuthError("invalid_request")
         if client_id not in audiences and self.on("idp.id_token_audience"):
+            raise OAuthError("invalid_request")
+        sub = claims.get("sub")
+        if not (isinstance(sub, str) and sub) and self.on("idp.id_token_sub"):
+            raise OAuthError("invalid_request")
+        if not isinstance(sub, str) or sub not in self.users:
             raise OAuthError("invalid_grant")
         return claims["sub"], claims["exp"]
 
@@ -759,8 +773,8 @@ class RAS(Server):
             return _respond(start_response, 200, body)
         form = _form(environ)
         grant_type = form.get("grant_type")
-        if grant_type == [JWT_BEARER]:
-            body = self.redeem(environ, form)
+        if grant_type in ([JWT_BEARER], [JWT_DPOP]):
+            body = self.redeem(environ, form, grant_type[0])
         elif grant_type == [DEFERRED_GRANT]:
             body = self.poll(environ, form)
         elif grant_type == [REFRESH_GRANT]:
@@ -769,9 +783,12 @@ class RAS(Server):
             raise OAuthError("unsupported_grant_type")
         return _respond(start_response, 200, body)
 
-    def redeem(self, environ, form):
+    def redeem(self, environ, form, grant_type=JWT_BEARER):
         client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
         jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
+        # JWT DPoP Grant Section 5, step 1: jwt-dpop requires a DPoP proof.
+        if grant_type == JWT_DPOP and jkt is None and self.on("ras.require_proof"):
+            raise OAuthError("invalid_dpop_proof", description="jwt-dpop requires a DPoP proof")
         assertion = _one(form, "assertion")
         deferred = form.get("completion_mode") == ["deferred"]
         # Recovery (oversight: Recovery) matches the byte-identical grant
@@ -801,6 +818,12 @@ class RAS(Server):
                 raise OAuthError("invalid_grant", description="proof required")
             if jkt is not None and jkt != cnf["jkt"] and self.on("ras.proof_key_match"):
                 raise OAuthError("invalid_grant", description="proof key mismatch")
+        # Grant type (core: Redemption Request; JWT DPoP Grant Sections 5
+        # and 5.2): jwt-dpop for a grant with cnf, jwt-bearer otherwise.
+        if (cnf is not None) != (grant_type == JWT_DPOP) and \
+                self.on("ras.grant_type_binding"):
+            raise OAuthError("invalid_grant", description="grant type does not match the "
+                             "grant's binding")
         # Replay: this reference accepts each grant once, bound or not. It
         # records a grant as accepted when it issues an access token, or
         # when it defers the redemption.
@@ -828,9 +851,11 @@ class RAS(Server):
             if not asked or not set(asked) <= set(grant_scope.split()):
                 raise OAuthError("invalid_scope")
             scope = " ".join(asked)
+        # A grant whose resource this RAS does not govern (core: Token
+        # Endpoint Errors; ID-JAG Section 4.4.1).
         config = self.resources.get(resource)
         if config is None:
-            raise OAuthError("invalid_target")
+            raise OAuthError("invalid_grant", description="resource not governed")
         # Local authorization: user, agent correlation, actor gate.
         user = self.user_links.get((claims["iss"], config["tenant"], claims["sub"]))
         if user is None:
@@ -847,7 +872,7 @@ class RAS(Server):
         # Redemption Errors), before access-token protection is considered.
         if self.on("ras.approval_gate") and set(scope.split()) & self.approval_required:
             if not deferred or jkt is None or config["protection"] != "dpop":
-                raise OAuthError("actor_unauthorized", description="RAS policy requires approval")
+                raise OAuthError("access_denied", description="RAS policy requires approval")
             raise Deferred(self.defer(form, digest, grant_key, claims, client_id, jkt, act,
                                       user, config, resource, scope, now))
         if config["protection"] == "dpop" and jkt is None:
@@ -896,7 +921,7 @@ class RAS(Server):
     @staticmethod
     def request_params(form):
         return tuple(tuple(form.get(name, [])) for name in
-                     ("resource", "scope", "authorization_details"))
+                     ("grant_type", "resource", "scope", "authorization_details"))
 
     def defer(self, form, digest, grant_key, claims, client_id, jkt, act, user, config,
               resource, scope, now):
@@ -962,7 +987,9 @@ class RAS(Server):
             self.ars.cancel(pending["task"])
 
     def recovers(self, pending, form, client_id, jkt, deferred):
-        """Recovery: the same client, a fresh proof of the same key, the opt-in, the same parameters."""
+        """Recovery: the same client, a fresh proof of the same key, the opt-in, the same
+        grant type and parameters. Recovery runs before the grant type check of
+        redeem(), so the grant type is part of the match."""
         self.expire_if_due(pending)
         if pending["state"] != "pending" and self.on("ras.recovery_window"):
             return False

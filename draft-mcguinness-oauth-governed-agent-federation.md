@@ -37,7 +37,8 @@ normative:
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   INSTANCE: I-D.mcguinness-oauth-client-instance-id
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
-  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-04
+  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
+  JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
   RFC7523bis: I-D.ietf-oauth-rfc7523bis
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   OPENID:
@@ -214,8 +215,10 @@ message:
 1. To the IdP token endpoint, an OAuth Token Exchange request
    {{RFC8693}} ({{issuance-request}}). The IdP returns the grant: a
    short-lived JWT, signed by the IdP, for one resource at one RAS.
-2. To the RAS token endpoint, presenting the grant with the JWT bearer
-   grant type ({{redemption-request}}). The RAS returns an access token.
+2. To the RAS token endpoint, presenting the grant with the `jwt-dpop`
+   grant type if it is bound to the client's key, or the JWT bearer
+   grant type if not ({{redemption-request}}). The RAS returns an
+   access token.
 3. To the API, with the access token ({{api-processing}}).
 
 ~~~
@@ -721,7 +724,7 @@ The client identifier MUST NOT stand in for the actor in authorization.
 ## Delegated Access with ID-JAG {#delegated-flow}
 
 This document profiles ID-JAG issuance and redemption through the actor
-extension point in {{Section 9.7 of ID-JAG}}. Where it is silent, ID-JAG
+extension point in {{Section 9.10 of ID-JAG}}. Where it is silent, ID-JAG
 applies unchanged.
 
 ### Relationship to Base Specifications {#profile-additions}
@@ -736,7 +739,7 @@ relationships open:
    OAuth clients, not the agents a shared client serves.
 2. How authority to use that principal is separated from identity
    resolution. ID-JAG leaves two things to extensions
-   ({{Section 9.7 of ID-JAG}}): validating and authorizing an actor,
+   ({{Section 9.10 of ID-JAG}}): validating and authorizing an actor,
    and relating client, subject, and actor.
 3. How the resulting principal is represented and correlated across
    authorization domains. {{RFC8693}} defines the `act` claim. It does
@@ -810,12 +813,16 @@ In both profiles:
   {{RFC9449}}. An endpoint that does not support DPoP MUST reject a
   request containing a DPoP proof with `invalid_request`; it MUST NOT
   silently ignore the proof. At issuance, a valid proof MUST result in
-  `cnf.jkt` binding of the grant, as in {{Section 9.8.1.1 of ID-JAG}}.
+  `cnf.jkt` binding of the grant, as in {{Section 9.11.1.1 of ID-JAG}}.
 * **Bound grant:** A grant containing `cnf` MUST have a valid, supported
-  `jkt` binding. The RAS MUST require a fresh DPoP proof whose public
-  key thumbprint matches exactly, as in {{Section 9.8.1.2 of ID-JAG}}.
-  Missing proof, missing required binding, unsupported confirmation, or
-  key mismatch MUST fail with `invalid_grant`.
+  `jkt` binding, and the client redeems it with the `jwt-dpop` grant
+  type ({{redemption-request}}). The RAS MUST require a fresh DPoP proof
+  whose public key thumbprint matches exactly, as in
+  {{Section 9.11.1.2 of ID-JAG}} and {{Section 5 of JWT-DPOP-GRANT}}.
+  Missing required binding, unsupported confirmation, or key mismatch
+  MUST fail with `invalid_grant`. A missing proof MUST fail with
+  `invalid_grant` ({{Section 9.11.1.2.2 of ID-JAG}}) or
+  `invalid_dpop_proof` ({{Section 5 of JWT-DPOP-GRANT}}).
 * **Unbound grant:** When policy permits a grant without `cnf`, the
   client MAY present a DPoP proof only at redemption to obtain a
   DPoP-bound access token ({{access-token-protection}}). That proof does
@@ -894,7 +901,8 @@ the applicable input profile. {{issuance-errors}} and
 | Failure | Error |
 |---|---|
 | Unacceptable `resource` parameter at exchange, redemption, or refresh, including multiple values or a target outside the grant or retained authorization | `invalid_target` under RFC 8707 |
-| Target Tenant cannot be resolved for the requested resource | `invalid_target` |
+| At the IdP, Target Tenant cannot be resolved for the requested resource | `invalid_target` |
+| At the RAS, the grant's resource has no Target Tenant that can be determined unambiguously, or is not a resource governed for it | `invalid_grant` ({{Section 4.4.1 of ID-JAG}}) |
 | No client registration association exists for the requested RAS ({{flow-configuration}}) | `invalid_target` |
 | Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued, except where {{issuance-authorization}} assigns `actor_unauthorized` | `invalid_scope` |
 | User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
@@ -952,7 +960,7 @@ identity, client, delegation, and target relationships ({{model}});
 **Downstream client:** The IdP MUST derive the grant's `client_id` from
 an authoritative association between the authenticated IdP client and
 that client's registration at the target RAS
-({{Section 5 of ID-JAG}}). This client registration association is not
+({{Section 5.1 of ID-JAG}}). This client registration association is not
 a Client Association. If the client uses one identifier at both servers,
 such as a Client ID Metadata Document (CIMD) Client Identifier URL
 {{CIMD}}, the association is the identity mapping. A client-supplied downstream client identifier MUST NOT
@@ -1151,7 +1159,7 @@ classification and rejection follow {{actor-inputs}}.
   deployment accepting key-bound JWTs MUST configure their proof
   validation and any required relationship to the grant proof key.
   Bearer platform JWTs fall under {{credential-requirements}}.
-* **Failure:** The IdP MUST reject evidence with `invalid_grant` if a
+* **Failure:** The IdP MUST reject evidence with `invalid_request` if a
   required time limit cannot be evaluated or no effective evidence
   deadline can be determined.
 
@@ -1344,7 +1352,7 @@ The ID-JAG is also limited by its subject credential
 WAG, `issued_token_type` is the WAG token type. For a bound grant, the
 client MUST retain the DPoP key for redemption and SHOULD inspect
 the grant to confirm that `cnf.jkt` identifies that key
-({{Section 9.8.1.1 of ID-JAG}}).
+({{Section 9.11.1.1 of ID-JAG}}).
 
 ## Delegated Issuance: ID-JAG {#exchange-request}
 
@@ -1462,7 +1470,7 @@ which is:
 * **SAML assertion:** the earliest applicable `NotOnOrAfter` in the
   assertion's `Conditions` and the `SubjectConfirmationData` used to
   validate the subject. If neither supplies an expiration bound, the
-  IdP MUST reject the subject as `invalid_grant`.
+  IdP MUST reject the subject as `invalid_request`.
 * **Refresh token:** its expiry, if the IdP records one. Otherwise the
   configured and agent-resolution input limits apply; absence of a
   recorded expiry does not authorize an unlimited grant lifetime.
@@ -1576,7 +1584,7 @@ In addition to {{errors}}, the IdP uses these errors:
 
 | Failure | Error |
 |---|---|
-| Invalid subject or agent-resolution credential, or disallowed inbound actor chain | `invalid_grant` |
+| Invalid subject or agent-resolution credential, or disallowed inbound actor chain | `invalid_request` |
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
 | Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance | `actor_unauthorized` under Actor Profile, with HTTP 400 |
@@ -1585,16 +1593,18 @@ In addition to {{errors}}, the IdP uses these errors:
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
-Subject and agent-resolution credential failures use `invalid_grant`,
-as in the example of {{Section 4.3.4.3 of ID-JAG}}, instead of the
-default `invalid_request` of {{Section 2.2.2 of RFC8693}}.
+Subject and agent-resolution credential failures use `invalid_request`,
+as {{Section 2.2.2 of RFC8693}} requires and {{Section 4.3.4.3 of ID-JAG}}
+profiles. A valid credential that resolves no active Identity Binding,
+Agent Principal, or Governance Tenant, or no user, uses `invalid_grant`
+({{errors}}).
 
 Self-acting issuance adds these errors:
 
 | Failure | Error |
 |---|---|
 | Actor-token parameters present in a self-acting exchange | `invalid_request` |
-| Subject token is not byte-identical to the authentication credential in authentication-context resolution | `invalid_grant` |
+| Subject token is not byte-identical to the authentication credential in authentication-context resolution | `invalid_request` |
 | Resolved Agent Principal, but no Client Association permits self-acting issuance for the binding | `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
 | Agent not authorized for the requested RAS or resource | `invalid_target` |
 | Agent not authorized for the requested authority | `invalid_scope` |
@@ -1605,9 +1615,12 @@ Self-acting issuance adds these errors:
 
 ## Redemption Request {#redemption-request}
 
-The client redeems either grant at the RAS token endpoint with the JWT
-bearer grant type, `urn:ietf:params:oauth:grant-type:jwt-bearer`: an
-ID-JAG as in {{Section 4.4 of ID-JAG}}, and a WAG as in {{WAG}}. The
+The client redeems either grant at the RAS token endpoint: an ID-JAG as
+in {{Section 4.4 of ID-JAG}}, and a WAG as in {{WAG}}. A grant
+containing `cnf` is redeemed with the grant type
+`urn:ietf:params:oauth:grant-type:jwt-dpop` ({{JWT-DPOP-GRANT}}), and a
+grant without `cnf` with the JWT bearer grant type,
+`urn:ietf:params:oauth:grant-type:jwt-bearer`. The
 request includes the proof required by {{grant-protection}} and the
 applicable access-token protection. These additional parameters are
 REQUIRED unless marked OPTIONAL:
@@ -1618,8 +1631,9 @@ REQUIRED unless marked OPTIONAL:
 | `scope` | OPTIONAL subset of the grant's scope; if omitted, the grant's scope is the upper bound |
 {: title="Redemption request parameters"}
 
-The confirmation checks of {{Section 9.8.1.2 of ID-JAG}} apply to this
-grant type ({{upstream-gaps}}).
+A grant containing `cnf` presented with `jwt-bearer` is rejected with
+`invalid_grant`, whether or not the request carries a DPoP proof
+({{Section 5.2 of JWT-DPOP-GRANT}}).
 
 ## Common Grant Validation {#redemption-common}
 
@@ -1652,10 +1666,11 @@ it has already accepted while that grant remains acceptable. A proof
 used only for client authentication or access-token binding is not such
 a constraint. The RAS MAY accept a bound grant again under explicit
 policy, each time with a fresh proof that matches its `cnf.jkt`
-({{grant-protection}}). This narrows re-submission under
-{{Section 4.4.3 of ID-JAG}} for unbound ID-JAGs, and settles for the WAG
-the replay question that {{Section 9 of WAG}} leaves open. The retention
-rule of {{time-validation}} applies to accepted identifiers.
+({{grant-protection}}). This applies to unbound ID-JAGs the single-use
+option of {{Section 4.4.4 of ID-JAG}} in place of re-submission, and
+settles for the WAG the replay question that {{Section 9 of WAG}}
+leaves open. The retention rule of {{time-validation}} applies to
+accepted identifiers.
 
 ## Agent Principal Correlation {#agent-correlation}
 
@@ -1858,8 +1873,8 @@ validation failure MUST NOT trigger a weaker mode.
 A proof never selects a protection that configuration does not permit.
 The RAS selects access-token protection only after the checks of
 {{grant-protection}} succeed, so a bound grant redeemed without its
-proof fails with `invalid_grant` whatever protection the resource
-requires.
+proof fails as {{grant-protection}} specifies, with `invalid_grant` or
+`invalid_dpop_proof`, whatever protection the resource requires.
 
 | Selected protection | Access token |
 |---|---|
@@ -1921,7 +1936,8 @@ RAS uses these errors:
 | ID-JAG whose `act` agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction ({{applied-changes}}) | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction | `invalid_grant` |
 | Invalid WAG, including one without `typ` `oauth-wag+jwt` or one that contains `act` | `invalid_grant` |
-| Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| The actor gate refuses a valid ID-JAG's agent for the user ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Other current RAS policy refuses a valid ID-JAG for the user, client, tenant, or resource | `access_denied` ({{Section 4.4.1 of ID-JAG}}) |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
 {: title="Redemption errors"}
 
@@ -2119,7 +2135,7 @@ or grant for the current context ({{implementation-client}}).
 ## Optional RAS Refresh Tokens {#ras-refresh}
 
 **Issuance:** The RAS SHOULD NOT issue refresh tokens, retaining
-{{Section 4.4.3 of ID-JAG}}, but MAY do so for authorized long-running
+{{Section 4.4.4 of ID-JAG}}, but MAY do so for authorized long-running
 work under explicit policy. A WAG redemption never yields a refresh
 token ({{wag-redemption}}).
 
@@ -2274,7 +2290,9 @@ Servers MUST publish {{RFC8414}} metadata as follows:
   the base `urn:ietf:params:oauth:grant-profile:wag`
   ({{Section 8 of WAG}}) for self-acting access.
   * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
-    `grant_types_supported` for this profile.
+    `grant_types_supported` for this profile, and
+    `urn:ietf:params:oauth:grant-type:jwt-dpop` when the RAS accepts
+    grants containing `cnf` ({{Section 5.2 of JWT-DPOP-GRANT}}).
 * **IdP:** Advertise Token Exchange in `grant_types_supported`. For
   delegated access, advertise ID-JAG in
   `identity_chaining_requested_token_types_supported` under
@@ -2297,7 +2315,9 @@ metadata under {{Section 8 of ID-JAG}}, including when supplied through
 CIMD. Its `grant_types` MUST permit:
 
 * `urn:ietf:params:oauth:grant-type:token-exchange` at the IdP.
-* `urn:ietf:params:oauth:grant-type:jwt-bearer` at the RAS.
+* `urn:ietf:params:oauth:grant-type:jwt-bearer` at the RAS, and
+  `urn:ietf:params:oauth:grant-type:jwt-dpop` there when the client
+  redeems grants containing `cnf`.
 
 ### Capability Discovery {#capability-discovery}
 
@@ -2307,9 +2327,10 @@ Before using either grant path:
   configuration on issuance support and any options. Generic JWT or
   authentication-method support is insufficient.
 * **RAS capabilities:** The client MUST verify the RAS's profile
-  advertisement, JWT bearer grant support, and compatible access-token
-  protection. If no supported profile satisfies the configured minimum,
-  the client MUST NOT initiate that path.
+  advertisement, support for the grant type it will redeem with
+  ({{redemption-request}}), and compatible access-token protection. If
+  no supported profile satisfies the configured minimum, the client
+  MUST NOT initiate that path.
 * **Metadata consistency:** For delegated access, if the
   `actor_profile_token_exchange` parameter of
   {{Section 10.1 of ACTOR-PROFILE}} is published, it MUST describe only
@@ -2363,17 +2384,30 @@ cited are met.
     with a fresh `jti`, as the retry rule of {{client-assertion-input}}
     requires. An unknown client, a wrong key, or an unsupported method
     needs configuration, not a retry.
-  * `invalid_grant`: after correcting what it can detect itself, such as
-    a missing proof or a grant addressed to another server, a client
-    can make one recovery attempt with the same identity, client, and
-    credential class: a fresh subject credential and agent-resolution
-    input at the IdP, or a new grant at the RAS. The code does not say
-    which check failed ({{security-errors}}), and renewal cannot repair
-    a disabled binding, a missing proof, or a malformed grant.
+  * `invalid_request` at the IdP: a malformed request needs correction.
+    An invalid subject credential or agent-resolution input gets the
+    same code, so a client whose unchanged request previously succeeded
+    can make one recovery attempt with a fresh subject credential and
+    agent-resolution input of the same identity, client, and credential
+    class ({{Section 4.3.4.3 of ID-JAG}}).
+  * `invalid_grant` at the IdP: a valid credential resolved no user, or
+    no active Identity Binding, Agent Principal, or Governance Tenant;
+    renewal cannot repair it.
+  * `invalid_grant` at the RAS: after correcting what it can detect
+    itself, such as a missing proof or a grant addressed to another
+    server, a client can make one recovery attempt with a new grant for
+    the same identity and client ({{Section 4.4.4 of ID-JAG}}). The
+    code does not say which check failed ({{security-errors}}), and
+    renewal cannot repair a disabled agent, a missing proof, a resource
+    the RAS does not govern, or a malformed grant.
   * `invalid_scope`: the client corrects the requested scope using
     authority it knows is permitted. Reducing a request helps only if
     what remains is permitted.
-  * `invalid_target`: covers an unresolved target or tenant, a missing
+  * `access_denied` at the RAS: the grant is valid, but RAS policy other
+    than the actor gate refuses it; a new grant does not help
+    ({{Section 4.4.3 of ID-JAG}}).
+  * `invalid_target`: covers an unresolved target, or a tenant
+    unresolved at the IdP, a missing
     client registration association, and the refusals of self-acting
     issuance, including an unenforceable approval condition.
   * `actor_unauthorized`: another actor credential or grant path might
@@ -2386,8 +2420,8 @@ cited are met.
     of an invalid argument calls for a corrected request
     ({{resource-errors}}).
 
-  Apart from the `invalid_client` and `invalid_grant` attempts above
-  and a 503, a client does not retry the unchanged request
+  Apart from the `invalid_client`, `invalid_request`, and `invalid_grant`
+  attempts above and a 503, a client does not retry the unchanged request
   automatically. A later change in policy or authorization makes a new
   request a new decision. {{discovery}} forbids retrying at a lower
   profile, {{actor-inputs}} forbids falling back from rejected
@@ -2419,8 +2453,8 @@ Credential classification and mutually exclusive validation follow
 alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.
 
-Both grants are JWTs redeemed with the same grant type, so the RAS tells
-them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
+Both grants are JWTs redeemed with the same JWT grant types, so the RAS
+tells them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
 ({{Section 3.1 of ID-JAG}}) and `oauth-wag+jwt` for a WAG
 ({{wag-redemption}}).
 
@@ -2431,9 +2465,10 @@ Distinguishing `invalid_grant` from `actor_unauthorized`
 not which binding-resolution check failed. That disclosure reaches even
 a holder of stolen bearer evidence who passes the request's other
 authentication. At the RAS, `actor_unauthorized` ({{redemption-errors}})
-tells an authenticated client holding a valid grant that its
-delegation was refused, not why; an uncorrelated or ineligible agent
-gets `invalid_grant`, as at the IdP.
+tells an authenticated client holding a valid grant that the actor gate
+refused its agent, and `access_denied` that other policy refused the
+grant, not why; an uncorrelated or ineligible agent gets
+`invalid_grant`, as at the IdP.
 
 An API that answers differently depending on whether a route, target,
 or tenant exists discloses that existence. Within a namespace the API
@@ -2804,7 +2839,7 @@ Host: ras.example
 Content-Type: application/x-www-form-urlencoded
 DPoP: RAS_DPOP_PROOF
 
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-dpop
 &client_id=analysis-api
 &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth
 %3Aclient-assertion-type%3Ajwt-bearer
@@ -2922,13 +2957,13 @@ last column is the required result. Token endpoint errors follow
 | The grant's `scope` claim is missing, empty, or not a string | RAS | HTTP 400, `invalid_grant` ({{redemption-common}}) |
 | The RAS has no authorized correlation for `agent-42`, or `agent-42` is disabled there | RAS | HTTP 400, `invalid_grant`, not `actor_unauthorized` ({{redemption-errors}}) |
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
-| Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
+| Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant` or `invalid_dpop_proof`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
 | Governed agent access: the grant has no `cnf`, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key | RAS | HTTP 400, `invalid_grant`; an access-token proof does not make an unbound grant reusable ({{redemption-common}}) |
 | Self-acting variant ({{wag-example}}) under governed agent access: the WAG has no `cnf`, was redeemed once, and is presented again | RAS | HTTP 400, `invalid_grant`; an unbound WAG is single-use ({{redemption-common}}) |
 | Delegated access token without `act`, presented to an API configured for the governed delegated population | API | HTTP 401, `invalid_token`; a missing `act` does not make the token self-acting ({{api-applicability}}) |
 | Platform JWT variant ({{aws-example}}): the shared client `platform-sso` holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
-| Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
+| Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_request`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
 | The API delegates evaluation to a policy service; an attribute derived from the request names `agent-77` as the agent, and policy permits `agent-77` but not `agent-42` | API | HTTP 403, `actor_unauthorized`; the evaluation uses `agent-42` from the validated `act` ({{policy-services}}) |
 | The API's policy does not permit `agent-42` to act for Alice, and the operation also needs `files.write`, which the access token lacks | API | HTTP 403, `actor_unauthorized`, not `insufficient_scope`; the actor gate comes first ({{resource-errors}}) |
 | The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
@@ -3088,9 +3123,9 @@ of this document ({{excluded-compositions}}).
 
 This informative appendix records how this document differs from its
 base specifications, what it depends on, and the compositions it does
-not define. They were assessed against WAG-02, ID-JAG-04, ICA-02, Actor
-Profile-01, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client Instance
-Identification-00.
+not define. They were assessed against WAG-02, ID-JAG-06, JWT DPoP
+Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11,
+CIMD-02, and Client Instance Identification-00.
 
 ## Differences from Base Specifications {#base-differences}
 
@@ -3106,9 +3141,12 @@ referenced sections define each requirement.
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
+| Grant binding | `cnf.jkt` from a DPoP proof, redeemed with `jwt-dpop`; no `x5t#S256` certificate binding ({{Section 9.11.2 of ID-JAG}}) | {{grant-protection}}, {{redemption-request}} |
+| Redemption client authentication | Required for every grant, including a bound grant; {{Section 4.4 of ID-JAG}} lets a bound ID-JAG stand in for it, and {{Section 4.1 of JWT-DPOP-GRANT}} makes it optional | {{redemption-common}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
-| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
+| Error processing | `invalid_grant`, not RFC 8693's `invalid_request`, for a valid subject or actor credential that resolves no user or no active binding, agent, or tenant; `actor_unauthorized` for a denied resolved actor, where {{Section 4.3.4.3 of ID-JAG}} profiles `access_denied` for a client or user that is not authorized | {{issuance-errors}} |
+| Redemption errors | `invalid_grant` for an unresolved or disabled user or an uncorrelated or disabled agent, where {{Section 4.4.3 of ID-JAG}} profiles `access_denied` for a valid ID-JAG that is not authorized; `actor_unauthorized` for an actor-gate refusal | {{redemption-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
 {: title="Additions and narrowings to the base specifications"}
 
@@ -3119,7 +3157,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 |---|---|---|
 | Issuer | The Workload Identity Provider of the Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
 | Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
-| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
+| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile; a bound WAG is redeemed with `jwt-dpop`, where {{Section 5 of WAG}} uses `jwt-bearer` ({{redemption-request}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
@@ -3131,7 +3169,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
 | WAG | Alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
-| ID-JAG | `jwt-bearer` in the bound-grant example, which uses `jwt-dpop`; confirmation errors distinct from RFC 9449 proof errors | Confirmation checks apply to `jwt-bearer` here ({{redemption-request}}); no dependency on JWT DPoP Grant |
+| ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof: `invalid_grant` in {{Section 9.11.1.2.2 of ID-JAG}}, `invalid_dpop_proof` in {{Section 5 of JWT-DPOP-GRANT}} | Either error is permitted ({{grant-protection}}) |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
 

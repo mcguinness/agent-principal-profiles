@@ -278,8 +278,8 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
   agent by the exact pair in the Target Tenant.
 * **On failure:** with no client registration association, the IdP
   issues nothing for that target. A grant from an untrusted issuer or
-  namespace, or a bound grant without its proof, is an invalid grant at
-  the RAS. Each server enforces its own minimum profile, and nothing is
+  namespace, or a bound grant without its proof, is rejected at the
+  RAS. Each server enforces its own minimum profile, and nothing is
   retried at a lower one.
 
 ### RAS → API

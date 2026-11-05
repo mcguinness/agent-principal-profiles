@@ -30,6 +30,7 @@ import jws
 
 TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+JWT_DPOP = "urn:ietf:params:oauth:grant-type:jwt-dpop"
 DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
 ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
@@ -72,6 +73,8 @@ class Config:
     # and N28 also use extra_scope, as a scope the IdP can be configured to
     # exclude from the delegation or to prohibit for the agent.
     uncorrelated_agent: str = "agent-99"
+    # A user the IdP has no record of (N32).
+    unknown_user: str = "carol"
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
     # the self-acting population for `resource`, whose tokens name the local
@@ -177,8 +180,16 @@ class Client:
                     form, headers)
 
     def redeem(self, grant, dpop_key="k", resource=None, as_other_client=False,
-               deferred=False, proof=None):
-        form = {"grant_type": JWT_BEARER, "assertion": grant,
+               deferred=False, proof=None, grant_type=None):
+        """Redeem a grant: with jwt-dpop if it carries cnf, otherwise with
+        jwt-bearer (core: Redemption Request), unless grant_type is given."""
+        if grant_type is None:
+            try:
+                bound = "cnf" in jws.decode(grant)[1]
+            except ValueError:
+                bound = False
+            grant_type = JWT_DPOP if bound else JWT_BEARER
+        form = {"grant_type": grant_type, "assertion": grant,
                 "resource": resource or self.cfg.resource}
         if deferred:
             form["completion_mode"] = "deferred"
@@ -551,9 +562,11 @@ def jkt(claims):
 
 
 def expect_error(resp, status, error):
+    """error is one code, or a tuple of the codes the drafts permit."""
+    errors = error if isinstance(error, tuple) else (error,)
     body = resp.json()
-    check(resp.status == status and body.get("error") == error,
-          f"expected HTTP {status} {error}, got {resp}")
+    check(resp.status == status and body.get("error") in errors,
+          f"expected HTTP {status} {' or '.join(errors)}, got {resp}")
     check("access_token" not in body, "an error response carried a token")
 
 
@@ -763,7 +776,7 @@ def n04(ctx):
       "core: Subject Token Validation; ID-JAG Section 4.3.3",
       defeats=("idp.id_token_audience",))
 def n05(ctx):
-    expect_error(ctx.client.exchange(ctx.id_token(aud="another-client")), 400, "invalid_grant")
+    expect_error(ctx.client.exchange(ctx.id_token(aud="another-client")), 400, "invalid_request")
 
 
 @case("N06", "IdP", "Rejects issuance when the Identity Binding is disabled",
@@ -816,11 +829,12 @@ def n10(ctx):
       "(Grant Protection first)",
       defeats=("ras.require_proof",))
 def n11(ctx):
-    expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400, "invalid_grant")
+    expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400,
+                 ("invalid_grant", "invalid_dpop_proof"))
 
 
 @case("N12", "RAS", "Rejects redemption proven with a key other than the grant's",
-      "core: Grant Protection (key mismatch); ID-JAG Section 9.8.1.2",
+      "core: Grant Protection (key mismatch); ID-JAG Section 9.11.1.2",
       defeats=("ras.proof_key_match",))
 def n12(ctx):
     expect_error(ctx.client.redeem(ctx.grant(), dpop_key="k2"), 400, "invalid_grant")
@@ -905,7 +919,7 @@ HOUR = 3600
 def n21(ctx):
     now = int(time.time())
     id_token = ctx.id_token(claims={"iat": now + HOUR, "exp": now + HOUR + 3900})
-    expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
+    expect_error(ctx.client.exchange(id_token), 400, "invalid_request")
 
 
 @case("N22", "IdP", "Rejects a client assertion whose nbf is an hour in the future",
@@ -1009,6 +1023,41 @@ def n28(ctx):
                  "actor_unauthorized")
 
 
+@case("N29", "RAS", "Rejects a bound grant presented with jwt-bearer and a valid proof",
+      "core: Redemption Request; JWT DPoP Grant Section 5.2",
+      defeats=("ras.grant_type_binding",))
+def n29(ctx):
+    expect_error(ctx.client.redeem(ctx.grant(), grant_type=JWT_BEARER), 400, "invalid_grant")
+
+
+@case("N30", "RAS", "Rejects an unbound grant presented with jwt-dpop",
+      "core: Redemption Request; JWT DPoP Grant Section 5",
+      needs=("set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.grant_type_binding",))
+def n30(ctx):
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", "governed")
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the IdP issued a grant with cnf")
+    expect_error(ctx.client.redeem(grant, grant_type=JWT_DPOP), 400, "invalid_grant")
+
+
+@case("N31", "IdP", "Rejects with invalid_request an ID Token whose sub is not a string",
+      "core: Issuance Errors; RFC 8693 Section 2.2.2", needs=("id_token:claims",),
+      defeats=("idp.id_token_sub",))
+def n31(ctx):
+    for sub in (None, 123):
+        expect_error(ctx.client.exchange(ctx.id_token(claims={"sub": sub})), 400,
+                     "invalid_request")
+
+
+@case("N32", "IdP", "Rejects with invalid_grant a valid ID Token for a user it cannot resolve",
+      "core: Subject Resolution; Issuance Errors", needs=("id_token:claims",))
+def n32(ctx):
+    id_token = ctx.id_token(claims={"sub": ctx.cfg.unknown_user})
+    expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
+
+
 # Deferred redemption at the RAS ---------------------------------------------
 #
 # The oversight companion's Deferred Redemption rows. In every case RAS
@@ -1087,13 +1136,13 @@ def scopes(value):
     return set(str(value or "").split())
 
 
-@case("D01", "RAS", "Refuses with actor_unauthorized, not a deferral, without the opt-in",
+@case("D01", "RAS", "Refuses with access_denied, not a deferral, without the opt-in",
       "oversight: Redemption Opt-In; core: Redemption Errors",
       needs=("set:ras.approval_required",), defeats=("ras.approval_gate",))
 def d01(ctx):
     require_approval(ctx)
     resp = ctx.client.redeem(ctx.grant())
-    expect_error(resp, 400, "actor_unauthorized")
+    expect_error(resp, 400, "access_denied")
     check("deferral_code" not in resp.json(), "the refusal carried a deferral code")
 
 
@@ -1443,6 +1492,19 @@ def d22(ctx):
     expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
     ctx.adapter.set("ras", "actor_gate", True)
     expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
+
+
+@case("D23", "RAS", "Recovery that presents a bound grant with jwt-bearer fails",
+      "oversight: Recovery (grant type); core: Redemption Request",
+      needs=("set:ras.approval_required",), defeats=("ras.recovery_match",))
+def d23(ctx):
+    require_approval(ctx)
+    grant = ctx.grant()
+    check("cnf" in jws.decode(grant)[1], "setup: the IdP issued a grant without cnf")
+    defer(ctx, grant)
+    resp = ctx.client.redeem(grant, deferred=True, grant_type=JWT_BEARER)
+    expect_error(resp, 400, "invalid_grant")
+    check("deferral_code" not in resp.json(), "the error carried a deferral code")
 
 # Policy services at the API ------------------------------------------------
 #
