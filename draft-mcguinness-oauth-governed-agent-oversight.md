@@ -756,7 +756,7 @@ request that presents:
 * authentication of the same client and a DPoP proof of the same key,
   each fresh under its own replay rules;
 * `deferred` in `completion_mode`; and
-* the same `resource`, `scope`, and `authorization_details`.
+* the same `grant_type`, `resource`, `scope`, and `authorization_details`.
 
 Recovery matches the stored grant and does not validate it again, so it
 succeeds after the grant's `exp`. It is not an acceptance, opens no
@@ -769,8 +769,8 @@ no token, so it cannot yield a second token while a poll succeeds.
 
 The RAS rejects any other presentation of an accepted grant under the
 replay rule of {{redemption-deferring}}, with `invalid_grant`. This
-includes a presentation without `deferred` and any presentation after
-the pending governed redemption ends.
+includes a presentation without `deferred` or with another grant type,
+and any presentation after the pending governed redemption ends.
 
 ## Redemption Resolution {#redemption-resolution}
 
@@ -1213,8 +1213,9 @@ Each case changes this variant as stated; all other checks succeed.
 | Grant-derived revocation of the ID-JAG arrives while the redemption is pending, at a participating RAS | RAS | HTTP 400, `access_denied` at the next poll |
 | The steward denies, and the client presents the grant again | RAS | HTTP 400, `access_denied`; then `invalid_grant` |
 | While the redemption is pending, the client presents the grant without `completion_mode` | RAS | HTTP 400, `invalid_grant` |
-| After the grant's `exp`, the client repeats the redemption with the same grant, key, opt-in, and parameters | RAS | The same deferral code, with the remaining `expires_in` |
+| After the grant's `exp`, the client repeats the redemption with the same grant, grant type, key, opt-in, and parameters | RAS | The same deferral code, with the remaining `expires_in` |
 | The repeated redemption reuses the DPoP proof of the first | RAS | HTTP 400, `invalid_dpop_proof` |
+| The repeated redemption presents the grant, which contains `cnf`, with `jwt-bearer` | RAS | HTTP 400, `invalid_grant`; no deferral code |
 | After a successful token response, the client repeats the redemption | RAS | HTTP 400, `invalid_grant` |
 | Two identical redemptions arrive together | RAS | One pending governed redemption and one approval request; both responses carry its deferral code |
 | While the redemption is pending, `agent-43` redeems its own ID-JAG through the same client, for the same user, resource, and scope | RAS | A separate pending governed redemption and approval request; approving the first issues nothing for it |

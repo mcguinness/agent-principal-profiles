@@ -541,7 +541,7 @@ applies.
 * **Oversight, at the IdP and the RAS** ([Client Opt-In][ov-opt-in];
   [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery];
   [Redemption Resolution][ov-redemption-resolution]; [Refresh and
-  Continuation][ov-redemption-refresh]; cases D01 to D22, at the RAS
+  Continuation][ov-redemption-refresh]; cases D01 to D23, at the RAS
   only):
   * When policy requires approval, a request without the opt-in gets
     the IdP's ordinary refusal: `actor_unauthorized` for a delegated
@@ -654,13 +654,13 @@ A deployment that uses oversight adds this configuration to the
 |---|---|
 | IdP | The mode in issuance policy, configured at the IdP directly, since the SCIM management profile has no attribute for it; the approvers each policy designates, and the authentication strength each requires; an approval channel, such as [CIBA] with a `binding_message` that describes the request; a maximum pending lifetime for each policy; Deferred Token Response in polling mode, with deferral codes bound to the client and its DPoP key; for supervised issuance, the overseers and the channel that gives them each grant's issuer, `jti`, request context, and issuance time |
 | RAS, for deferred redemption | The mode in RAS policy, and the approvers it designates; `deferred_token_response_supported` in its metadata; an approval channel, such as an access request service under [ARAP], with one access request for each pending redemption and the approval kept unchanged; a maximum pending lifetime and an absolute authorization expiration that starts when the grant is accepted; no deferral for a resource configured for mutual-TLS access tokens; the accepted grant, or its digest, kept for recovery; the resulting authorization never eligible for continuation |
-| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
+| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant and grant type, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
 | Gateway | The client behavior above for its continuation exchanges; reporting the wait to the agent through its own interface, such as an MCP task |
 | API or MCP server | Per-action policy and its approvers; holding a call, or refusing it in a way the agent can request; an approval page that authenticates the approver and binds the decision to the call, its arguments, and the token's subject, agent, client, and tenant |
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
 
 The conformance suite tests deferred redemption against the reference,
-whose Access Request Service it controls: D01 to D22. WAG deferral,
+whose Access Request Service it controls: D01 to D23. WAG deferral,
 mutual-TLS resources, continuation ineligibility, and grant-derived
 revocation while pending are untested.
 

@@ -1475,6 +1475,19 @@ def d22(ctx):
     ctx.adapter.set("ras", "actor_gate", True)
     expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
 
+
+@case("D23", "RAS", "Recovery that presents a bound grant with jwt-bearer fails",
+      "oversight: Recovery (grant type); core: Redemption Request",
+      needs=("set:ras.approval_required",), defeats=("ras.recovery_match",))
+def d23(ctx):
+    require_approval(ctx)
+    grant = ctx.grant()
+    check("cnf" in jws.decode(grant)[1], "setup: the IdP issued a grant without cnf")
+    defer(ctx, grant)
+    resp = ctx.client.redeem(grant, deferred=True, grant_type=JWT_BEARER)
+    expect_error(resp, 400, "invalid_grant")
+    check("deferral_code" not in resp.json(), "the error carried a deferral code")
+
 # Policy services at the API ------------------------------------------------
 #
 # The core's Optional Policy Services and Error Responses. Test control

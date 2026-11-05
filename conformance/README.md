@@ -117,6 +117,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | D20 | RAS | An agent whose correlation changes to another local principal while pending gets `access_denied` at the poll after approval | oversight: Redemption Resolution; core: Agent Principal Correlation | Require approval; change the agent's local principal at the RAS; approve |
 | D21 | RAS | After an unbound grant's deferred redemption, raising the client's minimum to the bound profile makes the next refresh fail with `invalid_grant` | oversight: Refresh and Continuation; core: Optional RAS Refresh Tokens (step 3) | Require approval; permit refresh; set the governed profile; approve |
 | D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
+| D23 | RAS | A repeated request that presents the bound grant with `jwt-bearer` fails with `invalid_grant` and carries no deferral code | oversight: Recovery; core: Redemption Request | Require approval |
 | S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
 | S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
 | S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
@@ -187,8 +188,8 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 86 cases runs once for each check it names, with that check
-switched off; eight S cases name two checks, so there are 94 runs, and
+these 87 cases runs once for each check it names, with that check
+switched off; eight S cases name two checks, so there are 95 runs, and
 every run fails. Twenty-eight N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -205,7 +206,7 @@ The D cases fail without their check in these ways:
 * the RAS issues a token it must not: D01, D02 (a second token), D05,
   D11, D14, D20, D21 and D22 (after the actor gate reopens);
 * it returns or keeps a deferral where an error is required: D03, D06
-  (a new deferral after the denial), D08, D18 and D19;
+  (a new deferral after the denial), D08, D18, D19 and D23;
 * it returns another error: D07 (`access_denied`);
 * it exceeds a bound: D04 and D17 (`expires_in`), D12 (`scope`), D13
   and D15 (the token's `exp`);

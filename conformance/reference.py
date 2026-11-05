@@ -124,7 +124,8 @@ CHECKS = {
     "ras.grant_consumed": "a deferred redemption consumes the grant; another presentation "
                           "fails with invalid_grant",
     "ras.single_pending": "identical deferred redemptions share one pending redemption and task",
-    "ras.recovery_match": "recovery needs the same client, key, opt-in and request parameters",
+    "ras.recovery_match": "recovery needs the same client, key, opt-in, grant type and request "
+                          "parameters",
     "ras.recovery_window": "recovery ends when the pending redemption is redeemed or ends",
     "ras.recovery_no_extension": "recovery never resets the pending deadline",
     "ras.task_per_redemption": "each pending redemption opens its own access request",
@@ -915,7 +916,7 @@ class RAS(Server):
     @staticmethod
     def request_params(form):
         return tuple(tuple(form.get(name, [])) for name in
-                     ("resource", "scope", "authorization_details"))
+                     ("grant_type", "resource", "scope", "authorization_details"))
 
     def defer(self, form, digest, grant_key, claims, client_id, jkt, act, user, config,
               resource, scope, now):
@@ -981,7 +982,9 @@ class RAS(Server):
             self.ars.cancel(pending["task"])
 
     def recovers(self, pending, form, client_id, jkt, deferred):
-        """Recovery: the same client, a fresh proof of the same key, the opt-in, the same parameters."""
+        """Recovery: the same client, a fresh proof of the same key, the opt-in, the same
+        grant type and parameters. Recovery runs before the grant type check of
+        redeem(), so the grant type is part of the match."""
         self.expire_if_due(pending)
         if pending["state"] != "pending" and self.on("ras.recovery_window"):
             return False
