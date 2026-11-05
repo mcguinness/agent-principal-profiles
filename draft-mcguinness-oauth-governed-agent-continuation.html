@@ -25,7 +25,7 @@ Continuation Assertion to self-acting chains rooted in a WAG, and
 defines the permission a gateway needs to continue an agent's chain and
 the governance events that end it. 
     " name="description">
-<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="xml2rfc 3.35.0" name="generator">
 <meta content="OAuth" name="keyword">
 <meta content="agent federation" name="keyword">
 <meta content="identity continuation" name="keyword">
@@ -33,19 +33,19 @@ the governance events that end it.
 <meta content="token exchange" name="keyword">
 <meta content="draft-mcguinness-oauth-governed-agent-continuation-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.34.1
-    Python 3.14.8
-    ConfigArgParse 1.8.0
+  xml2rfc 3.35.0
+    Python 3.14.10
+    ConfigArgParse 1.9.0
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.13.4
+    platformdirs 4.14.3
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.9.2
+    wcwidth 0.9.4
 -->
 <link href="draft-mcguinness-oauth-governed-agent-continuation.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1065,7 +1065,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 6 May 2027</td>
+<td class="center">Expires 9 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1078,12 +1078,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-continuation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-02" class="published">2 November 2026</time>
+<time datetime="2026-11-05" class="published">5 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-06">6 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-09">9 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1149,7 +1149,7 @@ the governance events that end it.<a href="#section-abstract-2" class="pilcrow">
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 6 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 9 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1904,7 +1904,7 @@ The common parameters and rules of "Token Exchange Request" in
                 <code>requested_token_type</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>urn:ietf:params:oauth:token-type:id-jag</code> for a delegated chain; <code>urn:ietf:params:oauth:token-type:wag</code> (provisional) for a self-acting chain</td>
+                <code>urn:ietf:params:oauth:token-type:id-jag</code> for a delegated chain; <code>urn:ietf:params:oauth:token-type:wag</code> for a self-acting chain</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">
@@ -2284,7 +2284,7 @@ RAS that issued its token supports path disclosure.<a href="#section-6.5.2-6" cl
 <a href="#section-6.5.3" class="section-number selfRef">6.5.3. </a><a href="#name-delegated-id-jag" class="section-name selfRef">Delegated: ID-JAG</a>
           </h4>
 <p id="section-6.5.3-1">The onward ID-JAG uses the format and claims of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the following:<a href="#section-6.5.3-1" class="pilcrow">¶</a></p>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the following:<a href="#section-6.5.3-1" class="pilcrow">¶</a></p>
 <span id="name-onward-id-jag-subject-actor"></span><table class="center" id="table-5">
             <caption>
 <a href="#table-5" class="selfRef">Table 5</a>:
@@ -2332,9 +2332,9 @@ RAS that issued its token supports path disclosure.<a href="#section-6.5.2-6" cl
 <p id="section-6.5.3-3"><span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> applies to the onward ID-JAG and to the IdP's
 hop records, including immutable parent references, ancestry that
 excludes sibling branches, and the merging of consecutive identical
-actors that the actor-lineage depth bound counts. Two of its rules are
-replaced: <a href="#identity-preservation" class="auto internal xref">Section 6.5.1</a> replaces the <code>act</code> it emits, and
-<a href="#target-processing" class="auto internal xref">Section 7</a> its redemption grant type. The continuing clients
+actors that the actor-lineage depth bound counts. One of its rules is
+replaced: <a href="#identity-preservation" class="auto internal xref">Section 6.5.1</a> replaces the <code>act</code> it emits. The
+continuing clients
 that its lineage would place in <code>act</code> appear in <code>continuation_via</code>
 instead.<a href="#section-6.5.3-3" class="pilcrow">¶</a></p>
 </section>
@@ -2562,12 +2562,10 @@ end of the chain.<a href="#section-6.6-5" class="pilcrow">¶</a></p>
 <a href="#section-7" class="section-number selfRef">7. </a><a href="#name-onward-redemption-and-acces" class="section-name selfRef">Onward Redemption and Access</a>
       </h2>
 <p id="section-7-1">The continuing client redeems the onward grant under "Redemption
-Request" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>: the <code>urn:ietf:params:oauth:grant-type:jwt-bearer</code>
+Request" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>: the <code>urn:ietf:params:oauth:grant-type:jwt-dpop</code>
 grant type, client authentication as the client the grant names, and a
-DPoP proof of the grant's <code>cnf</code> key. For governed chains, this replaces
-the <code>jwt-dpop</code> redemption of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>;
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires <code>jwt-bearer</code>, and <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
-applies the grant confirmation checks of ID-JAG to it. Every onward
+DPoP proof of the grant's <code>cnf</code> key, as in the <code>jwt-dpop</code> redemption of
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>. Every onward
 grant carries <code>cnf</code>, so the target RAS needs DPoP support at its token
 endpoint ("Grant Protection" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), which the continuing
 client verifies under "Capability Discovery" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-7-1" class="pilcrow">¶</a></p>
@@ -2608,7 +2606,7 @@ type from the IdP (<a href="#continuation-request" class="auto internal xref">Se
 <a href="#walkthrough-continuation" class="auto internal xref">Appendix A.3</a>);<a href="#section-8-3.3.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-8-3.4">
-          <p id="section-8-3.4.1">redeems the onward grant with <code>jwt-bearer</code> and a proof of its key
+          <p id="section-8-3.4.1">redeems the onward grant with <code>jwt-dpop</code> and a proof of its key
 (<a href="#target-processing" class="auto internal xref">Section 7</a>);<a href="#section-8-3.4.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-8-3.5">
@@ -2788,18 +2786,19 @@ RAS. The continuing client <span class="bcp14">MUST</span> implement that reques
         </h3>
 <p id="section-10.2-1">A continuation-aware RAS that binds handles of governed grants <span class="bcp14">MUST</span> list
 <code>urn:ietf:params:oauth:grant-profile:governed-agent-continuation</code> in
-<code>authorization_grant_profiles_supported</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-7.2" class="relref">Section 7.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>),
+<code>authorization_grant_profiles_supported</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-7.2" class="relref">Section 7.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>),
 together with the governed profile URIs that identify the grants it
 accepts. The value indicates handle binding under
 <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.2" class="relref">Section 5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> with the access-token protection and eligibility
 of <a href="#root-redemption" class="auto internal xref">Section 4</a>, and redemption of onward grants with
-<code>jwt-bearer</code> (<a href="#target-processing" class="auto internal xref">Section 7</a>); it does not indicate <code>jwt-dpop</code>
-support. A RAS lists ICA's
+<code>jwt-dpop</code> (<a href="#target-processing" class="auto internal xref">Section 7</a>), which the RAS also lists in
+<code>grant_types_supported</code> ("Authorization Server Metadata" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). A RAS lists ICA's
 <code>urn:ietf:params:oauth:grant-profile:id-jag-continuation</code>, with the
 requirements of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-7.2" class="relref">Section 7.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, only if it also binds handles of
-chains established without this document. As for the self-acting
-profile URIs of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, use of this parameter for WAGs awaits
-coordination (<a href="#dependencies" class="auto internal xref">Appendix B.3</a>).<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+chains established without this document. Listing
+<code>governed-agent-continuation</code> for WAGs in this parameter, which
+<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-8" class="relref">Section 8</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> also uses, awaits coordination (<a href="#dependencies" class="auto internal xref">Appendix B.3</a>).<a href="#section-10.2-1" class="pilcrow">¶</a></p>
 <p id="section-10.2-2">An IdP that supports delegated continuation advertises
 <code>identity_continuation_supported</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-7.1" class="relref">Section 7.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>), which
 indicates continuation-capable ID-JAG issuance; an IdP that supports
@@ -3132,7 +3131,7 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dd class="break"></dd>
 <dt id="ID-JAG">[ID-JAG]</dt>
         <dd>
-<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-04</span>, <time datetime="2026-05-21" class="refDate">21 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04</a>&gt;</span>. </dd>
+<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-06</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC6749">[RFC6749]</dt>
         <dd>
@@ -3227,7 +3226,7 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dd class="break"></dd>
 <dt id="WAG">[WAG]</dt>
       <dd>
-<span class="refAuthor">Carleton, P.</span>, <span class="refAuthor">Steele, N.</span>, <span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-01</span>, <time datetime="2026-09-22" class="refDate">22 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01</a>&gt;</span>. </dd>
+<span class="refAuthor">Carleton, P.</span>, <span class="refAuthor">Steele, N.</span>, <span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-02</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -3451,7 +3450,7 @@ It carries the root's <code>auth_time</code>, and its <code>continuation_via</co
 <a href="#appendix-A.4" class="section-number selfRef">A.4. </a><a href="#name-redemption-at-the-target" class="section-name selfRef">Redemption at the Target</a>
         </h3>
 <p id="appendix-A.4-1">The gateway redeems the onward ID-JAG at <code>https://ras.example/</code> with the
-<code>jwt-bearer</code> grant type, a <code>private_key_jwt</code> assertion for
+<code>jwt-dpop</code> grant type, a <code>private_key_jwt</code> assertion for
 <code>gateway-files</code>, and a fresh proof of G. The RAS validates the grant
 and its confirmation, resolves Alice to <code>user-108</code>, correlates
 <code>agent-42</code>, applies the actor gate, and ignores the handle and
@@ -3513,7 +3512,7 @@ the gateway treats it as self-acting. With an assertion for this
 chain's handle, issued at 1789646585, the gateway requests a WAG. The
 self-acting Continuation Association, the Agent Authorization of
 <code>agent-42</code> for <code>files.read</code>, and the agent session all hold, and the
-IdP issues this onward WAG with <code>typ</code> <code>wag+jwt</code>:<a href="#appendix-A.5-3" class="pilcrow">¶</a></p>
+IdP issues this onward WAG with <code>typ</code> <code>oauth-wag+jwt</code>:<a href="#appendix-A.5-3" class="pilcrow">¶</a></p>
 <div class="lang-json sourcecode" id="appendix-A.5-4">
 <pre>
 {
@@ -3874,7 +3873,7 @@ that anchors the chain also ends it (<span><a href="https://datatracker.ietf.org
             <tr>
               <td class="text-left" rowspan="1" colspan="1">The gateway redeems the onward ID-JAG without a proof of G</td>
               <td class="text-left" rowspan="1" colspan="1">Target RAS</td>
-              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code> or <code>invalid_dpop_proof</code>
 </td>
             </tr>
             <tr>
@@ -3924,7 +3923,7 @@ that anchors the chain also ends it (<span><a href="https://datatracker.ietf.org
 <p id="appendix-B-1">This informative appendix lists what this document changes in <span>[<a href="#ICA" class="cite xref">ICA</a>]</span>
 and <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and needs from the specifications it profiles,
 assessed against
-ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
+ICA-02, ID-JAG-06, WAG-02, and the 2026-10-09 revision of
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <div id="ica-changes">
 <section id="appendix-B.1">
@@ -4008,13 +4007,6 @@ ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
               <td class="text-left" rowspan="1" colspan="1">Continuing clients as intermediaries in <code>continuation_via</code>, preserved to the API by targets that support path disclosure (<a href="#continuation-via" class="auto internal xref">Section 6.5.2</a>)</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Onward redemption</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>jwt-dpop</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>)</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>jwt-bearer</code> with grant confirmation (<a href="#target-processing" class="auto internal xref">Section 7</a>)</td>
-            </tr>
-            <tr>
               <td class="text-left" rowspan="1" colspan="1">Access token for a grant with <code>cnf</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">DPoP-bound, never bearer (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.2" class="relref">Section 5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>)</td>
@@ -4024,7 +4016,7 @@ ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
               <td class="text-left" rowspan="1" colspan="1">Advertisement</td>
               <td class="text-left" rowspan="1" colspan="1">RAS <code>id-jag-continuation</code> with <code>jwt-dpop</code>; IdP <code>identity_continuation_supported</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-7" class="relref">Section 7</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>)</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>governed-agent-continuation</code> for governed grants, without <code>jwt-dpop</code>; the IdP flag only for delegated continuation (<a href="#metadata" class="auto internal xref">Section 10.2</a>)</td>
+                <code>governed-agent-continuation</code> for governed grants, with <code>jwt-dpop</code> as for any RAS that accepts grants containing <code>cnf</code>; the IdP flag only for delegated continuation (<a href="#metadata" class="auto internal xref">Section 10.2</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Chain ending</td>
@@ -4123,16 +4115,9 @@ ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
               <td class="text-left" rowspan="1" colspan="1">This document applies them to governed chains and defines <code>continuation_via</code> itself</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">ID-JAG</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires <code>jwt-bearer</code>, while its key-bound example uses <code>jwt-dpop</code>, which <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> follows</td>
-              <td class="text-left" rowspan="1" colspan="1">Onward grants are redeemed with <code>jwt-bearer</code> under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
-</td>
-            </tr>
-            <tr>
               <td class="text-left" rowspan="1" colspan="1">WAG</td>
-              <td class="text-left" rowspan="1" colspan="1">Registration of the provisional token type and JWT type; a WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange</td>
-              <td class="text-left" rowspan="1" colspan="1">Provisional values; <code>governed-agent-continuation</code> is advertised for WAGs in the ID-JAG metadata parameter pending coordination</td>
+              <td class="text-left" rowspan="1" colspan="1">A WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange</td>
+              <td class="text-left" rowspan="1" colspan="1">Listing <code>governed-agent-continuation</code> for WAGs awaits coordination</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">

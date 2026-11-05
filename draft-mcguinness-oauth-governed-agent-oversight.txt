@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         2 November 2026
-Expires: 6 May 2027
+Intended status: Standards Track                         5 November 2026
+Expires: 9 May 2027
 
 
          Human Oversight Profile for Governed Agent Federation
@@ -69,7 +69,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 May 2027.
+   This Internet-Draft will expire on 9 May 2027.
 
 Copyright Notice
 
@@ -723,14 +723,14 @@ Table of Contents
    When RAS policy requires approval and the RAS does not defer, it MUST
    NOT issue a token.  It rejects the redemption with the error it
    returns when its own policy refuses a redemption ("Redemption Errors"
-   in [FEDERATION]): actor_unauthorized for an ID-JAG and invalid_target
-   for a WAG.  The response therefore does not reveal that an approval
-   could be obtained.  A client that can wait and handle a deferred
-   response can include deferred on every redemption that RAS policy
-   might hold, as at the IdP (Section 4.1).  A RAS that defers
-   redemptions advertises deferred_token_response_supported in its own
-   metadata (Section 4.1 of [DTR]); the IdP's metadata says nothing
-   about the RAS.
+   in [FEDERATION]): access_denied for an ID-JAG and invalid_target for
+   a WAG.  The response therefore does not reveal that an approval could
+   be obtained.  A client that can wait and handle a deferred response
+   can include deferred on every redemption that RAS policy might hold,
+   as at the IdP (Section 4.1).  A RAS that defers redemptions
+   advertises deferred_token_response_supported in its own metadata
+   (Section 4.1 of [DTR]); the IdP's metadata says nothing about the
+   RAS.
 
 5.2.  Deferring a Redemption
 
@@ -880,7 +880,7 @@ Table of Contents
 
    *  deferred in completion_mode; and
 
-   *  the same resource, scope, and authorization_details.
+   *  the same grant_type, resource, scope, and authorization_details.
 
    Recovery matches the stored grant and does not validate it again, so
    it succeeds after the grant's exp.  It is not an acceptance, opens no
@@ -894,8 +894,8 @@ Table of Contents
 
    The RAS rejects any other presentation of an accepted grant under the
    replay rule of Section 5.2, with invalid_grant.  This includes a
-   presentation without deferred and any presentation after the pending
-   governed redemption ends.
+   presentation without deferred or with another grant type, and any
+   presentation after the pending governed redemption ends.
 
 5.5.  Redemption Resolution
 
@@ -955,10 +955,11 @@ Table of Contents
       response's scope reports it.
 
    The successful polling response is the token response that the
-   redemption would have returned (Section 5.5.2 of [DTR]); the JWT
-   bearer grant defines no issued_token_type.  The access token MAY
-   carry txn for audit correlation, as a grant may (Section 4.4); an API
-   MUST NOT treat it as evidence of approval or as authority.
+   redemption would have returned (Section 5.5.2 of [DTR]); neither JWT
+   grant type, jwt-bearer or jwt-dpop, defines an issued_token_type.
+   The access token MAY carry txn for audit correlation, as a grant may
+   (Section 4.4); an API MUST NOT treat it as evidence of approval or as
+   authority.
 
 5.6.  Refresh and Continuation
 
@@ -1301,9 +1302,9 @@ Table of Contents
    [AIMS]     Kasselman, P., Lombardo, J., Rosomakho, Y., Campbell, B.,
               Steele, N., and A. Parecki, "AI Identity Management
               System", Work in Progress, Internet-Draft, draft-ietf-
-              wimse-aims-00, 15 September 2026,
+              wimse-aims-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
-              aims-00>.
+              aims-01>.
 
    [ARAP]     OpenID AuthZEN Working Group, "AuthZEN Access Request and
               Approval Profile - Draft 1",
@@ -1381,9 +1382,9 @@ Table of Contents
    [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
               A., and B. Campbell, "Workload Authorization Grant", Work
               in Progress, Internet-Draft, draft-carleton-workload-
-              authz-grant-01, 22 September 2026,
+              authz-grant-02, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-carleton-
-              workload-authz-grant-01>.
+              workload-authz-grant-02>.
 
 Appendix A.  Walkthrough: Approval Before Issuance
 
@@ -1544,14 +1545,13 @@ A.5.  Deferred Redemption
    | Changed condition            | Checked | Required result          |
    |                              | by      |                          |
    +==============================+=========+==========================+
-   | The redemption omits         | RAS     | HTTP 400,                |
-   | completion_mode=deferred     |         | actor_unauthorized; no   |
-   |                              |         | token and no deferred    |
+   | The redemption omits         | RAS     | HTTP 400, access_denied; |
+   | completion_mode=deferred     |         | no token and no deferred |
    |                              |         | response                 |
    +------------------------------+---------+--------------------------+
-   | The resource is              | RAS     | HTTP 400,                |
-   | configured for mutual-       |         | actor_unauthorized; no   |
-   | TLS access tokens            |         | deferral                 |
+   | The resource is              | RAS     | HTTP 400, access_denied; |
+   | configured for mutual-       |         | no deferral              |
+   | TLS access tokens            |         |                          |
    +------------------------------+---------+--------------------------+
    | A poll proves another        | RAS     | HTTP 400,                |
    | key                          |         | invalid_dpop_proof       |
@@ -1597,12 +1597,17 @@ A.5.  Deferred Redemption
    | After the grant's exp,       | RAS     | The same deferral code,  |
    | the client repeats the       |         | with the remaining       |
    | redemption with the same     |         | expires_in               |
-   | grant, key, opt-in, and      |         |                          |
-   | parameters                   |         |                          |
+   | grant, grant type, key,      |         |                          |
+   | opt-in, and parameters       |         |                          |
    +------------------------------+---------+--------------------------+
    | The repeated redemption      | RAS     | HTTP 400,                |
    | reuses the DPoP proof of     |         | invalid_dpop_proof       |
    | the first                    |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The repeated redemption      | RAS     | HTTP 400, invalid_grant; |
+   | presents the grant,          |         | no deferral code         |
+   | which contains cnf, with     |         |                          |
+   | jwt-bearer                   |         |                          |
    +------------------------------+---------+--------------------------+
    | After a successful token     | RAS     | HTTP 400, invalid_grant  |
    | response, the client         |         |                          |

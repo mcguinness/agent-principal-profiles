@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         2 November 2026
-Expires: 6 May 2027
+Intended status: Standards Track                         5 November 2026
+Expires: 9 May 2027
 
 
       Identity Continuation Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 May 2027.
+   This Internet-Draft will expire on 9 May 2027.
 
 Copyright Notice
 
@@ -553,7 +553,7 @@ Table of Contents
     | requested_token_type | urn:ietf:params:oauth:token-type:id-jag |
     |                      | for a delegated chain;                  |
     |                      | urn:ietf:params:oauth:token-type:wag    |
-    |                      | (provisional) for a self-acting chain   |
+    |                      | for a self-acting chain                 |
     +----------------------+-----------------------------------------+
     | audience             | One target RAS issuer identifier        |
     +----------------------+-----------------------------------------+
@@ -894,10 +894,10 @@ Table of Contents
    Section 5.5.5 of [ICA] applies to the onward ID-JAG and to the IdP's
    hop records, including immutable parent references, ancestry that
    excludes sibling branches, and the merging of consecutive identical
-   actors that the actor-lineage depth bound counts.  Two of its rules
-   are replaced: Section 6.5.1 replaces the act it emits, and Section 7
-   its redemption grant type.  The continuing clients that its lineage
-   would place in act appear in continuation_via instead.
+   actors that the actor-lineage depth bound counts.  One of its rules
+   is replaced: Section 6.5.1 replaces the act it emits.  The continuing
+   clients that its lineage would place in act appear in
+   continuation_via instead.
 
 6.5.4.  Self-Acting: WAG
 
@@ -1049,14 +1049,12 @@ Table of Contents
 
    The continuing client redeems the onward grant under "Redemption
    Request" in [FEDERATION]: the urn:ietf:params:oauth:grant-type:jwt-
-   bearer grant type, client authentication as the client the grant
-   names, and a DPoP proof of the grant's cnf key.  For governed chains,
-   this replaces the jwt-dpop redemption of Section 5.5.5 of [ICA];
-   Section 4.4 of [ID-JAG] requires jwt-bearer, and [FEDERATION] applies
-   the grant confirmation checks of ID-JAG to it.  Every onward grant
-   carries cnf, so the target RAS needs DPoP support at its token
-   endpoint ("Grant Protection" in [FEDERATION]), which the continuing
-   client verifies under "Capability Discovery" in [FEDERATION].
+   dpop grant type, client authentication as the client the grant names,
+   and a DPoP proof of the grant's cnf key, as in the jwt-dpop
+   redemption of Section 5.5.5 of [ICA].  Every onward grant carries
+   cnf, so the target RAS needs DPoP support at its token endpoint
+   ("Grant Protection" in [FEDERATION]), which the continuing client
+   verifies under "Capability Discovery" in [FEDERATION].
 
    The target RAS and API process the onward grant and the resulting
    access token as for any governed grant ("Grant Redemption at the RAS"
@@ -1087,7 +1085,7 @@ Table of Contents
    3.  verifies the target's capabilities and requests the chain's grant
        type from the IdP (Section 6.1, Appendix A.3);
 
-   4.  redeems the onward grant with jwt-bearer and a proof of its key
+   4.  redeems the onward grant with jwt-dpop and a proof of its key
        (Section 7);
 
    5.  reuses downstream tokens only within the same context and source
@@ -1259,13 +1257,14 @@ Table of Contents
    together with the governed profile URIs that identify the grants it
    accepts.  The value indicates handle binding under Section 5.2 of
    [ICA] with the access-token protection and eligibility of Section 4,
-   and redemption of onward grants with jwt-bearer (Section 7); it does
-   not indicate jwt-dpop support.  A RAS lists ICA's
+   and redemption of onward grants with jwt-dpop (Section 7), which the
+   RAS also lists in grant_types_supported ("Authorization Server
+   Metadata" in [FEDERATION]).  A RAS lists ICA's
    urn:ietf:params:oauth:grant-profile:id-jag-continuation, with the
    requirements of Section 7.2 of [ICA], only if it also binds handles
-   of chains established without this document.  As for the self-acting
-   profile URIs of [FEDERATION], use of this parameter for WAGs awaits
-   coordination (Appendix B.3).
+   of chains established without this document.  Listing governed-agent-
+   continuation for WAGs in this parameter, which Section 8 of [WAG]
+   also uses, awaits coordination (Appendix B.3).
 
    An IdP that supports delegated continuation advertises
    identity_continuation_supported (Section 7.1 of [ICA]), which
@@ -1528,9 +1527,9 @@ Table of Contents
    [ID-JAG]   Parecki, A., McGuinness, K., and B. Campbell, "Identity
               Assertion JWT Authorization Grant", Work in Progress,
               Internet-Draft, draft-ietf-oauth-identity-assertion-authz-
-              grant-04, 21 May 2026,
+              grant-06, 30 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              identity-assertion-authz-grant-04>.
+              identity-assertion-authz-grant-06>.
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
@@ -1645,9 +1644,9 @@ Table of Contents
    [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
               A., and B. Campbell, "Workload Authorization Grant", Work
               in Progress, Internet-Draft, draft-carleton-workload-
-              authz-grant-01, 22 September 2026,
+              authz-grant-02, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-carleton-
-              workload-authz-grant-01>.
+              workload-authz-grant-02>.
 
 Appendix A.  Gateway Walkthrough
 
@@ -1833,7 +1832,7 @@ A.3.  Continuation
 A.4.  Redemption at the Target
 
    The gateway redeems the onward ID-JAG at https://ras.example/ with
-   the jwt-bearer grant type, a private_key_jwt assertion for gateway-
+   the jwt-dpop grant type, a private_key_jwt assertion for gateway-
    files, and a fresh proof of G.  The RAS validates the grant and its
    confirmation, resolves Alice to user-108, correlates agent-42,
    applies the actor gate, and ignores the handle and continuation_via,
@@ -1886,7 +1885,7 @@ A.5.  Self-Acting Variant
    issued at 1789646585, the gateway requests a WAG.  The self-acting
    Continuation Association, the Agent Authorization of agent-42 for
    files.read, and the agent session all hold, and the IdP issues this
-   onward WAG with typ wag+jwt:
+   onward WAG with typ oauth-wag+jwt:
 
    {
      "iss": "https://idp.example/",
@@ -2214,8 +2213,8 @@ A.8.  Negative Tests
    |resulting access token, or  |       |                              |
    |one refreshed from it       |       |                              |
    +----------------------------+-------+------------------------------+
-   |The gateway redeems the     |Target |HTTP 400, invalid_grant       |
-   |onward ID-JAG without a     |RAS    |                              |
+   |The gateway redeems the     |Target |HTTP 400, invalid_grant or    |
+   |onward ID-JAG without a     |RAS    |invalid_dpop_proof            |
    |proof of G                  |       |                              |
    +----------------------------+-------+------------------------------+
    |The gateway's source hop has|IdP,   |HTTP 400, invalid_grant; the  |
@@ -2266,115 +2265,113 @@ Appendix B.  Relationship to Other Specifications
 
    This informative appendix lists what this document changes in [ICA]
    and [FEDERATION] and needs from the specifications it profiles,
-   assessed against ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09
+   assessed against ICA-02, ID-JAG-06, WAG-02, and the 2026-10-09
    revision of [FEDERATION].
 
 B.1.  Changes to ICA
 
    Where this document is silent, [ICA] applies unchanged.
 
-   +=============+===============================+=====================+
-   |Area         |ICA                            |This document        |
-   +=============+===============================+=====================+
-   |Root exchange|Base ID-JAG exchange;          |Governed issuance in |
-   |             |actor_token out of scope       |either resolution    |
-   |             |(Section 5.1.1 of [ICA])       |mode (Section 3.2)   |
-   +-------------+-------------------------------+---------------------+
-   |Root grant   |ID-JAG                         |Governed ID-JAG or   |
-   |             |                               |WAG                  |
-   +-------------+-------------------------------+---------------------+
-   |Establishment|Tenant policy permits          |The root's           |
-   |             |continuation (Section 5.1.2 of |Delegation or Agent  |
-   |             |[ICA])                         |Authorization must   |
-   |             |                               |also permit it       |
-   |             |                               |(Section 3)          |
-   +-------------+-------------------------------+---------------------+
-   |Anchors      |User session or refresh-token  |Unchanged for        |
-   |             |grant; no non-user roots       |delegated chains; an |
-   |             |(Section 6.1 of [ICA])         |agent session for    |
-   |             |                               |self-acting chains   |
-   |             |                               |(Section 3.3)        |
-   +-------------+-------------------------------+---------------------+
-   |Chain        |User, root actor,              |Adds the facts of    |
-   |authorization|authentication context, anchor,|Section 3.1          |
-   |             |restrictions                   |                     |
-   +-------------+-------------------------------+---------------------+
-   |Restrictions |Representation implementation- |Meaning defined for  |
-   |             |specific (Section 5.1.4 of     |absent, present, and |
-   |             |[ICA])                         |empty members,       |
-   |             |                               |matching, and        |
-   |             |                               |authority with       |
-   |             |                               |authorization        |
-   |             |                               |details              |
-   |             |                               |(Section 6.3)        |
-   +-------------+-------------------------------+---------------------+
-   |Who may      |Chain authorization and current|Also a Continuation  |
-   |continue     |policy                         |Association          |
-   |             |                               |(Section 6.2)        |
-   +-------------+-------------------------------+---------------------+
-   |Continuation |Zero or more resource; optional|One resource;        |
-   |request      |scope; ID-JAG (Section 5.5.1 of|required scope; the  |
-   |             |[ICA])                         |chain's grant type   |
-   |             |                               |(Section 6.1)        |
-   +-------------+-------------------------------+---------------------+
-   |Retry        |No requested token type        |Includes             |
-   |fingerprint  |(Section 5.5.7.1 of [ICA])     |requested_token_type |
-   |             |                               |(Section 6.4)        |
-   +-------------+-------------------------------+---------------------+
-   |Assertion    |Optional; recommended for a RAS|Required of every    |
-   |issuance at  |acting as CAI (Section 5.4.1 of|CAI that serves a    |
-   |the token    |[ICA])                         |continuing client    |
-   |endpoint     |                               |(Section 10.1)       |
-   +-------------+-------------------------------+---------------------+
-   |Onward act   |Continuing actor atop IdP-     |The Agent Principal  |
-   |             |derived lineage (Section 5.5.5 |alone in an ID-JAG,  |
-   |             |of [ICA])                      |none in a WAG; hop   |
-   |             |                               |records unchanged    |
-   |             |                               |(Section 6.5.1)      |
-   +-------------+-------------------------------+---------------------+
-   |Path         |Continuing clients as nested   |Continuing clients   |
-   |disclosure   |actors in act (Section 5.5.5 of|as intermediaries in |
-   |             |[ICA])                         |continuation_via,    |
-   |             |                               |preserved to the API |
-   |             |                               |by targets that      |
-   |             |                               |support path         |
-   |             |                               |disclosure           |
-   |             |                               |(Section 6.5.2)      |
-   +-------------+-------------------------------+---------------------+
-   |Onward       |jwt-dpop (Section 5.5.5 of     |jwt-bearer with      |
-   |redemption   |[ICA])                         |grant confirmation   |
-   |             |                               |(Section 7)          |
-   +-------------+-------------------------------+---------------------+
-   |Access token |DPoP-bound, never bearer       |Protection under     |
-   |for a grant  |(Section 5.2 of [ICA])         |[FEDERATION]; bearer |
-   |with cnf     |                               |access tokens,       |
-   |             |                               |whatever the grant's |
-   |             |                               |binding, make a hop  |
-   |             |                               |ineligible without   |
-   |             |                               |explicit policy      |
-   |             |                               |(Section 4)          |
-   +-------------+-------------------------------+---------------------+
-   |Advertisement|RAS id-jag-continuation with   |governed-agent-      |
-   |             |jwt-dpop; IdP                  |continuation for     |
-   |             |identity_continuation_supported|governed grants,     |
-   |             |(Section 7 of [ICA])           |without jwt-dpop;    |
-   |             |                               |the IdP flag only    |
-   |             |                               |for delegated        |
-   |             |                               |continuation         |
-   |             |                               |(Section 10.2)       |
-   +-------------+-------------------------------+---------------------+
-   |Chain ending |Anchor end, revocation,        |Also governance      |
-   |             |withdrawn permission           |events (Section 9)   |
-   |             |(Section 6.2 of [ICA])         |                     |
-   +-------------+-------------------------------+---------------------+
-   |Continuation |None                           |A required, finite   |
-   |window       |                               |per-hop window,      |
-   |             |                               |checked when a       |
-   |             |                               |request is received  |
-   |             |                               |(Section 3.1)        |
-   +-------------+-------------------------------+---------------------+
+   +=============+===============================+====================+
+   |Area         |ICA                            |This document       |
+   +=============+===============================+====================+
+   |Root exchange|Base ID-JAG exchange;          |Governed issuance in|
+   |             |actor_token out of scope       |either resolution   |
+   |             |(Section 5.1.1 of [ICA])       |mode (Section 3.2)  |
+   +-------------+-------------------------------+--------------------+
+   |Root grant   |ID-JAG                         |Governed ID-JAG or  |
+   |             |                               |WAG                 |
+   +-------------+-------------------------------+--------------------+
+   |Establishment|Tenant policy permits          |The root's          |
+   |             |continuation (Section 5.1.2 of |Delegation or Agent |
+   |             |[ICA])                         |Authorization must  |
+   |             |                               |also permit it      |
+   |             |                               |(Section 3)         |
+   +-------------+-------------------------------+--------------------+
+   |Anchors      |User session or refresh-token  |Unchanged for       |
+   |             |grant; no non-user roots       |delegated chains; an|
+   |             |(Section 6.1 of [ICA])         |agent session for   |
+   |             |                               |self-acting chains  |
+   |             |                               |(Section 3.3)       |
+   +-------------+-------------------------------+--------------------+
+   |Chain        |User, root actor,              |Adds the facts of   |
+   |authorization|authentication context, anchor,|Section 3.1         |
+   |             |restrictions                   |                    |
+   +-------------+-------------------------------+--------------------+
+   |Restrictions |Representation implementation- |Meaning defined for |
+   |             |specific (Section 5.1.4 of     |absent, present, and|
+   |             |[ICA])                         |empty members,      |
+   |             |                               |matching, and       |
+   |             |                               |authority with      |
+   |             |                               |authorization       |
+   |             |                               |details             |
+   |             |                               |(Section 6.3)       |
+   +-------------+-------------------------------+--------------------+
+   |Who may      |Chain authorization and current|Also a Continuation |
+   |continue     |policy                         |Association         |
+   |             |                               |(Section 6.2)       |
+   +-------------+-------------------------------+--------------------+
+   |Continuation |Zero or more resource; optional|One resource;       |
+   |request      |scope; ID-JAG (Section 5.5.1 of|required scope; the |
+   |             |[ICA])                         |chain's grant type  |
+   |             |                               |(Section 6.1)       |
+   +-------------+-------------------------------+--------------------+
+   |Retry        |No requested token type        |Includes            |
+   |fingerprint  |(Section 5.5.7.1 of [ICA])     |requested_token_type|
+   |             |                               |(Section 6.4)       |
+   +-------------+-------------------------------+--------------------+
+   |Assertion    |Optional; recommended for a RAS|Required of every   |
+   |issuance at  |acting as CAI (Section 5.4.1 of|CAI that serves a   |
+   |the token    |[ICA])                         |continuing client   |
+   |endpoint     |                               |(Section 10.1)      |
+   +-------------+-------------------------------+--------------------+
+   |Onward act   |Continuing actor atop IdP-     |The Agent Principal |
+   |             |derived lineage (Section 5.5.5 |alone in an ID-JAG, |
+   |             |of [ICA])                      |none in a WAG; hop  |
+   |             |                               |records unchanged   |
+   |             |                               |(Section 6.5.1)     |
+   +-------------+-------------------------------+--------------------+
+   |Path         |Continuing clients as nested   |Continuing clients  |
+   |disclosure   |actors in act (Section 5.5.5 of|as intermediaries in|
+   |             |[ICA])                         |continuation_via,   |
+   |             |                               |preserved to the API|
+   |             |                               |by targets that     |
+   |             |                               |support path        |
+   |             |                               |disclosure          |
+   |             |                               |(Section 6.5.2)     |
+   +-------------+-------------------------------+--------------------+
+   |Access token |DPoP-bound, never bearer       |Protection under    |
+   |for a grant  |(Section 5.2 of [ICA])         |[FEDERATION]; bearer|
+   |with cnf     |                               |access tokens,      |
+   |             |                               |whatever the grant's|
+   |             |                               |binding, make a hop |
+   |             |                               |ineligible without  |
+   |             |                               |explicit policy     |
+   |             |                               |(Section 4)         |
+   +-------------+-------------------------------+--------------------+
+   |Advertisement|RAS id-jag-continuation with   |governed-agent-     |
+   |             |jwt-dpop; IdP                  |continuation for    |
+   |             |identity_continuation_supported|governed grants,    |
+   |             |(Section 7 of [ICA])           |with jwt-dpop as for|
+   |             |                               |any RAS that accepts|
+   |             |                               |grants containing   |
+   |             |                               |cnf; the IdP flag   |
+   |             |                               |only for delegated  |
+   |             |                               |continuation        |
+   |             |                               |(Section 10.2)      |
+   +-------------+-------------------------------+--------------------+
+   |Chain ending |Anchor end, revocation,        |Also governance     |
+   |             |withdrawn permission           |events (Section 9)  |
+   |             |(Section 6.2 of [ICA])         |                    |
+   +-------------+-------------------------------+--------------------+
+   |Continuation |None                           |A required, finite  |
+   |window       |                               |per-hop window,     |
+   |             |                               |checked when a      |
+   |             |                               |request is received |
+   |             |                               |(Section 3.1)       |
+   +-------------+-------------------------------+--------------------+
 
-                Table 10: Changes to ICA for governed chains
+               Table 10: Changes to ICA for governed chains
 
 B.2.  Changes to FEDERATION
 
@@ -2430,49 +2427,37 @@ B.2.  Changes to FEDERATION
 
 B.3.  Dependencies
 
-   +==================+=================+=============================+
-   |Specification     |What this        | Consequence until resolved  |
-   |                  |document needs   |                             |
-   +==================+=================+=============================+
-   |ICA               |The changes of   | This document applies them  |
-   |                  |Appendix B.1, and| to governed chains and      |
-   |                  |a forwarding     | defines continuation_via    |
-   |                  |disclosure mode  | itself                      |
-   |                  |with             |                             |
-   |                  |continuation_via |                             |
-   |                  |for chains in    |                             |
-   |                  |general          |                             |
-   +------------------+-----------------+-----------------------------+
-   |ID-JAG            |Section 4.4 of   | Onward grants are redeemed  |
-   |                  |[ID-JAG] requires| with jwt-bearer under       |
-   |                  |jwt-bearer, while| [FEDERATION]                |
-   |                  |its key-bound    |                             |
-   |                  |example uses jwt-|                             |
-   |                  |dpop, which      |                             |
-   |                  |Section 5.5.5 of |                             |
-   |                  |[ICA] follows    |                             |
-   +------------------+-----------------+-----------------------------+
-   |WAG               |Registration of  | Provisional values;         |
-   |                  |the provisional  | governed-agent-continuation |
-   |                  |token type and   | is advertised for WAGs in   |
-   |                  |JWT type; a WAG  | the ID-JAG metadata         |
-   |                  |carrying a       | parameter pending           |
-   |                  |continuation     | coordination                |
-   |                  |handle; a WAG    |                             |
-   |                  |issued by an IdP |                             |
-   |                  |on a continuation|                             |
-   |                  |exchange         |                             |
-   +------------------+-----------------+-----------------------------+
-   |[AGENT-MANAGEMENT]|Administration of| Configured by each          |
-   |                  |Continuation     | deployment                  |
-   |                  |Associations and |                             |
-   |                  |of an            |                             |
-   |                  |authorization's  |                             |
-   |                  |permission to    |                             |
-   |                  |continue         |                             |
-   +------------------+-----------------+-----------------------------+
+    +==================+================+=============================+
+    |Specification     |What this       | Consequence until resolved  |
+    |                  |document needs  |                             |
+    +==================+================+=============================+
+    |ICA               |The changes of  | This document applies them  |
+    |                  |Appendix B.1,   | to governed chains and      |
+    |                  |and a forwarding| defines continuation_via    |
+    |                  |disclosure mode | itself                      |
+    |                  |with            |                             |
+    |                  |continuation_via|                             |
+    |                  |for chains in   |                             |
+    |                  |general         |                             |
+    +------------------+----------------+-----------------------------+
+    |WAG               |A WAG carrying a| Listing governed-agent-     |
+    |                  |continuation    | continuation for WAGs       |
+    |                  |handle; a WAG   | awaits coordination         |
+    |                  |issued by an IdP|                             |
+    |                  |on a            |                             |
+    |                  |continuation    |                             |
+    |                  |exchange        |                             |
+    +------------------+----------------+-----------------------------+
+    |[AGENT-MANAGEMENT]|Administration  | Configured by each          |
+    |                  |of Continuation | deployment                  |
+    |                  |Associations and|                             |
+    |                  |of an           |                             |
+    |                  |authorization's |                             |
+    |                  |permission to   |                             |
+    |                  |continue        |                             |
+    +------------------+----------------+-----------------------------+
 
-                          Table 12: Dependencies
+                           Table 12: Dependencies
 
 B.4.  Open Items
 
