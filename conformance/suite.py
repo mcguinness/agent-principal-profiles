@@ -73,6 +73,8 @@ class Config:
     # and N28 also use extra_scope, as a scope the IdP can be configured to
     # exclude from the delegation or to prohibit for the agent.
     uncorrelated_agent: str = "agent-99"
+    # A user the IdP has no record of (N32).
+    unknown_user: str = "carol"
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
     # the self-acting population for `resource`, whose tokens name the local
@@ -1038,6 +1040,22 @@ def n30(ctx):
     grant = ctx.grant(dpop_key=None)
     check("cnf" not in jws.decode(grant)[1], "setup: the IdP issued a grant with cnf")
     expect_error(ctx.client.redeem(grant, grant_type=JWT_DPOP), 400, "invalid_grant")
+
+
+@case("N31", "IdP", "Rejects with invalid_request an ID Token whose sub is not a string",
+      "core: Issuance Errors; RFC 8693 Section 2.2.2", needs=("id_token:claims",),
+      defeats=("idp.id_token_sub",))
+def n31(ctx):
+    for sub in (None, 123):
+        expect_error(ctx.client.exchange(ctx.id_token(claims={"sub": sub})), 400,
+                     "invalid_request")
+
+
+@case("N32", "IdP", "Rejects with invalid_grant a valid ID Token for a user it cannot resolve",
+      "core: Subject Resolution; Issuance Errors", needs=("id_token:claims",))
+def n32(ctx):
+    id_token = ctx.id_token(claims={"sub": ctx.cfg.unknown_user})
+    expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

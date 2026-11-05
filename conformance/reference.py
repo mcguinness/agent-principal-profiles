@@ -96,6 +96,7 @@ CHECKS = {
     "idp.single_resource": "exactly one resource parameter",
     "idp.id_token_audience": "ID Token audience is the authenticated client",
     "idp.id_token_time": "ID Token iat and nbf are not in the future",
+    "idp.id_token_sub": "ID Token sub is a non-empty string",
     "idp.binding_enabled": "Identity Binding is enabled",
     "idp.agent_active": "Agent Principal is active",
     "idp.client_association": "Client Association permits delegated use of the binding",
@@ -528,9 +529,10 @@ class IdP(Server):
             "token_type": "N_A", "expires_in": exp - now, "scope": claims["scope"]})
 
     def validate_id_token(self, token, client_id):
-        # An invalid subject credential is invalid_request (RFC 8693 Section
-        # 2.2.2; core: Issuance Errors); a valid one naming no known user is
-        # a user resolution failure, invalid_grant.
+        # An invalid subject credential, including one whose sub is not a
+        # string, is invalid_request (RFC 8693 Section 2.2.2; core: Issuance
+        # Errors); a valid one naming no known user is a user resolution
+        # failure, invalid_grant.
         try:
             _, claims = jws.verify(token, self.key.public_key(), "RS256")
         except ValueError:
@@ -543,7 +545,10 @@ class IdP(Server):
             raise OAuthError("invalid_request")
         if client_id not in audiences and self.on("idp.id_token_audience"):
             raise OAuthError("invalid_request")
-        if claims.get("sub") not in self.users:
+        sub = claims.get("sub")
+        if not (isinstance(sub, str) and sub) and self.on("idp.id_token_sub"):
+            raise OAuthError("invalid_request")
+        if not isinstance(sub, str) or sub not in self.users:
             raise OAuthError("invalid_grant")
         return claims["sub"], claims["exp"]
 

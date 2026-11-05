@@ -433,7 +433,7 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, and N28.
+cases N01 to N09, N21, N22, N25, N28, N31, and N32.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
