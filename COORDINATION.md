@@ -59,13 +59,15 @@ three. The core uses them (`wag-claims`, `wag-redemption`,
 Reference class: the core cites WAG informatively because it restates
 every WAG requirement on the path it defines. Checked line by line
 against WAG-02 Sections 5, 5.1 and 6.1 to 6.3: the grant type, the
-access token's audience, `typ`, the claim set, the
-refresh-token prohibition, issuer and key binding, and `sub` and `jti`
-scoped to the issuer are restated (`wag-claims`, `wag-redemption`,
-`redemption-common`, `time-validation`). The rest are recorded
-departures (client authentication, per-agent registration, unseen
-agents, `resource` required) or open items (access-token lifetime,
-shared issuers). The core uses the token type, media type and grant
+access token's audience, `typ`, the claim set, the refresh-token
+prohibition, issuer and key binding, and `sub` and `jti` scoped to the
+issuer are restated (`wag-claims`, `wag-redemption`,
+`redemption-common`, `time-validation`). WAG's access-token lifetime
+SHOULD restates Section 4.1 of RFC 7521, which reaches the core's grants
+without WAG, through RFC 7523 and JWT DPoP Grant (Renewal, below). The
+rest are recorded departures (client authentication, per-agent
+registration, unseen agents, `resource` required) or an open item
+(shared issuers). The core uses the token type, media type and grant
 profile values that Section 11 of WAG registers; if WAG does not
 publish, those values are unregistered.
 
@@ -98,8 +100,12 @@ Coordination is needed on:
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
   continuing self-acting access re-issues the grant. Section 5 of WAG-02
   adds that access tokens SHOULD NOT outlive the assertion by a
-  significant period; this document leaves access-token lifetime to RAS
-  policy. Decision pending: adopt the SHOULD, or state the difference.
+  significant period. That restates Section 4.1 of RFC 7521, which
+  applies to both of this document's grants without WAG: RFC 7523
+  (`jwt-bearer`) and JWT DPoP Grant (`jwt-dpop`) both use RFC 7521's
+  request framework. The recommendation is inherited, not a difference;
+  how long counts as significant is RAS policy. Decision pending:
+  whether the core points to it.
 * **Client registration:** Section 5 of WAG-02 says an authorization
   server MUST NOT require a client registration per Agent. This
   document's mandatory path resolves the agent from a dedicated client,
