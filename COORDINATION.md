@@ -16,8 +16,17 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 These notes record dependencies and deferred work.
 Assessed revisions: WAG-02, ID-JAG-06, JWT DPoP Grant-02, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
-Identification-00, Client Attester Endorsement-00, and WISE draft 03.
-The drafts pin WAG to -02, ID-JAG to -06, and JWT DPoP Grant to -02.
+Identification-00, Client Attester Endorsement-00, DTR-00, RFC 7523bis-11
+(its Section 4), and WISE draft 03.
+
+The drafts pin every Internet-Draft they cite: to its assessed revision,
+or, for a draft cited without section numbers, to the revision current
+on 2026-11-06 (AIMS-01, Identity Chaining-17, Entity Profiles-02,
+Oversight Acts-00, SCIM Agent Resource-00). Newer revisions are not yet
+assessed: DTR-01 and SPIFFE OAuth-03 renumber sections the drafts cite,
+CIMD-03 retitles the cited Section 6, ATTEST-12, Client Instance
+Identification-01 and Client Attester Endorsement-01 keep the cited
+headings, and WIT-03 is cited without section numbers.
 
 ### Upstream Dependencies
 

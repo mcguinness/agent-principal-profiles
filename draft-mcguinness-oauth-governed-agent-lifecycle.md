@@ -59,7 +59,7 @@ normative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
-  SCIM-AGENT: I-D.wzdk-scim-agent-resource
+  SCIM-AGENT: I-D.wzdk-scim-agent-resource-00
   OAUTH-CLIENT:
     title: "SCIM Profile for OAuth 2.0 Client Management"
     author:

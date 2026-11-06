@@ -34,13 +34,13 @@ normative:
       - name: D. Sneeggen
       - name: S. O'Dell
     date: 2026-09-28
-  ATTEST: I-D.ietf-oauth-attestation-based-client-auth
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id
-  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
+  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-11
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
+  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile-01
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
-  RFC7523bis: I-D.ietf-oauth-rfc7523bis
-  CIMD: I-D.ietf-oauth-client-id-metadata-document
+  RFC7523bis: I-D.ietf-oauth-rfc7523bis-11
+  CIMD: I-D.ietf-oauth-client-id-metadata-document-02
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
     target: https://openid.net/specs/openid-connect-core-1_0.html
@@ -81,7 +81,7 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
-  AIMS: I-D.ietf-wimse-aims
+  AIMS: I-D.ietf-wimse-aims-01
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -114,8 +114,8 @@ informative:
     target: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/on-behalf-of-token-exchange.html
     author:
       - org: Amazon Web Services
-  ICA: I-D.mcguinness-oauth-id-continuation-assertion
-  ID-CHAINING: I-D.ietf-oauth-identity-chaining
+  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining-17
   OVERSIGHT:
     title: "Human Oversight Profile for Governed Agent Federation"
     author:
@@ -139,14 +139,14 @@ informative:
     target: https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/
     author:
       - org: SPIFFE
-  ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
+  ENTITY-PROFILES: I-D.mora-oauth-entity-profiles-02
   GUIDE:
     title: "Implementer's Guide for Governed Agent Federation"
     author:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
-  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
+  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-02
 --- abstract
 
 Resource domains need a stable identity for an enterprise-governed agent

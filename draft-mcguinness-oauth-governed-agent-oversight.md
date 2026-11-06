@@ -34,7 +34,7 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-  DTR: I-D.ietf-oauth-deferred-token-response
+  DTR: I-D.ietf-oauth-deferred-token-response-00
   RFC6749:
   RFC8693:
   RFC9449:
@@ -47,7 +47,7 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
-  AIMS: I-D.ietf-wimse-aims
+  AIMS: I-D.ietf-wimse-aims-01
   ARAP:
     title: "AuthZEN Access Request and Approval Profile - Draft 1"
     author:
@@ -74,7 +74,7 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
-  ICA: I-D.mcguinness-oauth-id-continuation-assertion
+  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   MCP:
     title: "Model Context Protocol Specification, Revision 2026-07-28"
     author:
@@ -105,7 +105,7 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://mcguinness.github.io/mission-bound-authorization/draft-mcguinness-oauth-mission-approval.html
-  OVERSIGHT-ACTS: I-D.ehstand-oversight-acts
+  OVERSIGHT-ACTS: I-D.ehstand-oversight-acts-00
   RFC7009:
   RFC8417:
   WAG: I-D.carleton-workload-authz-grant-02

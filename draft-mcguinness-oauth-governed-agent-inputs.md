@@ -34,13 +34,13 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-  ATTEST: I-D.ietf-oauth-attestation-based-client-auth
-  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id
+  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-11
+  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-00
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
   RFC8705:
   RFC9449:
-  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
-  WIT: I-D.ietf-wimse-workload-creds
+  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-02
+  WIT: I-D.ietf-wimse-workload-creds-02
 
 --- abstract
 

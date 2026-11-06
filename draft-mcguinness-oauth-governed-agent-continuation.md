@@ -34,7 +34,7 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-  ICA: I-D.mcguinness-oauth-id-continuation-assertion
+  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   RFC6749:
   RFC6750:
@@ -79,7 +79,7 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
-  ID-CHAINING: I-D.ietf-oauth-identity-chaining
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining-17
   MCP:
     title: "Model Context Protocol Specification, Revision 2026-07-28"
     author:
