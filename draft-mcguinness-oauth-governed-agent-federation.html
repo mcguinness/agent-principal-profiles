@@ -1626,6 +1626,21 @@ principal, separate authority to use that principal from identity
 resolution, or correlate it across authorization domains
 (<a href="#profile-additions" class="auto internal xref">Section 4.1.1</a>). This document is an OAuth deployment profile
 that fills those gaps.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">Giving each agent its own OAuth client, as some deployments do, makes
+the agent identifiable to the authorization server that registered it,
+but the client identifier is not that principal. It names a
+registration, assigned separately at each authorization server and
+replaced when the agent moves to another platform or client. This
+profile's mandatory path starts from such a dedicated client (<a href="#scope" class="auto internal xref">Section 9.1</a>)
+and adds what the client identifier lacks. The IdP resolves the client
+to an Agent Principal through an Identity Binding (<a href="#identity" class="auto internal xref">Section 5.3</a>) and
+authorizes the client to use that principal through a Client Association
+(<a href="#identity-binding" class="auto internal xref">Section 5.3.6</a>). The grant carries the principal as the actor,
+separate from the client, and the resource domain decides whether that
+actor may act for the user (<a href="#actor-authorization" class="auto internal xref">Section 3.6.4</a>). A shared client
+reaches the same principal by presenting an existing platform JWT
+(<a href="#imported-jwt-input" class="auto internal xref">Section 5.3.3</a>), under a claim of generic shared-client
+interoperability (<a href="#scope" class="auto internal xref">Section 9.1</a>).<a href="#section-1-4" class="pilcrow">¶</a></p>
 <div id="overview">
 <section id="section-1.1">
         <h3 id="name-protocol-overview">
@@ -5320,11 +5335,13 @@ resource permits them, bearer access tokens; DPoP nonces; the actor
 gate at the RAS and the API; tenant-pair authorization at the IdP;
 optional just-in-time correlation; the error selection order and
 optional policy services at the API; introspection of opaque tokens;
-and the deferred redemption of <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span> at the RAS. It does not
-implement WAG issuance or redemption, the existing platform JWT
-input, the inputs of <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>, mutual TLS, refresh tokens outside a
-deferred redemption, <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>, <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>, or
-<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>.<a href="#section-11.1-1.4.1" class="pilcrow">¶</a></p>
+the existing platform JWT input for a shared client, with a
+dedicated-issuer credential class and exact issuer-and-<code>sub</code>
+bindings; and the deferred redemption of <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span> at the RAS.
+It does not implement WAG issuance or redemption, platform JWT
+selectors or key-bound platform JWTs, the inputs of <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>, mutual
+TLS, refresh tokens outside a deferred redemption, <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>,
+<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>, or <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>.<a href="#section-11.1-1.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-11.1-1.5">
             <p id="section-11.1-1.5.1"><strong>Version compatibility:</strong> the editor's copy of this document and its
