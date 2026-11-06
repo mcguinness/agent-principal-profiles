@@ -995,19 +995,30 @@ stay revoked, and ended continuation chains stay ended.
 * **Trigger:** a user leaves.
 * **Scope:** that user's delegations; agents' self-acting authority is
   unaffected.
-* **Prerequisites:** the IdP's own user lifecycle.
-* **Owner:** identity team.
-* **Action:** disable the user through the IdP's user lifecycle.
-* **Verification:** a new delegated exchange for that user fails with
-  `invalid_grant`, and the user's delegated chains end; agents still
-  obtain grants for their own access.
-* **Residual access:** delegated tokens already issued for the user,
-  until revoked or expired. Where a resource domain is configured for
-  CAEP user-and-tenant revocation, an event can revoke those sessions.
+* **Prerequisites:** the IdP's own user lifecycle; for each resource
+  domain where the user's agents held delegated access, how that domain
+  removes the user: CAEP user-and-tenant revocation where it is
+  configured, or the product's own user deprovisioning.
+* **Owner:** identity team; each resource owner for their domain.
+* **Action:**
+  1. Disable the user through the IdP's user lifecycle.
+  2. For each of those resource domains, send the CAEP user-and-tenant
+     revocation, or confirm that the domain's own deprovisioning ran.
+* **Verification:**
+
+  | Checkpoint | Evidence |
+  |---|---|
+  | The IdP applied the disablement | A new delegated exchange for that user fails with `invalid_grant`, and the user's delegated chains end; agents still obtain grants for their own access |
+  | Each resource domain removed the user | Refresh of the user's delegated authorization fails there, and a previously accepted token is rejected within the domain's agreed delay |
+  | A domain has not removed the user | Recorded as pending, with its owner and the residual window |
+
+* **Residual access:** delegated tokens already issued for the user at a
+  domain that has not removed the user, until they expire.
 * **Recovery:** re-enabling the user permits new delegations; ended
   chains stay ended.
-* **Completion evidence:** the user's disablement record and the
-  refused exchange.
+* **Completion evidence:** the user's disablement record, the refused
+  exchange, and each domain's refused refresh or recorded pending
+  window.
 
 ### Handle an ownerless agent
 
