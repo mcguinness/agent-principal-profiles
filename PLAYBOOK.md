@@ -99,7 +99,8 @@ it, and authorizing a client as separate permissions.
 
 *Exit checks, for the pilot population:*
 * Each pilot agent has an Agent Principal with a recorded owner; in SCIM
-  management, the Agent resource's `owners` attribute.
+  management, the Agent resource's `owners` attribute. No draft
+  requires an owner, so this is a deployment requirement.
 * Permission to register agents does not let a connector bind them or
   authorize clients.
 * An execution identifier, such as a session or replica ID, never
