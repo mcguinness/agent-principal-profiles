@@ -643,8 +643,10 @@ session ends.
 
 `agent-42` prepares a daily report for Alice after she signs out. While
 Alice is signed in, the client uses her refresh token once to establish
-a chain anchored to that refresh token's grant; each run continues from
-server-held task state with no retained user credential. This needs an
+a chain anchored to that refresh token's grant; within the chain's
+continuation window, each run continues from server-held task state
+with no retained user credential, and a task that outlasts the window
+needs a new chain from a user credential. This needs an
 IdP that claims grant-anchored continuation; tenant policy and Alice's
 Delegation Authorization that permit continuation; a refresh token
 whose grant has that Delegation Authorization explicitly associated; a
