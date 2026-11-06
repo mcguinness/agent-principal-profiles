@@ -23,6 +23,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import uuid
 from dataclasses import dataclass, field
 from urllib.parse import urlencode, urlsplit
 
@@ -418,6 +419,50 @@ class Adapter:
         raise NotImplementedError
 
 
+class NotRun(Exception):
+    """A case needs a role or capability the deployment under test does not provide."""
+
+
+class SigningAdapter:
+    """RAS-only mode: the suite plays the IdP.
+
+    It signs ID-JAGs for the IdP's issuer with a key the RAS trusts for that
+    issuer, so a RAS and an API can be tested without a governed IdP. The
+    grants carry the claims the reference IdP issues. IdP cases, and any case
+    that needs an ID Token, are not run. Every other operation goes to the
+    wrapped adapter.
+    """
+
+    signs_grants = True
+    clock = 0   # seconds the servers' clocks have been advanced
+
+    def __init__(self, inner, issuer, key, audience, kid="suite-grant-signer"):
+        self.inner, self.issuer, self.key, self.kid = inner, issuer, key, kid
+        self.audience = audience
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+    def id_token(self, user, aud=None, claims=None):
+        raise NotRun("RAS-only mode has no IdP to issue an ID Token")
+
+    def mint_grant(self, claims):
+        """An ID-JAG for the IdP's issuer: iat now, 300 s, a fresh jti, and these claims."""
+        now = int(time.time()) + self.clock
+        payload = {"iss": self.issuer, "aud": self.audience, "iat": now, "exp": now + 300,
+                   "jti": uuid.uuid4().hex}
+        payload.update(claims)
+        return jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid}, payload, self.key)
+
+    def advance_clock(self, seconds):
+        self.inner.advance_clock(seconds)
+        self.clock += seconds
+
+    def reset(self):
+        self.inner.reset()
+        self.clock = 0
+
+
 class ReferenceAdapter(Adapter):
     """Adapter for the reference servers' POST /_test/<op> endpoints."""
 
@@ -530,6 +575,16 @@ class Context:
         return self.adapter.id_token(self.cfg.user, aud, claims)
 
     def grant(self, dpop_key="k"):
+        if getattr(self.adapter, "signs_grants", False):
+            # RAS-only mode: the claims the reference IdP issues, bound to
+            # dpop_key's key, or unbound without one.
+            claims = grant_claims(self)
+            if dpop_key:
+                claims["cnf"] = {"jkt": jws.thumbprint(jws.public_jwk(
+                    getattr(self.client, dpop_key)))}
+            else:
+                claims.pop("cnf")
+            return self.adapter.mint_grant(claims)
         resp = self.client.exchange(self.id_token(), dpop_key=dpop_key)
         check(resp.status == 200, f"exchange failed: {resp}")
         return resp.json()["access_token"]
@@ -2304,7 +2359,13 @@ def s37(ctx):
 
 
 def run_case(c, cfg, adapter, disable=()):
-    """Run one case from a reset deployment; return (passed, detail, notes)."""
+    """Run one case from a reset deployment; return (passed, detail, notes).
+
+    passed is None for a case not run: an IdP case in RAS-only mode, or a
+    case that needs an ID Token there.
+    """
+    if getattr(adapter, "signs_grants", False) and c.role == "IdP":
+        return None, "IdP case: RAS-only mode", []
     adapter.reset()
     for name in disable:
         adapter.disable_check(name.split(".")[0], name)
@@ -2312,6 +2373,8 @@ def run_case(c, cfg, adapter, disable=()):
     try:
         c.run(ctx)
         return True, "", ctx.notes
+    except NotRun as reason:
+        return None, str(reason), ctx.notes
     except AssertionError as err:
         return False, str(err), ctx.notes
 

@@ -1806,13 +1806,18 @@ def serve(app):
     return httpd, f"http://127.0.0.1:{httpd.server_port}"
 
 
-def start(client_keys):
-    """Start the three reference servers; return their transport base URLs."""
+def start(client_keys, grant_signer=None):
+    """Start the three reference servers; return their transport base URLs.
+
+    grant_signer, where given, is the public key the RAS trusts for the
+    IdP's issuer in place of the reference IdP's own key: in RAS-only mode
+    the suite signs the grants.
+    """
     idp = IdP({"analysis-client": client_keys["analysis-client"].public_key()})
     # The API's introspection credential at the RAS, generated at start.
     secret = secrets.token_urlsafe(32)
     ras = RAS({cid: client_keys[cid].public_key() for cid in ("analysis-api", "other-api")},
-              idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
+              grant_signer or idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
     api = API(ras.key.public_key())
     servers = {name: serve(app) for name, app in (("idp", idp), ("ras", ras), ("api", api))}
     urls = {name: url for name, (_, url) in servers.items()}

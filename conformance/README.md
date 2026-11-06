@@ -46,8 +46,9 @@ python3 -m venv .venv-conformance
 the client, and prints one line per case. `--vacuity` then runs every
 case that cites reference checks once for each check, with that check
 switched off, prints why the case failed, and fails if it still passes. `--list` prints each case's source and
-the test-control capabilities it needs. The exit status is non-zero on
-any failure.
+the test-control capabilities it needs. `--ras-only` runs the suite in
+RAS-only mode ([below](#ras-only-mode)). The exit status is non-zero
+on any failure.
 
 The reference servers use the example identifiers: `https://idp.example/`,
 `https://ras.example/` and `https://api.example` are the issuer and
@@ -591,10 +592,25 @@ another IdP, RAS or API:
    path or an unsupported method was rejected; by default any response
    that does not serve the request counts, and only the reference
    adapter requires 404 and 405 with `Allow: GET`.
-3. Call `suite.run_case` for each case in `suite.CASES`.
+3. Call `suite.run_case` for each case in `suite.CASES`. It returns
+   `None` in place of a pass or failure for a case it did not run.
 
 `disable_check` exists only for the reference implementation's vacuity
 mode.
+
+### RAS-only mode
+
+A RAS and API can be tested without a governed IdP. Wrap the adapter in
+`suite.SigningAdapter(adapter, issuer, key, audience)`: the suite then
+signs ID-JAGs itself, for `issuer` and the RAS issuer `audience`, with a
+private key whose public key the RAS trusts for that issuer. The grants
+carry the claims the reference IdP issues (the user's subject in the
+RAS namespace, the RAS registration as `client_id`, `resource`,
+`scope`, `act`, `cnf.jkt` for the client's key, 300 s). IdP cases, and
+any case that needs an ID Token, are reported as not run; `mint_grant`
+needs no IdP test control. With the reference, `run.py --ras-only` has
+the reference RAS trust a key the suite generates for
+`https://idp.example/`, and CI runs this mode with `--vacuity`.
 
 ## Configuration the reference assumes
 
