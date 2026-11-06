@@ -22,6 +22,10 @@ API](#policy-services-at-the-api)).
 
 The drafts define every requirement. The suite tests a subset of them,
 and passing it is evidence for that subset only, not a conformance claim.
+[CLAIM-TEMPLATE.md](CLAIM-TEMPLATE.md) is a form for stating a claim:
+what the core requires a claim to name, optional capabilities,
+companion claims, the configuration a peer must agree on, and the
+suite results offered as evidence.
 
 * [Run](#run)
 * [Cases](#cases)
