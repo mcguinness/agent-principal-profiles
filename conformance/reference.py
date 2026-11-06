@@ -67,6 +67,7 @@ REFRESH_GRANT = "refresh_token"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
 ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+JWT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt"
 
 IDP_ISSUER = "https://idp.example/"
 # A second IdP whose agents the API trusts the RAS to assert (core:
@@ -74,6 +75,9 @@ IDP_ISSUER = "https://idp.example/"
 # control mints them. Its agent-42 is not the home IdP's agent-42.
 PARTNER_IDP_ISSUER = "https://partner-idp.example/"
 RAS_ISSUER = "https://ras.example/"
+# A platform that issues workload JWTs for the agents it hosts, presented
+# by its shared client (core: Existing Platform JWT).
+PLATFORM_ISSUER = "https://platform.example/"
 API_BASE = "https://api.example"
 RESOURCE = "https://api.example/tenants/acme-data/"
 OTHER_RESOURCE = "https://api.example/tenants/beta-data/"
@@ -100,6 +104,13 @@ CHECKS = {
     "idp.binding_enabled": "Identity Binding is enabled",
     "idp.agent_active": "Agent Principal is active",
     "idp.tenant_pair": "the agent's Governance Tenant is authorized for the Target Tenant",
+    "idp.presented_evidence_required": "a shared client configured for presented evidence must "
+                                       "present the platform JWT, with no mode fallback",
+    "idp.platform_audience": "a platform JWT's aud includes an audience accepted for this IdP",
+    "idp.exact_binding": "a platform JWT resolves only through an exact issuer and sub binding, "
+                         "never a prefix",
+    "idp.evidence_deadline": "the grant expires no later than the platform JWT's evidence "
+                             "deadline",
     "idp.client_association": "Client Association permits delegated use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
     "idp.categorical_prohibition": "policy's categorical prohibition of the agent for a requested "
@@ -401,37 +412,62 @@ class Server:
 
 
 class IdP(Server):
-    """Grant Issuance at the IdP, delegated access with a dedicated client."""
+    """Grant Issuance at the IdP, delegated access with a dedicated or a shared client.
 
-    def __init__(self, client_keys):
+    The dedicated client resolves the agent from its own authentication. The
+    shared client presents a platform JWT naming the agent's workload
+    (core: Existing Platform JWT), with one credential class: a dedicated
+    platform issuer, configured with that client.
+    """
+
+    def __init__(self, client_keys, platform_key=None):
         self.issuer, self.token_endpoint = IDP_ISSUER, IDP_ISSUER + "token"
         self.key, self.kid = jws.new_rsa_key(), "idp-key-1"
-        self.client_keys = client_keys
+        self.client_keys, self.platform_key = client_keys, platform_key
         super().__init__()
 
     def reset(self):
         super().reset()
         self.clients = {"analysis-client": {"key": self.client_keys["analysis-client"],
-                                            "profile": "bound"}}
+                                            "profile": "bound", "mode": "authentication"}}
+        # The platform's shared client and its credential class: the
+        # platform's dedicated issuer, approved key and algorithm, and the
+        # audience that authorizes presentation here. The evidence deadline
+        # is the JWT's exp; no maximum age is configured.
+        self.platforms = {}
+        if "platform-client" in self.client_keys and self.platform_key is not None:
+            self.clients["platform-client"] = {"key": self.client_keys["platform-client"],
+                                               "profile": "bound", "mode": "presented"}
+            self.platforms[PLATFORM_ISSUER] = {"key": self.platform_key, "alg": "ES256",
+                                               "clients": {"platform-client"},
+                                               "audiences": {IDP_ISSUER}}
         self.users = {"alice": {"active": True}}
         self.ras_subjects = {("alice", RAS_ISSUER): "alice-ras"}
         # Each Agent Principal has one Governance Tenant. Governance Tenants
         # share this issuer, and the agent identifier is unique across them
         # (core: Canonical Identity and Tenant Boundaries).
-        self.agents = {"agent-42": {"active": True, "governance_tenant": "acme-gov"}}
+        self.agents = {"agent-42": {"active": True, "governance_tenant": "acme-gov"},
+                       "agent-43": {"active": True, "governance_tenant": "acme-gov"}}
         # (Governance Tenant, Target Tenant) pairs that policy authorizes for
         # issuance (core: Issuance Authorization).
         self.tenant_pairs = {("acme-gov", "acme-data")}
+        # b43 binds the platform's workload-43, by exact issuer and sub, to
+        # agent-43, which runs behind the shared client.
         self.bindings = {"b12": {"source": ("analysis-client", "analysis-client"),
-                                 "agent": "agent-42", "enabled": True}}
-        self.client_associations = {("analysis-client", "b12", "delegated")}
+                                 "agent": "agent-42", "enabled": True},
+                         "b43": {"source": (PLATFORM_ISSUER, "workload-43"),
+                                 "agent": "agent-43", "enabled": True}}
+        self.client_associations = {("analysis-client", "b12", "delegated"),
+                                    ("platform-client", "b43", "delegated")}
         # A Delegation Authorization's scope set is its scope ceiling.
-        self.delegations = {("agent-42", "alice", "analysis-client", RESOURCE): {"files.read"}}
+        self.delegations = {("agent-42", "alice", "analysis-client", RESOURCE): {"files.read"},
+                            ("agent-43", "alice", "platform-client", RESOURCE): {"files.read"}}
         # Policy's categorical prohibitions: (agent, resource) -> scopes the
         # agent may never be issued there, whatever a delegation permits.
         self.prohibitions = {}
         self.targets = {RAS_ISSUER: {"resources": {RESOURCE: "acme-data"},
-                                     "registrations": {"analysis-client": "analysis-api"}}}
+                                     "registrations": {"analysis-client": "analysis-api",
+                                                       "platform-client": "platform-api"}}}
 
     def control_op(self, op, body):
         if op == "id_token":
@@ -497,8 +533,15 @@ class IdP(Server):
         # Request parameters (core, Token Exchange Request; ID-JAG Request).
         if form.get("requested_token_type") != [ID_JAG_TYPE]:
             raise OAuthError("invalid_request")
-        if "actor_token" in form or "actor_token_type" in form:
+        # The resolution mode comes from configuration for the authenticated
+        # client, never from the request (core: Agent Resolution Input
+        # Validation).
+        presented = self.clients[client_id]["mode"] == "presented"
+        if not presented and ("actor_token" in form or "actor_token_type" in form):
             raise OAuthError("invalid_request", description="authentication-context mode")
+        if presented and self.on("idp.presented_evidence_required") and (
+                "actor_token" not in form or form.get("actor_token_type") != [JWT_TOKEN_TYPE]):
+            raise OAuthError("invalid_request", description="platform JWT required")
         audience = _one(form, "audience")
         resources = form.get("resource", [])
         if not resources:
@@ -511,7 +554,12 @@ class IdP(Server):
         # Subject token validation.
         user, id_token_exp = self.validate_id_token(_one(form, "subject_token"), client_id)
         # Agent resolution through an enabled Identity Binding.
-        binding_id, agent = self.resolve_agent(client_id)
+        evidence_deadline = None
+        if presented and "actor_token" in form:
+            binding_id, agent, evidence_deadline = self.resolve_presented(
+                client_id, _one(form, "actor_token"))
+        else:
+            binding_id, agent = self.resolve_agent(client_id)
         # Subject resolution in the target RAS's namespace.
         if audience not in self.targets:
             raise OAuthError("invalid_target")
@@ -555,6 +603,8 @@ class IdP(Server):
             raise OAuthError("invalid_scope")
         now = int(self.now())
         exp = min(now + GRANT_LIFETIME, id_token_exp)
+        if evidence_deadline is not None and self.on("idp.evidence_deadline"):
+            exp = min(exp, evidence_deadline)
         claims = {"iss": self.issuer, "sub": ras_sub, "aud": audience, "iat": now,
                   "exp": exp, "jti": uuid.uuid4().hex, "client_id": downstream_client,
                   "resource": resource, "scope": " ".join(granted),
@@ -589,6 +639,46 @@ class IdP(Server):
         if not isinstance(sub, str) or sub not in self.users:
             raise OAuthError("invalid_grant")
         return claims["sub"], claims["exp"]
+
+    def resolve_presented(self, client_id, token):
+        """The existing platform JWT input: (binding, agent, evidence deadline).
+
+        An invalid credential is invalid_request; a valid one that matches no
+        enabled binding is invalid_grant (core: Issuance Errors).
+        """
+        try:
+            _, unverified, _, _ = jws.decode(token)
+        except ValueError:
+            raise OAuthError("invalid_request", description="platform JWT")
+        platform = self.platforms.get(unverified.get("iss"))
+        if platform is None or client_id not in platform["clients"]:
+            raise OAuthError("invalid_request", description="no configured credential class")
+        try:
+            _, claims = jws.verify(token, platform["key"], platform["alg"])
+        except ValueError:
+            raise OAuthError("invalid_request", description="platform JWT signature")
+        aud = claims.get("aud")
+        audiences = set(aud) if isinstance(aud, list) else {aud}
+        if not audiences & platform["audiences"] and self.on("idp.platform_audience"):
+            raise OAuthError("invalid_request", description="platform JWT audience")
+        if not isinstance(claims.get("exp"), int) or \
+                not _time_valid(claims, require_iat=False, now=self.now()):
+            raise OAuthError("invalid_request", description="platform JWT time")
+        if "act" in claims:
+            raise OAuthError("invalid_request", description="inbound actor chain")
+        sub = claims.get("sub")
+        exact = self.on("idp.exact_binding")
+        matches = [(bid, b) for bid, b in self.bindings.items()
+                   if b["source"][0] == claims["iss"] and isinstance(sub, str) and
+                   (b["source"][1] == sub if exact else sub.startswith(b["source"][1]))]
+        if len(matches) != 1:
+            raise OAuthError("invalid_grant", description="no binding")
+        binding_id, binding = matches[0]
+        if not binding["enabled"] and self.on("idp.binding_enabled"):
+            raise OAuthError("invalid_grant")
+        if not self.agents[binding["agent"]]["active"] and self.on("idp.agent_active"):
+            raise OAuthError("invalid_grant")
+        return binding_id, binding["agent"], claims["exp"]
 
     def resolve_agent(self, client_id):
         matches = [(bid, b) for bid, b in self.bindings.items()
@@ -1853,17 +1943,20 @@ def serve(app):
     return httpd, f"http://127.0.0.1:{httpd.server_port}"
 
 
-def start(client_keys, grant_signer=None):
+def start(client_keys, grant_signer=None, platform_key=None):
     """Start the three reference servers; return their transport base URLs.
 
     grant_signer, where given, is the public key the RAS trusts for the
     IdP's issuer in place of the reference IdP's own key: in RAS-only mode
     the suite signs the grants.
     """
-    idp = IdP({"analysis-client": client_keys["analysis-client"].public_key()})
+    idp = IdP({cid: client_keys[cid].public_key()
+               for cid in ("analysis-client", "platform-client") if cid in client_keys},
+              platform_key)
     # The API's introspection credential at the RAS, generated at start.
     secret = secrets.token_urlsafe(32)
-    ras = RAS({cid: client_keys[cid].public_key() for cid in ("analysis-api", "other-api")},
+    ras = RAS({cid: client_keys[cid].public_key()
+               for cid in ("analysis-api", "other-api", "platform-api") if cid in client_keys},
               grant_signer or idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
     api = API(ras.key.public_key())
     servers = {name: serve(app) for name, app in (("idp", idp), ("ras", ras), ("api", api))}
