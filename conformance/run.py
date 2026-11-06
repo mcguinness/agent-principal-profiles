@@ -24,10 +24,13 @@ import suite  # noqa: E402
 
 
 def reference_config(ras_only=False):
-    keys = {cid: jws.new_rsa_key() for cid in ("analysis-client", "analysis-api", "other-api")}
+    keys = {cid: jws.new_rsa_key() for cid in ("analysis-client", "analysis-api", "other-api",
+                                               "platform-client", "platform-api")}
     signer = jws.new_rsa_key() if ras_only else None
+    platform = jws.new_ec_key()   # the suite signs platform JWTs as the platform
     transports, servers = reference.start(
-        keys, grant_signer=signer.public_key() if signer else None)
+        keys, grant_signer=signer.public_key() if signer else None,
+        platform_key=platform.public_key())
     cfg = suite.Config(
         idp=suite.Endpoint(reference.IDP_ISSUER, reference.IDP_ISSUER + "token",
                            transports["idp"]),
@@ -42,7 +45,12 @@ def reference_config(ras_only=False):
         other_ras_client_id="other-api", other_ras_client_key=keys["other-api"],
         user="alice", scope="files.read",
         expect={"agent_iss": reference.IDP_ISSUER, "agent": "agent-42",
-                "grant_sub": "alice-ras", "token_sub": "user-108"})
+                "grant_sub": "alice-ras", "token_sub": "user-108"},
+        shared_client=suite.SharedClient(
+            idp_client_id="platform-client", idp_client_key=keys["platform-client"],
+            ras_client_id="platform-api", platform_issuer=reference.PLATFORM_ISSUER,
+            platform_key=platform, platform_sub="workload-43", agent="agent-43",
+            audience=reference.IDP_ISSUER))
     adapter = suite.ReferenceAdapter(transports)
     if signer:
         adapter = suite.SigningAdapter(adapter, reference.IDP_ISSUER, signer,

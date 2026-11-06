@@ -197,6 +197,22 @@ resolution, or correlate it across authorization domains
 ({{profile-additions}}). This document is an OAuth deployment profile
 that fills those gaps.
 
+Giving each agent its own OAuth client, as some deployments do, makes
+the agent identifiable to the authorization server that registered it,
+but the client identifier is not that principal. It names a
+registration, assigned separately at each authorization server and
+replaced when the agent moves to another platform or client. This
+profile's mandatory path starts from such a dedicated client ({{scope}})
+and adds what the client identifier lacks. The IdP resolves the client
+to an Agent Principal through an Identity Binding ({{identity}}) and
+authorizes the client to use that principal through a Client Association
+({{identity-binding}}). The grant carries the principal as the actor,
+separate from the client, and the resource domain decides whether that
+actor may act for the user ({{actor-authorization}}). A shared client
+reaches the same principal by presenting an existing platform JWT
+({{imported-jwt-input}}), under a claim of generic shared-client
+interoperability ({{scope}}).
+
 ## Protocol Overview {#overview}
 
 A platform runs several agents behind one OAuth client. Client
@@ -2469,11 +2485,13 @@ fit".
   gate at the RAS and the API; tenant-pair authorization at the IdP;
   optional just-in-time correlation; the error selection order and
   optional policy services at the API; introspection of opaque tokens;
-  and the deferred redemption of {{OVERSIGHT}} at the RAS. It does not
-  implement WAG issuance or redemption, the existing platform JWT
-  input, the inputs of {{INPUTS}}, mutual TLS, refresh tokens outside a
-  deferred redemption, {{CONTINUATION}}, {{AGENT-LIFECYCLE}}, or
-  {{AGENT-MANAGEMENT}}.
+  the existing platform JWT input for a shared client, with a
+  dedicated-issuer credential class and exact issuer-and-`sub`
+  bindings; and the deferred redemption of {{OVERSIGHT}} at the RAS.
+  It does not implement WAG issuance or redemption, platform JWT
+  selectors or key-bound platform JWTs, the inputs of {{INPUTS}}, mutual
+  TLS, refresh tokens outside a deferred redemption, {{CONTINUATION}},
+  {{AGENT-LIFECYCLE}}, or {{AGENT-MANAGEMENT}}.
 * **Version compatibility:** the editor's copy of this document and its
   companions.
 * **Licensing:** a Contribution under BCP 78, BCP 79, and the IETF

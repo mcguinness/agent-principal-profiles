@@ -36,6 +36,7 @@ DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
 ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+JWT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt"
 
 
 @dataclass
@@ -43,6 +44,27 @@ class Endpoint:
     issuer: str          # issuer identifier; client assertions use it as aud
     token_endpoint: str  # as the server identifies itself; DPoP htu uses it
     transport: str       # base URL the suite connects to
+
+
+@dataclass
+class SharedClient:
+    """Generic shared-client interoperability (P11, P12, N36 to N38).
+
+    The suite plays the platform: it signs platform JWTs with platform_key,
+    which the IdP accepts from platform_issuer when idp_client_id presents
+    them, and binds platform_sub, exactly, to the Agent Principal agent.
+    The IdP also holds a Client Association for that binding, a Delegation
+    Authorization from the user to the agent through this client, and the
+    association of this client with its RAS registration ras_client_id.
+    """
+    idp_client_id: str
+    idp_client_key: object
+    ras_client_id: str     # the grant's client_id
+    platform_issuer: str
+    platform_key: object   # a P-256 private key; the IdP approves its public key
+    platform_sub: str
+    agent: str
+    audience: str          # an audience that authorizes presentation to the IdP
 
 
 @dataclass
@@ -99,6 +121,9 @@ class Config:
     # API's actor gate has no entry for the partner issuer's.
     partner_agent_iss: str = "https://partner-idp.example/"
     untrusted_agent_iss: str = "https://untrusted-idp.example/"
+    # A shared client presenting platform JWTs; None leaves P11, P12 and
+    # N36 to N38 not run.
+    shared_client: object = None
 
 
 class Response:
@@ -189,6 +214,28 @@ class Client:
             return http("POST", cfg.idp.transport + urlsplit(cfg.idp.token_endpoint).path,
                         form, headers)
         return self.send(cfg.idp.token_endpoint, build, retry=assertion is None)
+
+    def shared_exchange(self, id_token, actor_token=None, actor_token_type=JWT_TOKEN_TYPE,
+                        dpop_key="k"):
+        """A token exchange by the shared client, with the platform JWT as actor_token."""
+        cfg, sc = self.cfg, self.cfg.shared_client
+
+        def build():
+            form = {"grant_type": TOKEN_EXCHANGE, "requested_token_type": ID_JAG_TYPE,
+                    "client_id": sc.idp_client_id, "client_assertion_type": ASSERTION_TYPE,
+                    "client_assertion": jws.client_assertion(
+                        sc.idp_client_key, sc.idp_client_id, cfg.idp.issuer, now=self.now()),
+                    "subject_token": id_token, "subject_token_type": ID_TOKEN_TYPE,
+                    "audience": cfg.ras.issuer, "resource": cfg.resource, "scope": cfg.scope}
+            if actor_token is not None:
+                form["actor_token"] = actor_token
+                form["actor_token_type"] = actor_token_type
+            headers = {}
+            if dpop_key:
+                headers["DPoP"] = self.proof(dpop_key, "POST", cfg.idp.token_endpoint)
+            return http("POST", cfg.idp.transport + urlsplit(cfg.idp.token_endpoint).path,
+                        form, headers)
+        return self.send(cfg.idp.token_endpoint, build)
 
     def ras_token(self, form, dpop_key="k", as_other_client=False, proof=None):
         """A token request to the RAS with fresh client authentication and DPoP proof.
@@ -1312,6 +1359,88 @@ def n35(ctx):
     check(resp.status == 401, f"expected HTTP 401, got {resp}")
     error = challenge_error(resp)
     check(error in (None, "invalid_token"), f"expected invalid_token, got {error!r}")
+
+
+# Generic shared-client interoperability --------------------------------------
+#
+# An IdP that claims it accepts the existing platform JWT input (core:
+# Conformance Claims; Existing Platform JWT). The suite plays the shared
+# client and the platform that signs its workload JWTs.
+
+def shared(ctx):
+    if ctx.cfg.shared_client is None:
+        raise NotRun("no shared client configured (Config.shared_client)")
+    return ctx.cfg.shared_client
+
+
+def platform_jwt(ctx, lifetime=120, **overrides):
+    """A platform JWT naming the shared client's workload, signed by the platform."""
+    sc, now = shared(ctx), ctx.now()
+    claims = {"iss": sc.platform_issuer, "sub": sc.platform_sub, "aud": sc.audience,
+              "iat": now, "exp": now + lifetime, "jti": uuid.uuid4().hex}
+    claims.update(overrides)
+    return jws.sign({"typ": "JWT"}, claims, sc.platform_key)
+
+
+def shared_id_token(ctx):
+    return ctx.adapter.id_token(ctx.cfg.user, aud=shared(ctx).idp_client_id)
+
+
+@case("P11", "IdP", "Issues a grant naming the agent a shared client's platform JWT resolves to",
+      "core: Conformance Claims (generic shared-client interoperability); Existing Platform "
+      "JWT", needs=("shared_client",))
+def p11(ctx):
+    sc = shared(ctx)
+    resp = ctx.client.shared_exchange(shared_id_token(ctx), platform_jwt(ctx))
+    check(resp.status == 200, f"exchange failed: {resp}")
+    claims = jws.decode(resp.json()["access_token"])[1]
+    act = claims.get("act") if isinstance(claims.get("act"), dict) else {}
+    check(act.get("iss") == ctx.cfg.expect["agent_iss"] and act.get("sub") == sc.agent,
+          f"act {claims.get('act')!r} does not name {sc.agent}")
+    check(claims.get("client_id") == sc.ras_client_id,
+          f"client_id {claims.get('client_id')!r}, expected {sc.ras_client_id}")
+
+
+@case("P12", "IdP", "Expires the grant no later than the platform JWT's evidence deadline",
+      "core: Existing Platform JWT (Validation); Common Grant Claims",
+      needs=("shared_client",), defeats=("idp.evidence_deadline",))
+def p12(ctx):
+    evidence = platform_jwt(ctx, lifetime=90)
+    resp = ctx.client.shared_exchange(shared_id_token(ctx), evidence)
+    check(resp.status == 200, f"exchange failed: {resp}")
+    deadline = jws.decode(evidence)[1]["exp"]
+    exp = jws.decode(resp.json()["access_token"])[1].get("exp")
+    check(isinstance(exp, int) and exp <= deadline,
+          f"grant exp {exp} is after the evidence deadline {deadline}")
+
+
+@case("N36", "IdP", "Rejects a shared client's exchange without its platform JWT, with no mode "
+      "fallback",
+      "core: Agent Resolution Input Validation; Issuance Errors",
+      needs=("shared_client",), defeats=("idp.presented_evidence_required",))
+def n36(ctx):
+    expect_error(ctx.client.shared_exchange(shared_id_token(ctx)), 400, "invalid_request")
+
+
+@case("N37", "IdP", "Rejects a platform JWT whose aud names no audience accepted for the IdP",
+      "core: Existing Platform JWT (Audience); Issuance Errors",
+      needs=("shared_client",), defeats=("idp.platform_audience",))
+def n37(ctx):
+    evidence = platform_jwt(ctx, aud="https://another-idp.example/")
+    expect_error(ctx.client.shared_exchange(shared_id_token(ctx), evidence), 400,
+                 "invalid_request")
+
+
+@case("N38", "IdP", "Rejects with invalid_grant a valid platform JWT whose sub only begins with "
+      "a bound sub",
+      "core: Existing Platform JWT (Resolution); Issuance Errors",
+      needs=("shared_client",), defeats=("idp.exact_binding",))
+def n38(ctx):
+    # A valid credential that resolves no binding: selectors never match by
+    # prefix.
+    evidence = platform_jwt(ctx, sub=shared(ctx).platform_sub + "-shadow")
+    expect_error(ctx.client.shared_exchange(shared_id_token(ctx), evidence), 400,
+                 "invalid_grant")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

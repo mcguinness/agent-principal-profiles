@@ -76,6 +76,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P8 | IdP | With the IdP requiring DPoP nonces, the exchange gets `use_dpop_nonce` and a `DPoP-Nonce`, and the retry that carries the nonce gets the grant | RFC 9449 Section 8; core: Grant Protection | Require nonces at the IdP |
 | P9 | RAS | With the RAS requiring DPoP nonces, the redemption's retry with the nonce gets the access token | RFC 9449 Section 8; core: Access-Token Protection | Require nonces at the RAS |
 | P10 | API | With the API requiring DPoP nonces, the read gets HTTP 401 with `use_dpop_nonce`, and the retry with the nonce is served | RFC 9449 Section 9; core: Token Validation | Require nonces at the API |
+| P11 | IdP | The shared client `platform-client` presents a platform JWT for `workload-43` as `actor_token`; the grant names `agent-43` in `act` and the shared client's RAS registration, `platform-api`, as `client_id` | core: Conformance Claims (generic shared-client interoperability); Existing Platform JWT | A shared client configured |
+| P12 | IdP | With a platform JWT that expires in 90 s, the grant expires no later than that evidence deadline | core: Existing Platform JWT (Validation); Common Grant Claims | A shared client configured |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -111,6 +113,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N33 | IdP | With the agent moved to `beta-gov`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
 | N34 | RAS | With just-in-time correlation on, a grant whose `act` names `agent-99`, which the RAS has not seen, fails with `actor_unauthorized` or `invalid_grant`: the created record does not authorize the agent | core: Optional Just-in-Time Correlation; Redemption Errors | Mint a grant; turn on just-in-time correlation |
 | N35 | API | Where the API accepts bearer tokens for the resource, a DPoP-bound access token presented with the `Bearer` scheme fails with HTTP 401 | RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement) | Permit bearer tokens at the API |
+| N36 | IdP | The shared client's exchange without a platform JWT fails with `invalid_request`, not a fallback to the client's own authentication | core: Agent Resolution Input Validation; Issuance Errors | A shared client configured |
+| N37 | IdP | A platform JWT whose `aud` is `https://another-idp.example/` fails with `invalid_request` | core: Existing Platform JWT (Audience); Issuance Errors | A shared client configured |
+| N38 | IdP | A valid platform JWT for `workload-43-shadow`, which only begins with the bound `workload-43`, fails with `invalid_grant` | core: Existing Platform JWT (Resolution); Issuance Errors | A shared client configured |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -202,14 +207,16 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2, P7 and D02, name the reference
+Every negative case but N32, and P2, P7, P12 and D02, name the reference
 checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 92 cases runs once for each check it names,
+`--vacuity`, each of these 96 cases runs once for each check it names,
 with that check switched off; eight S cases name two checks, so there
-are 100 runs, and every run fails. Thirty-one N cases fail because
+are 104 runs, and every run fails. Thirty-three N cases fail because
 the server then accepts the request. P2 fails because the access token
-then carries a rewritten `act`, and P7 because it is then a bearer
-token. N11 fails because the RAS's
+then carries a rewritten `act`, P7 because it is then a bearer
+token, and P12 because the grant then outlives the platform JWT. N36
+fails because the IdP then falls back to the shared client's own
+authentication, which resolves no agent (`invalid_grant`). N11 fails because the RAS's
 access-token protection check then
 rejects the redemption with `invalid_request`; Access-Token Protection
 states that Grant Protection's checks come first, so the case requires
@@ -508,7 +515,9 @@ The suite tests nothing outside the path above, including:
 
 * governed agent access with unbound grants, except bearer issuance
   (P5 to P7) and as the setup for N10, N30, and D08;
-* existing platform JWTs and the inputs of the inputs draft;
+* the existing platform JWT input beyond P11, P12 and N36 to N38: JSON
+  Pointer selectors, key-bound platform JWTs, a configured maximum age,
+  and self-acting presentation; and the inputs of the inputs draft;
 * WAG issuance and redemption, including deferred WAG redemption, the
   removal of a pending WAG redemption's correlation, and the WAG rows of
   Redemption Errors; self-acting access at the API is covered only with
@@ -576,7 +585,13 @@ another IdP, RAS or API:
    `untrusted_agent_iss`, an issuer the API does not trust for agents.
    They assume the API's actor gate, and the policy S37 sets, permit the
    user's `agent-42` only under `expect["agent_iss"]`, with no entry for
-   the partner issuer's.
+   the partner issuer's. P11, P12 and N36 to N38 need `shared_client`, a
+   `suite.SharedClient`: a shared client at the IdP and its RAS
+   registration, a platform issuer whose JWTs the suite signs with a key
+   the IdP approves, the workload `sub` the IdP binds exactly to an agent,
+   and an audience the IdP accepts; the IdP also holds the Client
+   Association and the user's Delegation Authorization for that agent
+   through the shared client. Without it, those cases are not run.
 2. Implement `suite.Adapter` for the deployment. Every case needs
    `id_token`; the "Test control" column lists the other capabilities.
    A case whose capability the deployment cannot provide can be skipped
@@ -647,7 +662,8 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | How the API tells the governed delegated population apart | Trusted configuration keyed by the access token's `client_id` and audience | core: Profile Applicability ("no in-band discriminator") |
 | How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; the RAS mints its tokens through test control | core: Profile Applicability (separate client registrations) |
 | Where the tenant is carried | The tenant-specific resource URI, as the access token's audience | core: Access Token Issuance and Response (the default) |
-| Client registration association | One RAS registration, `analysis-api`, for the dedicated IdP client `analysis-client` | core: Issuance Prerequisites |
+| Client registration association | One RAS registration for each IdP client: `analysis-api` for the dedicated client `analysis-client`, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
+| Platform JWT credential class | A dedicated issuer, `https://platform.example/`, configured with `platform-client`; `ES256`; accepted audience `https://idp.example/`; evidence deadline from `exp`, with no maximum age; `workload-43` bound exactly to `agent-43` | core: Existing Platform JWT (Configuration) |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API; at the RAS, a rule admitting every agent of an issuer for a tenant only under test control | core: Delegated Actor Authorization ("not a protocol object"); RAS and API implementation considerations ("another explicit rule") |
 | Governance Tenants | `agent-42` belongs to `acme-gov` on the IdP's issuer; policy authorizes only (`acme-gov`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized` | core: Issuance Authorization (no code assigned) |
 | Just-in-time correlation | Off unless test control turns it on for the IdP's issuer and `acme-data`; a created record is eligible, and the actor gate still applies | core: Optional Just-in-Time Correlation |
@@ -719,5 +735,14 @@ that settled it.
    any error without a grant. The [shared-issuer
    experiment](../experiments/shared-issuer/README.md) records why this
    refusal is the only control at a shared issuer.
+10. **Whether two IdP clients may share one RAS registration.** Open.
+   Issuance Prerequisites derives the grant's `client_id` from "an
+   authoritative association between the authenticated IdP client and
+   that client's registration at the target RAS". Read with the
+   possessive, each IdP client has its own registration, and the
+   reference gives the shared client `platform-client` its own,
+   `platform-api`. The text does not say whether several IdP clients may
+   map to one registration, which would collapse their clients at the
+   RAS.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope
