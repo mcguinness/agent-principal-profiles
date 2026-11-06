@@ -34,7 +34,16 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-  DTR: I-D.ietf-oauth-deferred-token-response
+  CONTINUATION:
+    title: "Identity Continuation Profile for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+  DTR: I-D.ietf-oauth-deferred-token-response-00
+  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   RFC6749:
   RFC8693:
   RFC9449:
@@ -47,7 +56,7 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
-  AIMS: I-D.ietf-wimse-aims
+  AIMS: I-D.ietf-wimse-aims-01
   ARAP:
     title: "AuthZEN Access Request and Approval Profile - Draft 1"
     author:
@@ -66,15 +75,6 @@ informative:
       - org: OpenID Foundation
     date: 2021-09-01
     target: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
-  CONTINUATION:
-    title: "Identity Continuation Profile for Governed Agent Federation"
-    author:
-      - name: Karl McGuinness
-    date: false
-    seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
-  ICA: I-D.mcguinness-oauth-id-continuation-assertion
   MCP:
     title: "Model Context Protocol Specification, Revision 2026-07-28"
     author:
@@ -105,7 +105,7 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://mcguinness.github.io/mission-bound-authorization/draft-mcguinness-oauth-mission-approval.html
-  OVERSIGHT-ACTS: I-D.ehstand-oversight-acts
+  OVERSIGHT-ACTS: I-D.ehstand-oversight-acts-00
   RFC7009:
   RFC8417:
   WAG: I-D.carleton-workload-authz-grant-02
@@ -994,6 +994,17 @@ person reviews periodically, and limit how many pending requests one
 agent can hold. Converting an approval into standing authority is an
 authorization change ({{modes}}), not a side effect of approving.
 
+A limit on pending requests does not stop sequential prompting. After
+a denial, a later request for the same authority is a new request
+({{resolution}}), so an agent, or content that misleads it, can prompt
+an approver again as soon as the previous request ends, until the
+approver accepts. This document does not define suppression of a
+request that matches one recently denied: doing so needs a definition
+of equivalent requests, a way for a policy change or an authorized
+reconsideration to clear it, a party that owns the limit, and the
+refusal it returns. Approval channels and policy can rate-limit
+prompts per agent and approver in the meantime.
+
 ## Misleading Requests {#security-misleading}
 
 An agent can phrase a request to mislead an approver. The governed
@@ -1032,7 +1043,15 @@ A stolen deferral code could otherwise yield the grant after approval.
 The code is bound to the client and to a DPoP key ({{deferring}},
 {{redemption-deferring}}), as
 {{Section 10.1 of DTR}} requires for clients whose profile mandates
-DPoP, and the grant carries the same key.
+DPoP. A grant issued after a deferred issuance carries the same key,
+and so does a bound grant whose redemption is deferred.
+
+An unbound grant does not. Whoever first redeems a stolen unbound
+grant, with credentials for the client it names, chooses the key the
+deferral code is bound to, and the approver sees the same agent, user,
+client, and resource as for the legitimate request. Approval therefore
+does not protect an unbound grant against its first redemption ("Unbound
+Grant Theft" in {{FEDERATION}}).
 
 ## Approval Binding at the RAS {#security-binding}
 

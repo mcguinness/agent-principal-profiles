@@ -99,7 +99,8 @@ it, and authorizing a client as separate permissions.
 
 *Exit checks, for the pilot population:*
 * Each pilot agent has an Agent Principal with a recorded owner; in SCIM
-  management, the Agent resource's `owners` attribute.
+  management, the Agent resource's `owners` attribute. No draft
+  requires an owner, so this is a deployment requirement.
 * Permission to register agents does not let a connector bind them or
   authorize clients.
 * An execution identifier, such as a session or replica ID, never
@@ -642,8 +643,10 @@ session ends.
 
 `agent-42` prepares a daily report for Alice after she signs out. While
 Alice is signed in, the client uses her refresh token once to establish
-a chain anchored to that refresh token's grant; each run continues from
-server-held task state with no retained user credential. This needs an
+a chain anchored to that refresh token's grant; within the chain's
+continuation window, each run continues from server-held task state
+with no retained user credential, and a task that outlasts the window
+needs a new chain from a user credential. This needs an
 IdP that claims grant-anchored continuation; tenant policy and Alice's
 Delegation Authorization that permit continuation; a refresh token
 whose grant has that Delegation Authorization explicitly associated; a
@@ -995,19 +998,45 @@ stay revoked, and ended continuation chains stay ended.
 * **Trigger:** a user leaves.
 * **Scope:** that user's delegations; agents' self-acting authority is
   unaffected.
-* **Prerequisites:** the IdP's own user lifecycle.
-* **Owner:** identity team.
-* **Action:** disable the user through the IdP's user lifecycle.
-* **Verification:** a new delegated exchange for that user fails with
-  `invalid_grant`, and the user's delegated chains end; agents still
-  obtain grants for their own access.
-* **Residual access:** delegated tokens already issued for the user,
-  until revoked or expired. Where a resource domain is configured for
-  CAEP user-and-tenant revocation, an event can revoke those sessions.
+* **Prerequisites:** the IdP's own user lifecycle; the IdP's maximum
+  grant acceptance window, including clock leeway; and, for each
+  resource domain where the user's agents held delegated access, a way
+  to stop new redemption for the user (the product's own user
+  deprovisioning, since a RAS rejects redemption for a disabled user, or
+  grant-derived revocation of the grants the IdP retained) and a way to
+  end existing sessions (that deprovisioning, or CAEP user-and-tenant
+  revocation).
+* **Owner:** identity team; each resource owner for their domain.
+* **Action:**
+  1. Disable the user through the IdP's user lifecycle. No new grant
+     issues for the user.
+  2. For each of those resource domains, stop new redemption: disable
+     the user's account there, or send grant-derived revocation for the
+     user's retained grants. Where neither is available, wait until
+     every grant issued before step 1 is past the acceptance window.
+  3. Then end existing sessions there: through that deprovisioning, or
+     with CAEP user-and-tenant revocation. That event revokes existing
+     sessions only; it does not stop a grant that has not yet been
+     redeemed, which is why step 2 comes first.
+* **Verification:**
+
+  | Checkpoint | Evidence |
+  |---|---|
+  | The IdP applied the disablement | A new delegated exchange for that user fails with `invalid_grant`, and the user's delegated chains end; agents still obtain grants for their own access |
+  | Each resource domain stopped new redemption | Redemption of a grant issued for the user before step 1 fails there, or the acceptance window of every such grant has passed |
+  | Each resource domain ended existing sessions | Refresh of the user's delegated authorization fails there, and a previously accepted token is rejected within the domain's agreed delay |
+  | A domain has not completed both | Recorded as pending, with its owner and the residual window |
+
+* **Residual access:** at a domain that has not completed both steps,
+  grants issued before the disablement until their acceptance window
+  ends, and authorization already issued until it expires.
 * **Recovery:** re-enabling the user permits new delegations; ended
-  chains stay ended.
-* **Completion evidence:** the user's disablement record and the
-  refused exchange.
+  chains stay ended. Where a domain disabled the user's account, its
+  owner restores it explicitly; revoked grants and sessions stay
+  revoked.
+* **Completion evidence:** the user's disablement record, the refused
+  exchange, and for each domain the refused redemption or elapsed
+  window and the refused refresh, or a recorded pending window.
 
 ### Handle an ownerless agent
 

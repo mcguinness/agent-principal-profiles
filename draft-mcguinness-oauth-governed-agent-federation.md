@@ -34,13 +34,13 @@ normative:
       - name: D. Sneeggen
       - name: S. O'Dell
     date: 2026-09-28
-  ATTEST: I-D.ietf-oauth-attestation-based-client-auth
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id
-  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
+  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-11
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
+  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile-01
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
-  RFC7523bis: I-D.ietf-oauth-rfc7523bis
-  CIMD: I-D.ietf-oauth-client-id-metadata-document
+  RFC7523bis: I-D.ietf-oauth-rfc7523bis-11
+  CIMD: I-D.ietf-oauth-client-id-metadata-document-02
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
     target: https://openid.net/specs/openid-connect-core-1_0.html
@@ -81,7 +81,7 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
-  AIMS: I-D.ietf-wimse-aims
+  AIMS: I-D.ietf-wimse-aims-01
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -114,8 +114,8 @@ informative:
     target: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/on-behalf-of-token-exchange.html
     author:
       - org: Amazon Web Services
-  ICA: I-D.mcguinness-oauth-id-continuation-assertion
-  ID-CHAINING: I-D.ietf-oauth-identity-chaining
+  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining-17
   OVERSIGHT:
     title: "Human Oversight Profile for Governed Agent Federation"
     author:
@@ -139,14 +139,14 @@ informative:
     target: https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/
     author:
       - org: SPIFFE
-  ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
+  ENTITY-PROFILES: I-D.mora-oauth-entity-profiles-02
   GUIDE:
     title: "Implementer's Guide for Governed Agent Federation"
     author:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
-  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
+  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-02
 --- abstract
 
 Resource domains need a stable identity for an enterprise-governed agent
@@ -1788,8 +1788,8 @@ The RAS:
 
 **Processing:** The RAS MUST:
 
-1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
-   {{Section 5 of WAG}}. Require the JWT `typ` header parameter
+1. **Grant:** Validate the grant under {{RFC7523}}, with the claims of
+   {{wag-claims}}. Require the JWT `typ` header parameter
    `oauth-wag+jwt` ({{Section 6.1 of WAG}}), so that an ID-JAG or
    another JWT from the same issuer cannot be accepted as a WAG. Require
    `iss` to be a configured governing IdP for the asserted agent
@@ -2411,8 +2411,9 @@ cited are met.
     client registration association, and the refusals of self-acting
     issuance, including an unenforceable approval condition.
   * `actor_unauthorized`: another actor credential or grant path might
-    succeed ({{Section 8.2 of ACTOR-PROFILE}}); the same request will
-    not.
+    succeed ({{Section 9 of ACTOR-PROFILE}}); the same request will not.
+    Self-acting access in place of a refused delegation is not such a
+    path ({{issuance-authorization}}, {{security-authorized-misuse}}).
   * At an API, `insufficient_scope` calls for a token with more
     authority, which can need a new governed grant; a 403 whose
     challenge has no `error` attribute has no token-level remedy; a 503
@@ -2577,6 +2578,19 @@ The profile limits that exposure without detecting it:
   and the continuing client's Continuation Association, and
   {{OVERSIGHT}} lets policy require a person's decision before
   sensitive authority issues.
+
+Holding both acting relationships widens that exposure. An agent
+refused for a user, at the IdP, the RAS, or the API, can hold
+self-acting authority over the same resource. The IdP refuses
+self-acting access as a fallback from a denied delegation
+({{issuance-authorization}}), but it cannot link a later self-acting
+request to a refusal elsewhere, and a self-acting token carries no user
+whose permissions the API could apply. A client that holds both kinds
+of Client Association can therefore serve a user with the agent's own
+authority. A rule on clients would bind only clients that follow it.
+The control is separation: a client that acts for users holds no
+self-acting Client Association, and self-acting work uses another
+client registration.
 
 It does not distinguish an induced request from an intended one,
 inspect content, or constrain how authority is used within its scope.
@@ -3161,6 +3175,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
+| Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | Not defined: neither grant carries the Governance Tenant ({{canonical-identity}}); open ({{wag-gaps}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}
 
@@ -3185,7 +3200,9 @@ items are:
   unseen agents ({{Section 3 of WAG}});
 * a token exchange in which the authenticated client is the subject
   without a subject token ({{wag-request}}), which would also give
-  X.509-SVID authentication a self-acting path; and
+  X.509-SVID authentication a self-acting path;
+* telling apart agents of Governance Tenants that share an issuer,
+  which {{Section 6.3 of WAG}} does with a registered claim; and
 * self-acting Client Associations ({{AGENT-MANAGEMENT}}).
 
 ## Excluded Compositions {#excluded-compositions}

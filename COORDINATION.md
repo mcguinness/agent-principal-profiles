@@ -16,8 +16,17 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 These notes record dependencies and deferred work.
 Assessed revisions: WAG-02, ID-JAG-06, JWT DPoP Grant-02, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
-Identification-00, Client Attester Endorsement-00, and WISE draft 03.
-The drafts pin WAG to -02, ID-JAG to -06, and JWT DPoP Grant to -02.
+Identification-00, Client Attester Endorsement-00, DTR-00, RFC
+7523bis-11 (its Section 4), and WISE draft 03.
+
+The drafts pin every Internet-Draft they cite: to its assessed revision,
+or, for a draft cited without section numbers, to the revision current
+on 2026-11-06 (AIMS-01, Identity Chaining-17, Entity Profiles-02,
+Oversight Acts-00, SCIM Agent Resource-00). Newer revisions are not yet
+assessed: DTR-01 and SPIFFE OAuth-03 renumber sections the drafts cite,
+CIMD-03 retitles the cited Section 6, ATTEST-12, Client Instance
+Identification-01 and Client Attester Endorsement-01 keep the cited
+headings, and WIT-03 is cited without section numbers.
 
 ### Upstream Dependencies
 
@@ -47,8 +56,33 @@ for token exchange issuance; Section 8 advertises
 three. The core uses them (`wag-claims`, `wag-redemption`,
 `server-metadata`).
 
+Reference class: the core cites WAG informatively because it restates
+every WAG requirement on the path it defines. Checked line by line
+against WAG-02 Sections 5, 5.1 and 6.1 to 6.3: the grant type, the
+access token's audience, `typ`, the claim set, the refresh-token
+prohibition, issuer and key binding, and `sub` and `jti` scoped to the
+issuer are restated (`wag-claims`, `wag-redemption`,
+`redemption-common`, `time-validation`). WAG's access-token lifetime
+SHOULD restates Section 4.1 of RFC 7521, which reaches the core's grants
+without WAG, through RFC 7523 and JWT DPoP Grant (Renewal, below). The
+rest are recorded departures (client authentication, per-agent
+registration, unseen agents, `resource` required) or an open item
+(shared issuers). The core uses the token type, media type and grant
+profile values that Section 11 of WAG registers; if WAG does not
+publish, those values are unregistered.
+
 Coordination is needed on:
 
+* **Shared issuers:** Section 6.3 of WAG, present since -01, tells
+  Workload Identity Providers that share one issuer apart by a claim
+  registered for each, and recommends dedicated issuers or the ID-JAG
+  `tenant` claim. The core lets Governance Tenants share an issuer and
+  carries no Governance Tenant in either grant, so a RAS cannot
+  restrict shared-issuer trust to one governance partition from the
+  grant (`base-differences`). The WAG-01 and WAG-02 assessments missed
+  this. A two-tenant negative test comes before a fix, and the fix
+  must not conflate the user's tenant with the agent's Governance
+  Tenant.
 * **Issuer metadata:** WAG defines no metadata for the issuer. The core
   has the IdP advertise the WAG token type in
   `identity_chaining_requested_token_types_supported`
@@ -66,8 +100,12 @@ Coordination is needed on:
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
   continuing self-acting access re-issues the grant. Section 5 of WAG-02
   adds that access tokens SHOULD NOT outlive the assertion by a
-  significant period; this document leaves access-token lifetime to RAS
-  policy. Decision pending: adopt the SHOULD, or state the difference.
+  significant period. That restates Section 4.1 of RFC 7521, which
+  applies to both of this document's grants without WAG: RFC 7523
+  (`jwt-bearer`) and JWT DPoP Grant (`jwt-dpop`) both use RFC 7521's
+  request framework. The recommendation is inherited, not a difference;
+  how long counts as significant is RAS policy. Decision pending:
+  whether the core points to it.
 * **Client registration:** Section 5 of WAG-02 says an authorization
   server MUST NOT require a client registration per Agent. This
   document's mandatory path resolves the agent from a dedicated client,
@@ -846,6 +884,17 @@ revision 2026-07-28. SEP-2848 (asynchronous approval for tool calls)
 and SEP-2643 (structured authorization denials) are cited as
 proposals. If SEP-2848 is accepted, its task held in `working` is the
 per-action realization the companion describes.
+
+### References
+
+The companion references the core, DTR, the continuation companion and
+ICA normatively. Deferred continuation (`deferred-continuation`) is
+optional, but an IdP that claims it applies the continuation exchange
+and ICA's replay reservation, and Note 1 of the IESG statement on
+normative and informative references classifies such dependencies as
+normative even for an optional feature. The core and the continuation
+companion reference this companion informatively, so no publication
+cluster forms.
 
 ### Open Items
 

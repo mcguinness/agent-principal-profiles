@@ -40,8 +40,8 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id
-  SCIM-AGENT: I-D.wzdk-scim-agent-resource
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
+  SCIM-AGENT: I-D.wzdk-scim-agent-resource-00
   RFC7643:
   RFC7644:
   RFC6901:
