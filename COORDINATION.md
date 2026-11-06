@@ -80,9 +80,15 @@ Coordination is needed on:
   carries no Governance Tenant in either grant, so a RAS cannot
   restrict shared-issuer trust to one governance partition from the
   grant (`base-differences`). The WAG-01 and WAG-02 assessments missed
-  this. A two-tenant negative test comes before a fix, and the fix
-  must not conflate the user's tenant with the agent's Governance
-  Tenant.
+  this. The two-tenant experiment (`experiments/shared-issuer`) shows
+  that the RAS's outcome never depends on the agent's Governance
+  Tenant: the IdP's (Governance Tenant, Target Tenant) authorization is
+  the only control, and a RAS actor-gate rule that admits agents by
+  issuer admits every Governance Tenant on it. Its fix candidates are
+  dedicated issuers, a Governance Tenant claim distinct from ID-JAG's
+  `tenant`, or a security consideration only; none is chosen. Which
+  code the IdP returns for an unauthorized pair is also open
+  (conformance draft question 9).
 * **Issuer metadata:** WAG defines no metadata for the issuer. The core
   has the IdP advertise the WAG token type in
   `identity_chaining_requested_token_types_supported`
