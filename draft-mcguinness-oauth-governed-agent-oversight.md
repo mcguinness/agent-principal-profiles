@@ -994,6 +994,17 @@ person reviews periodically, and limit how many pending requests one
 agent can hold. Converting an approval into standing authority is an
 authorization change ({{modes}}), not a side effect of approving.
 
+A limit on pending requests does not stop sequential prompting. After
+a denial, a later request for the same authority is a new request
+({{resolution}}), so an agent, or content that misleads it, can prompt
+an approver again as soon as the previous request ends, until the
+approver accepts. This document does not define suppression of a
+request that matches one recently denied: doing so needs a definition
+of equivalent requests, a way for a policy change or an authorized
+reconsideration to clear it, a party that owns the limit, and the
+refusal it returns. Approval channels and policy can rate-limit
+prompts per agent and approver in the meantime.
+
 ## Misleading Requests {#security-misleading}
 
 An agent can phrase a request to mislead an approver. The governed
