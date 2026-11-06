@@ -99,6 +99,7 @@ CHECKS = {
     "idp.id_token_sub": "ID Token sub is a non-empty string",
     "idp.binding_enabled": "Identity Binding is enabled",
     "idp.agent_active": "Agent Principal is active",
+    "idp.tenant_pair": "the agent's Governance Tenant is authorized for the Target Tenant",
     "idp.client_association": "Client Association permits delegated use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
     "idp.categorical_prohibition": "policy's categorical prohibition of the agent for a requested "
@@ -114,6 +115,7 @@ CHECKS = {
     "ras.resource_match": "the resource parameter equals the grant's resource",
     "ras.scope_claim": "the grant's scope claim is a non-empty string",
     "ras.agent_eligibility": "the correlated agent record exists and is active",
+    "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
     "ras.proof_replay": "a DPoP proof jti is not reused at the RAS",
@@ -397,7 +399,13 @@ class IdP(Server):
                                             "profile": "bound"}}
         self.users = {"alice": {"active": True}}
         self.ras_subjects = {("alice", RAS_ISSUER): "alice-ras"}
-        self.agents = {"agent-42": {"active": True}}
+        # Each Agent Principal has one Governance Tenant. Governance Tenants
+        # share this issuer, and the agent identifier is unique across them
+        # (core: Canonical Identity and Tenant Boundaries).
+        self.agents = {"agent-42": {"active": True, "governance_tenant": "acme-gov"}}
+        # (Governance Tenant, Target Tenant) pairs that policy authorizes for
+        # issuance (core: Issuance Authorization).
+        self.tenant_pairs = {("acme-gov", "acme-data")}
         self.bindings = {"b12": {"source": ("analysis-client", "analysis-client"),
                                  "agent": "agent-42", "enabled": True}}
         self.client_associations = {("analysis-client", "b12", "delegated")}
@@ -445,6 +453,12 @@ class IdP(Server):
                 self.prohibitions[("agent-42", RESOURCE)] = set(value or ())
             elif what == "agent_active":
                 self.agents["agent-42"]["active"] = value
+            elif what == "agent_governance_tenant":
+                self.agents["agent-42"]["governance_tenant"] = value
+            elif what == "tenant_pair":
+                # value: [Governance Tenant, Target Tenant, authorized]
+                pair = (value[0], value[1])
+                (self.tenant_pairs.add if value[2] else self.tenant_pairs.discard)(pair)
             elif what == "client_profile":
                 self.clients["analysis-client"]["profile"] = value
             else:
@@ -494,6 +508,14 @@ class IdP(Server):
         downstream_client = target["registrations"].get(client_id)
         if downstream_client is None:
             raise OAuthError("invalid_target")
+        # The agent's Governance Tenant must be authorized for the Target
+        # Tenant (core: Issuance Authorization). The core assigns no code to
+        # this refusal; the reference uses actor_unauthorized, as for other
+        # policy refusals of a resolved agent in delegated issuance.
+        pair = (self.agents[agent]["governance_tenant"], target["resources"][resource])
+        if pair not in self.tenant_pairs and self.on("idp.tenant_pair"):
+            raise OAuthError("actor_unauthorized",
+                             description="Governance Tenant not authorized for the Target Tenant")
         # Client Association, then Delegation Authorization.
         if (client_id, binding_id, "delegated") not in self.client_associations and \
                 self.on("idp.client_association"):
@@ -682,6 +704,13 @@ class RAS(Server):
                        (IDP_ISSUER, "agent-43"): {"local": "service-principal-43", "active": True}}
         self.actor_gate = {("user-108", IDP_ISSUER, "agent-42", "acme-data"),
                            ("user-108", IDP_ISSUER, "agent-43", "acme-data")}
+        # An actor-gate rule admitting every agent an issuer asserts, for any
+        # user in a Target Tenant: (issuer, tenant). The core lets the gate
+        # be "another explicit rule"; off unless test control sets it.
+        self.actor_gate_rules = set()
+        # Optional just-in-time correlation (core: Agent Principal
+        # Correlation), enabled per (issuer, Target Tenant); off by default.
+        self.jit = set()
         self.accepted_grants = {}
         # Deferred redemption (oversight: Deferred Redemption).
         self.approval_required = set()   # scopes whose redemption RAS policy holds for approval
@@ -711,6 +740,17 @@ class RAS(Server):
             elif what == "actor_gate":
                 entry = ("user-108", IDP_ISSUER, "agent-42", "acme-data")
                 (self.actor_gate.add if value else self.actor_gate.discard)(entry)
+            elif what == "actor_gate_rule":
+                rule = (IDP_ISSUER, "acme-data")
+                (self.actor_gate_rules.add if value else self.actor_gate_rules.discard)(rule)
+            elif what == "jit":
+                scope = (IDP_ISSUER, "acme-data")
+                (self.jit.add if value else self.jit.discard)(scope)
+            elif what == "correlate_agent":
+                # value: an agent identifier of the IdP; correlates it in
+                # acme-data and lets it act for user-108 there.
+                self.agents[(IDP_ISSUER, value)] = {"local": "local-" + value, "active": True}
+                self.actor_gate.add(("user-108", IDP_ISSUER, value, "acme-data"))
             elif what == "client_profile":
                 self.clients["analysis-api"]["profile"] = value
             elif what == "approval_required":
@@ -861,9 +901,11 @@ class RAS(Server):
         if user is None:
             raise OAuthError("invalid_grant", description="user not resolved")
         agent = self.agents.get((act["iss"], act["sub"]))
+        if agent is None and (act["iss"], config["tenant"]) in self.jit:
+            agent = self.correlate_just_in_time(act, user, config["tenant"])
         if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
             raise OAuthError("invalid_grant", description="agent not eligible")
-        if (user, act["iss"], act["sub"], config["tenant"]) not in self.actor_gate and \
+        if not self.gate_permits(user, act["iss"], act["sub"], config["tenant"]) and \
                 self.on("ras.actor_gate"):
             raise OAuthError("actor_unauthorized")
         # Approval required by RAS policy (oversight: Redemption Opt-In). The
@@ -1079,7 +1121,7 @@ class RAS(Server):
                     self.on("ras.correlation_continuity"):
                 # A changed link does not transfer the delegation.
                 return "agent correlation changed", enforcement
-            if (auth["user"], *auth["agent"], auth["tenant"]) not in self.actor_gate:
+            if not self.gate_permits(auth["user"], *auth["agent"], auth["tenant"]):
                 return "actor gate", enforcement
             if self.user_links.get((auth["grant_key"][0], auth["tenant"],
                                     auth["grant_sub"])) != auth["user"]:
@@ -1135,6 +1177,25 @@ class RAS(Server):
         token, exp = self.authorized_token(auth, now)
         return {"access_token": token, "token_type": "DPoP", "expires_in": exp - int(now),
                 "scope": auth["scope"]}
+
+    def gate_permits(self, user, iss, sub, tenant):
+        """The actor gate: an entry for this user and agent, or an issuer-wide rule."""
+        return (user, iss, sub, tenant) in self.actor_gate or \
+            (iss, tenant) in self.actor_gate_rules
+
+    def correlate_just_in_time(self, act, user, tenant):
+        """Optional Just-in-Time Correlation: a record keyed by the exact pair.
+
+        Creating the record is correlation, not authorization: the actor
+        gate still applies. Initial eligibility is local policy; here,
+        eligible. With ras.jit_correlation_only switched off, creation also
+        opens the actor gate, which no conforming RAS does.
+        """
+        record = {"local": "jit-" + act["sub"], "active": True}
+        self.agents[(act["iss"], act["sub"])] = record
+        if not self.on("ras.jit_correlation_only"):
+            self.actor_gate.add((user, act["iss"], act["sub"], tenant))
+        return record
 
     def validate_grant(self, assertion):
         """ID-JAG validation (ID-JAG Section 4.4.1, RFC 7523 Section 3)."""
