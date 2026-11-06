@@ -169,23 +169,25 @@ Table of Contents
      10.1.  Identity Provider
      10.2.  RAS and API
      10.3.  Client
-   11. Security Considerations
-     11.1.  Unbound Grant Theft
-     11.2.  Credential and Token Confusion
-     11.3.  Error Disclosure
-     11.4.  Bearer Workload Evidence
-     11.5.  Dedicated-Client Key Compromise
-     11.6.  Credential Authority and Key Isolation
-     11.7.  Misuse by an Authorized Agent
-     11.8.  Authorization Changes and Revocation
-     11.9.  External Approval
-   12. Privacy Considerations
-   13. IANA Considerations
-     13.1.  ID-JAG Grant Profile URIs
-     13.2.  WAG Grant Profile URIs
-   14. References
-     14.1.  Normative References
-     14.2.  Informative References
+   11. Implementation Status
+     11.1.  Conformance Reference Implementation
+   12. Security Considerations
+     12.1.  Unbound Grant Theft
+     12.2.  Credential and Token Confusion
+     12.3.  Error Disclosure
+     12.4.  Bearer Workload Evidence
+     12.5.  Dedicated-Client Key Compromise
+     12.6.  Credential Authority and Key Isolation
+     12.7.  Misuse by an Authorized Agent
+     12.8.  Authorization Changes and Revocation
+     12.9.  External Approval
+   13. Privacy Considerations
+   14. IANA Considerations
+     14.1.  ID-JAG Grant Profile URIs
+     14.2.  WAG Grant Profile URIs
+   15. References
+     15.1.  Normative References
+     15.2.  Informative References
    Appendix A.  Worked Exchanges and Input Variants
      A.1.  Walkthrough: Dedicated Client
        A.1.1.  Dedicated Client Authentication
@@ -221,7 +223,7 @@ Table of Contents
    platforms or rotates credentials.  Disabling it at the IdP stops new
    grants; reaching authority that resource domains have already issued
    takes a provisioning or signaling contract, such as [AGENT-LIFECYCLE]
-   (Section 11.8).
+   (Section 12.8).
 
    Existing OAuth mechanisms authenticate clients and carry actors.
    They do not resolve different client and workload identities to one
@@ -1000,7 +1002,7 @@ Table of Contents
       revoked names.
 
    Disabling an Identity Binding or the Agent Principal in response is
-   IdP policy (Section 11.8): an agent can have other valid bindings.
+   IdP policy (Section 12.8): an agent can have other valid bindings.
 
 4.7.  Token Endpoint Errors
 
@@ -1050,7 +1052,7 @@ Table of Contents
    input.
 
    Error descriptions SHOULD NOT reveal identity, binding, or policy
-   details beyond those disclosed by the error category (Section 11.3).
+   details beyond those disclosed by the error category (Section 12.3).
 
 4.8.  Profile Applicability and Downgrade Prevention
 
@@ -1349,7 +1351,7 @@ Table of Contents
    the Client Attestation or WIT-SVID input of [INPUTS].  DPoP co-
    presented with bearer JWT-SVID or unbound platform JWT evidence
    establishes possession only.  DPoP MUST NOT substitute for a
-   credential proof that the selected input requires.  Section 11.4
+   credential proof that the selected input requires.  Section 12.4
    describes what bearer evidence still exposes.
 
 5.3.5.  Agent Resolution Input Validation
@@ -1433,7 +1435,7 @@ Table of Contents
    *Disabling:* An Identity Binding can be disabled independently of the
    Agent Principal and its other bindings.  A disabled binding MUST NOT
    authorize new grant issuance.  Disabling a binding does not itself
-   revoke outstanding tokens; their treatment follows Section 11.8.
+   revoke outstanding tokens; their treatment follows Section 12.8.
 
    *Client Association:* Before issuing a governed grant, the IdP MUST
    verify that a Client Association permits the authenticated client to
@@ -1501,7 +1503,7 @@ Table of Contents
    with actor_unauthorized for delegated issuance or invalid_target for
    self-acting issuance.  It MUST NOT discard that condition or treat a
    shorter grant lifetime as enforcing it.  Revocation follows
-   Section 11.8.
+   Section 12.8.
 
 5.5.  Common Grant Claims, Lifetime, and Response
 
@@ -2042,7 +2044,7 @@ Table of Contents
    (Section 3.6.4).  Creation does not substitute for propagating
    disablement, because a grant does not carry the IdP's administrative
    status.  Without provisioning, the RAS learns of disablement only
-   through local action or another signal (Section 11.8).
+   through local action or another signal (Section 12.8).
    [AGENT-LIFECYCLE], not this document, defines provisioning and
    reconciliation of a created record for resource domains that conform
    to it.
@@ -2494,7 +2496,7 @@ Table of Contents
    operation, its target, and its tenant without the invalid argument.
    A failure to present the access token or proof belongs to row 1, and
    a request whose operation, target, or tenant the API cannot identify
-   is outside this table (Section 11.3).  A request that names a target
+   is outside this table (Section 12.3).  A request that names a target
    that does not exist is within this table: the target's absence is not
    a failure in it, so it does not displace a failure the table selects.
    An invalid argument is established from the request itself; it is not
@@ -2688,7 +2690,7 @@ Table of Contents
    The IdP, RAS, and client MUST implement their respective requirements
    in:
 
-   *  Section 3, Section 4, Section 5.3, Section 9, and Section 11; and
+   *  Section 3, Section 4, Section 5.3, Section 9, and Section 12; and
 
    *  the parts of Section 5, Section 6, Section 7, and Section 8 that
       apply to each supported realization.
@@ -2885,7 +2887,7 @@ Table of Contents
          itself, such as a missing proof or a grant addressed to another
          server, a client can make one recovery attempt with a new grant
          for the same identity and client (Section 4.4.4 of [ID-JAG]).
-         The code does not say which check failed (Section 11.3), and
+         The code does not say which check failed (Section 12.3), and
          renewal cannot repair a disabled agent, a missing proof, a
          resource the RAS does not govern, or a malformed grant.
 
@@ -2905,7 +2907,7 @@ Table of Contents
       -  actor_unauthorized: another actor credential or grant path
          might succeed (Section 9 of [ACTOR-PROFILE]); the same request
          will not.  Self-acting access in place of a refused delegation
-         is not such a path (Section 5.4, Section 11.7).
+         is not such a path (Section 5.4, Section 12.7).
 
       -  At an API, insufficient_scope calls for a token with more
          authority, which can need a new governed grant; a 403 whose
@@ -2922,12 +2924,79 @@ Table of Contents
       rejected evidence to authentication context, and Section 5.4
       forbids falling back from delegated to self-acting access.
 
-11.  Security Considerations
+11.  Implementation Status
+
+   Note to the RFC Editor: please remove this section before
+   publication.
+
+   This section records the status of known implementations of the
+   protocol defined by this specification at the time of posting of this
+   Internet-Draft, and is based on a proposal described in [RFC7942].
+   The description of implementations in this section is intended to
+   assist the IETF in its decision processes in progressing drafts to
+   RFCs.  Please note that the listing of any individual implementation
+   here does not imply endorsement by the IETF.  Furthermore, no effort
+   has been spent to verify the information presented here that was
+   supplied by IETF contributors.  This is not intended as, and must not
+   be construed to be, a catalog of available implementations or their
+   features.  Readers are advised to note that other implementations may
+   exist.
+
+   According to [RFC7942], "this will allow reviewers and working groups
+   to assign due consideration to documents that have the benefit of
+   running code, which may serve as evidence of valuable experimentation
+   and feedback that have made the implemented protocols more mature.
+   It is up to the individual working groups to use this information as
+   they see fit".
+
+11.1.  Conformance Reference Implementation
+
+   *  *Organization:* the document author.
+
+   *  *Description:* a test-only IdP, RAS, and API, with an executable
+      suite of positive and negative cases that plays the client:
+      https://github.com/mcguinness/governed-agent-profiles/tree/main/
+      conformance (https://github.com/mcguinness/governed-agent-
+      profiles/tree/main/conformance).
+
+   *  *Maturity:* prototype.  State is in memory, there is no TLS, and
+      keys are generated at start; it exists to run the suite.
+
+   *  *Coverage:* delegated access on the mandatory interoperability
+      path (Section 9.1): dedicated-client resolution with
+      private_key_jwt and ID Token subjects; both delegated adoption
+      profiles, with grants redeemed under jwt-bearer or jwt-dpop; DPoP-
+      bound and, where a resource permits them, bearer access tokens;
+      DPoP nonces; the actor gate at the RAS and the API; tenant-pair
+      authorization at the IdP; optional just-in-time correlation; the
+      error selection order and optional policy services at the API;
+      introspection of opaque tokens; and the deferred redemption of
+      [OVERSIGHT] at the RAS.  It does not implement WAG issuance or
+      redemption, the existing platform JWT input, the inputs of
+      [INPUTS], mutual TLS, refresh tokens outside a deferred
+      redemption, [CONTINUATION], [AGENT-LIFECYCLE], or
+      [AGENT-MANAGEMENT].
+
+   *  *Version compatibility:* the editor's copy of this document and
+      its companions.
+
+   *  *Licensing:* a Contribution under BCP 78, BCP 79, and the IETF
+      Trust Legal Provisions; see the repository's LICENSE.md.
+
+   *  *Interoperability:* not yet tested with another implementation.
+      The suite can test a RAS and API without a governed IdP, signing
+      grants itself.
+
+   *  *Contact:* the document author.
+
+   *  *Last update:* November 2026.
+
+12.  Security Considerations
 
    The security requirements of the selected credential and grant
    specifications, [RFC9700], and [RFC8725] apply.
 
-11.1.  Unbound Grant Theft
+12.1.  Unbound Grant Theft
 
    Governed agent access without grant binding adds agent authorization
    to existing enterprise access.  It still leaves a stolen grant
@@ -2940,7 +3009,7 @@ Table of Contents
    Section 4.8 limit this exposure.  They do not provide proof of
    possession of an issuer-authorized grant key.
 
-11.2.  Credential and Token Confusion
+12.2.  Credential and Token Confusion
 
    Credential classification and mutually exclusive validation follow
    Section 5.3.5 and Section 3.12 of [RFC8725].  Signature validity
@@ -2951,7 +3020,7 @@ Table of Contents
    RAS tells them apart by explicit type: oauth-id-jag+jwt for an ID-JAG
    (Section 3.1 of [ID-JAG]) and oauth-wag+jwt for a WAG (Section 6.5).
 
-11.3.  Error Disclosure
+12.3.  Error Disclosure
 
    Distinguishing invalid_grant from actor_unauthorized (Section 5.8)
    reveals that an actor was resolved but denied, but not which binding-
@@ -2985,7 +3054,7 @@ Table of Contents
    Section 15.5.4 of [RFC9110] permits a server to send to hide a
    forbidden resource.
 
-11.4.  Bearer Workload Evidence
+12.4.  Bearer Workload Evidence
 
    Bearer evidence establishes the credential authority's assertion of
    the workload identity.  It does not cryptographically bind the
@@ -3004,7 +3073,7 @@ Table of Contents
    Short evidence lifetimes limit this exposure; sender-constraining the
    output does not prevent it (Section 5.3.4).
 
-11.5.  Dedicated-Client Key Compromise
+12.5.  Dedicated-Client Key Compromise
 
    In dedicated-client resolution, compromise of the client's
    authentication key permits an attacker to authenticate as the
@@ -3028,9 +3097,9 @@ Table of Contents
    Dedicated-client resolution alone does not.  A normalized Agent
    Principal identity does not imply uniform runtime assurance.
    Authentication-key revocation and binding disablement affect
-   subsequent issuance under Section 5.4 and Section 11.8.
+   subsequent issuance under Section 5.4 and Section 12.8.
 
-11.6.  Credential Authority and Key Isolation
+12.6.  Credential Authority and Key Isolation
 
    A compromised credential authority can assert identities within its
    trusted scope.  Exact bindings, tenant boundaries, and issuer-scoped
@@ -3042,7 +3111,7 @@ Table of Contents
    and key custody as well as identity mapping.  Sharing the grant proof
    key across components widens its exposure ([GUIDE]).
 
-11.7.  Misuse by an Authorized Agent
+12.7.  Misuse by an Authorized Agent
 
    This profile establishes which agent acts, for whom, and under what
    authorization.  It does not establish that the agent uses that
@@ -3066,7 +3135,7 @@ Table of Contents
       obtaining grants until its authorization is withdrawn or it is
       disabled.  After further issuance and renewal are blocked, token
       lifetimes and revocation enforcement determine how long previously
-      issued authority remains usable (Section 11.8).
+      issued authority remains usable (Section 12.8).
 
    *  Every grant names the Agent Principal, and every access token
       carries it or the local principal correlated with it, so a
@@ -3097,7 +3166,7 @@ Table of Contents
    about an agent's software or configuration can inform policy; it does
    not establish that the agent behaves safely.
 
-11.8.  Authorization Changes and Revocation
+12.8.  Authorization Changes and Revocation
 
    Cross-system disablement needs a provisioning and signaling contract.
    [AGENT-LIFECYCLE] profiles one; conformance to this document does not
@@ -3189,7 +3258,7 @@ Table of Contents
    authorization.  Proof of key possession does not establish account
    ownership, and link removal does not revoke outstanding tokens.
 
-11.9.  External Approval
+12.9.  External Approval
 
    External approval MUST NOT replace credential validation, identity
    resolution, Client Association, or delegation authorization.  A
@@ -3201,7 +3270,7 @@ Table of Contents
    [OVERSIGHT]; other asynchronous approval composition is deferred
    under Appendix B.3.
 
-12.  Privacy Considerations
+13.  Privacy Considerations
 
    A stable agent identifier can correlate activity across resources,
    users, and instances.  Preserving the same issuer-qualified actor
@@ -3218,9 +3287,9 @@ Table of Contents
    identifiers are scoped per receiver and per consumer under Section 10
    of [INSTANCE].
 
-13.  IANA Considerations
+14.  IANA Considerations
 
-13.1.  ID-JAG Grant Profile URIs
+14.1.  ID-JAG Grant Profile URIs
 
    This document requests registration in the "OAuth URI" registry
    established by [RFC6755]:
@@ -3243,7 +3312,7 @@ Table of Contents
 
    *  Specification Document: Section 9.2 of this document.
 
-13.2.  WAG Grant Profile URIs
+14.2.  WAG Grant Profile URIs
 
    This document also requests:
 
@@ -3268,9 +3337,9 @@ Table of Contents
    used as the JWT type, and urn:ietf:params:oauth:grant-profile:wag.
    This document requests no registration for them.
 
-14.  References
+15.  References
 
-14.1.  Normative References
+15.1.  Normative References
 
    [WISE]     Lombardo, J., Sneeggen, D., and S. O'Dell, "OpenID WISE
               Profile Specification 1.0, draft 03", 28 September 2026,
@@ -3430,7 +3499,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-14.2.  Informative References
+15.2.  Informative References
 
    [AGENT-MANAGEMENT]
               McGuinness, K., "SCIM Profile for Governed Agent
@@ -3513,6 +3582,11 @@ Table of Contents
    [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6755>.
+
+   [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
+              Code: The Implementation Status Section", BCP 205,
+              RFC 7942, DOI 10.17487/RFC7942, July 2016,
+              <https://www.rfc-editor.org/rfc/rfc7942>.
 
    [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
               A., and B. Campbell, "Workload Authorization Grant", Work
@@ -4346,7 +4420,7 @@ B.3.  Excluded Compositions
    | approval with       | redemption in [OVERSIGHT], without          |
    | [AROP]              | continuation from the resulting             |
    |                     | authorization; at the IdP, external         |
-   |                     | approval follows Section 11.9,              |
+   |                     | approval follows Section 12.9,              |
    |                     | Section 3.6.3, and Section 5.4              |
    +---------------------+---------------------------------------------+
    | Continuation with   | Defined for governed grants,                |
