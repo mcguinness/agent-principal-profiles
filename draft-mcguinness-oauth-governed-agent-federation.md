@@ -2411,8 +2411,9 @@ cited are met.
     client registration association, and the refusals of self-acting
     issuance, including an unenforceable approval condition.
   * `actor_unauthorized`: another actor credential or grant path might
-    succeed ({{Section 8.2 of ACTOR-PROFILE}}); the same request will
-    not.
+    succeed ({{Section 9 of ACTOR-PROFILE}}); the same request will not.
+    Self-acting access in place of a refused delegation is not such a
+    path ({{issuance-authorization}}, {{security-authorized-misuse}}).
   * At an API, `insufficient_scope` calls for a token with more
     authority, which can need a new governed grant; a 403 whose
     challenge has no `error` attribute has no token-level remedy; a 503
@@ -2577,6 +2578,19 @@ The profile limits that exposure without detecting it:
   and the continuing client's Continuation Association, and
   {{OVERSIGHT}} lets policy require a person's decision before
   sensitive authority issues.
+
+Holding both acting relationships widens that exposure. An agent
+refused for a user, at the IdP, the RAS, or the API, can hold
+self-acting authority over the same resource. The IdP refuses
+self-acting access as a fallback from a denied delegation
+({{issuance-authorization}}), but it cannot link a later self-acting
+request to a refusal elsewhere, and a self-acting token carries no user
+whose permissions the API could apply. A client that holds both kinds
+of Client Association can therefore serve a user with the agent's own
+authority. A rule on clients would bind only clients that follow it.
+The control is separation: a client that acts for users holds no
+self-acting Client Association, and self-acting work uses another
+client registration.
 
 It does not distinguish an induced request from an intended one,
 inspect content, or constrain how authority is used within its scope.
