@@ -1032,7 +1032,15 @@ A stolen deferral code could otherwise yield the grant after approval.
 The code is bound to the client and to a DPoP key ({{deferring}},
 {{redemption-deferring}}), as
 {{Section 10.1 of DTR}} requires for clients whose profile mandates
-DPoP, and the grant carries the same key.
+DPoP. A grant issued after a deferred issuance carries the same key,
+and so does a bound grant whose redemption is deferred.
+
+An unbound grant does not. Whoever first redeems a stolen unbound
+grant, with credentials for the client it names, chooses the key the
+deferral code is bound to, and the approver sees the same agent, user,
+client, and resource as for the legitimate request. Approval therefore
+does not protect an unbound grant against its first redemption ("Unbound
+Grant Theft" in {{FEDERATION}}).
 
 ## Approval Binding at the RAS {#security-binding}
 
