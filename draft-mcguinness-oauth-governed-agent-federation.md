@@ -133,6 +133,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   RFC6755:
+  RFC7942:
   WAG: I-D.carleton-workload-authz-grant-02
   SPIFFE-CONCEPTS:
     title: "SPIFFE Concepts"
@@ -2428,6 +2429,60 @@ cited are met.
   profile, {{actor-inputs}} forbids falling back from rejected
   evidence to authentication context, and {{issuance-authorization}}
   forbids falling back from delegated to self-acting access.
+
+# Implementation Status {#implementation-status}
+
+Note to the RFC Editor: please remove this section before publication.
+
+This section records the status of known implementations of the
+protocol defined by this specification at the time of posting of this
+Internet-Draft, and is based on a proposal described in {{RFC7942}}.
+The description of implementations in this section is intended to
+assist the IETF in its decision processes in progressing drafts to RFCs.
+Please note that the listing of any individual implementation here does
+not imply endorsement by the IETF. Furthermore, no effort has been spent
+to verify the information presented here that was supplied by IETF
+contributors. This is not intended as, and must not be construed to be,
+a catalog of available implementations or their features. Readers are
+advised to note that other implementations may exist.
+
+According to {{RFC7942}}, "this will allow reviewers and working groups
+to assign due consideration to documents that have the benefit of
+running code, which may serve as evidence of valuable experimentation
+and feedback that have made the implemented protocols more mature. It is
+up to the individual working groups to use this information as they see
+fit".
+
+## Conformance Reference Implementation
+
+* **Organization:** the document author.
+* **Description:** a test-only IdP, RAS, and API, with an executable
+  suite of positive and negative cases that plays the client:
+  <https://github.com/mcguinness/governed-agent-profiles/tree/main/conformance>.
+* **Maturity:** prototype. State is in memory, there is no TLS, and keys
+  are generated at start; it exists to run the suite.
+* **Coverage:** delegated access on the mandatory interoperability path
+  ({{scope}}): dedicated-client resolution with `private_key_jwt` and ID
+  Token subjects; both delegated adoption profiles, with grants
+  redeemed under `jwt-bearer` or `jwt-dpop`; DPoP-bound and, where a
+  resource permits them, bearer access tokens; DPoP nonces; the actor
+  gate at the RAS and the API; tenant-pair authorization at the IdP;
+  optional just-in-time correlation; the error selection order and
+  optional policy services at the API; introspection of opaque tokens;
+  and the deferred redemption of {{OVERSIGHT}} at the RAS. It does not
+  implement WAG issuance or redemption, the existing platform JWT
+  input, the inputs of {{INPUTS}}, mutual TLS, refresh tokens outside a
+  deferred redemption, {{CONTINUATION}}, {{AGENT-LIFECYCLE}}, or
+  {{AGENT-MANAGEMENT}}.
+* **Version compatibility:** the editor's copy of this document and its
+  companions.
+* **Licensing:** a Contribution under BCP 78, BCP 79, and the IETF
+  Trust Legal Provisions; see the repository's LICENSE.md.
+* **Interoperability:** not yet tested with another implementation. The
+  suite can test a RAS and API without a governed IdP, signing grants
+  itself.
+* **Contact:** the document author.
+* **Last update:** November 2026.
 
 # Security Considerations {#security}
 

@@ -23,9 +23,11 @@ import reference  # noqa: E402
 import suite  # noqa: E402
 
 
-def reference_config():
+def reference_config(ras_only=False):
     keys = {cid: jws.new_rsa_key() for cid in ("analysis-client", "analysis-api", "other-api")}
-    transports, servers = reference.start(keys)
+    signer = jws.new_rsa_key() if ras_only else None
+    transports, servers = reference.start(
+        keys, grant_signer=signer.public_key() if signer else None)
     cfg = suite.Config(
         idp=suite.Endpoint(reference.IDP_ISSUER, reference.IDP_ISSUER + "token",
                            transports["idp"]),
@@ -41,13 +43,19 @@ def reference_config():
         user="alice", scope="files.read",
         expect={"agent_iss": reference.IDP_ISSUER, "agent": "agent-42",
                 "grant_sub": "alice-ras", "token_sub": "user-108"})
-    return cfg, suite.ReferenceAdapter(transports), servers
+    adapter = suite.ReferenceAdapter(transports)
+    if signer:
+        adapter = suite.SigningAdapter(adapter, reference.IDP_ISSUER, signer,
+                                       reference.RAS_ISSUER)
+    return cfg, adapter, servers
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--vacuity", action="store_true")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--ras-only", action="store_true",
+                        help="sign grants in the suite; run no IdP case")
     args = parser.parse_args()
 
     if args.list:
@@ -57,11 +65,17 @@ def main():
                   f"           adapter: {needs}")
         return 0
 
-    cfg, adapter, servers = reference_config()
+    cfg, adapter, servers = reference_config(ras_only=args.ras_only)
     suite.wait_ready(cfg)
-    failures = 0
+    failures = not_run = 0
+    skipped = set()
     for c in suite.CASES:
         passed, detail, notes = suite.run_case(c, cfg, adapter)
+        if passed is None:
+            not_run += 1
+            skipped.add(c.id)
+            print(f"NOT RUN {c.id:4} {c.role:4} {c.title}  ({detail})")
+            continue
         if passed and notes:
             passed, detail = False, "the reference produced a note"
         failures += not passed
@@ -70,12 +84,16 @@ def main():
             print(f"            note: {note}")
         if not passed:
             print(f"            {detail}")
-    print(f"\n{len(suite.CASES) - failures} of {len(suite.CASES)} cases passed")
+    run_count = len(suite.CASES) - not_run
+    print(f"\n{run_count - failures} of {run_count} cases passed"
+          + (f"; {not_run} not run" if not_run else ""))
 
     vacuous = checked = 0
     if args.vacuity:
         print("\nVacuity: each case must fail with each check it cites switched off")
         for c in suite.CASES:
+            if c.id in skipped:
+                continue
             for name in c.defeats:
                 passed, detail, notes = suite.run_case(c, cfg, adapter, disable=(name,))
                 if passed and notes:
@@ -85,7 +103,7 @@ def main():
                 print(f"{'VACUOUS' if passed else 'ok':7} {c.id:4} without {name}")
                 if not passed:
                     print(f"            {detail[:120]}{'...' if len(detail) > 120 else ''}")
-        cases = sum(1 for c in suite.CASES if c.defeats)
+        cases = sum(1 for c in suite.CASES if c.defeats and c.id not in skipped)
         print(f"\n{checked - vacuous} of {checked} runs fail: {cases} cases, each without "
               "each check it cites")
 

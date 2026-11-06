@@ -22,6 +22,10 @@ API](#policy-services-at-the-api)).
 
 The drafts define every requirement. The suite tests a subset of them,
 and passing it is evidence for that subset only, not a conformance claim.
+[CLAIM-TEMPLATE.md](CLAIM-TEMPLATE.md) is a form for stating a claim:
+what the core requires a claim to name, optional capabilities,
+companion claims, the configuration a peer must agree on, and the
+suite results offered as evidence.
 
 * [Run](#run)
 * [Cases](#cases)
@@ -46,8 +50,9 @@ python3 -m venv .venv-conformance
 the client, and prints one line per case. `--vacuity` then runs every
 case that cites reference checks once for each check, with that check
 switched off, prints why the case failed, and fails if it still passes. `--list` prints each case's source and
-the test-control capabilities it needs. The exit status is non-zero on
-any failure.
+the test-control capabilities it needs. `--ras-only` runs the suite in
+RAS-only mode ([below](#ras-only-mode)). The exit status is non-zero
+on any failure.
 
 The reference servers use the example identifiers: `https://idp.example/`,
 `https://ras.example/` and `https://api.example` are the issuer and
@@ -65,6 +70,12 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P2 | RAS | The access token is DPoP-bound to the same key, names the local user, and carries `act` unchanged; a refresh token is noted, not failed | core: Actor Preservation; Access Token Issuance and Response | None |
 | P3 | API | A read with the access token and a fresh proof succeeds | core: Token Validation; Delegated Access | None |
 | P4 | API | An access token typed `application/at+jwt`, with a one-element `aud` array, is accepted | RFC 9068 Sections 2.1 and 4; core: Token Validation | Mint an access token |
+| P5 | RAS | With unbound grants and a resource that permits DPoP or bearer, a redemption with no proof gets `token_type` Bearer and an access token without `cnf` | core: Access-Token Protection | Let the IdP issue, and the RAS accept, unbound grants; permit bearer for the resource |
+| P6 | API | That bearer token, presented with the `Bearer` scheme, reads the file | core: Access-Token Protection; Token Validation; RFC 6750 | As P5; permit bearer tokens at the API |
+| P7 | RAS | With the same configuration, a redemption with a valid proof gets `token_type` DPoP and an access token bound to the proof key | core: Access-Token Protection (DPoP or bearer) | As P5 |
+| P8 | IdP | With the IdP requiring DPoP nonces, the exchange gets `use_dpop_nonce` and a `DPoP-Nonce`, and the retry that carries the nonce gets the grant | RFC 9449 Section 8; core: Grant Protection | Require nonces at the IdP |
+| P9 | RAS | With the RAS requiring DPoP nonces, the redemption's retry with the nonce gets the access token | RFC 9449 Section 8; core: Access-Token Protection | Require nonces at the RAS |
+| P10 | API | With the API requiring DPoP nonces, the read gets HTTP 401 with `use_dpop_nonce`, and the retry with the nonce is served | RFC 9449 Section 9; core: Token Validation | Require nonces at the API |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -99,6 +110,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N32 | IdP | A valid ID Token whose `sub` is `carol`, a user the IdP has no record of, fails with `invalid_grant`, as a user resolution failure | core: Subject Resolution; Issuance Errors | ID Token with chosen claims |
 | N33 | IdP | With the agent moved to `beta-gov`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
 | N34 | RAS | With just-in-time correlation on, a grant whose `act` names `agent-99`, which the RAS has not seen, fails with `actor_unauthorized` or `invalid_grant`: the created record does not authorize the agent | core: Optional Just-in-Time Correlation; Redemption Errors | Mint a grant; turn on just-in-time correlation |
+| N35 | API | Where the API accepts bearer tokens for the resource, a DPoP-bound access token presented with the `Bearer` scheme fails with HTTP 401 | RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement) | Permit bearer tokens at the API |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -190,13 +202,14 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2 and D02, name the reference
+Every negative case but N32, and P2, P7 and D02, name the reference
 checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 90 cases runs once for each check it names,
+`--vacuity`, each of these 92 cases runs once for each check it names,
 with that check switched off; eight S cases name two checks, so there
-are 98 runs, and every run fails. Thirty N cases fail because
+are 100 runs, and every run fails. Thirty-one N cases fail because
 the server then accepts the request. P2 fails because the access token
-then carries a rewritten `act`. N11 fails because the RAS's
+then carries a rewritten `act`, and P7 because it is then a bearer
+token. N11 fails because the RAS's
 access-token protection check then
 rejects the redemption with `invalid_request`; Access-Token Protection
 states that Grant Protection's checks come first, so the case requires
@@ -493,8 +506,8 @@ Some cases depend on choices made for the reference:
 
 The suite tests nothing outside the path above, including:
 
-* governed agent access with unbound grants, except as the setup for
-  N10, N30, and D08;
+* governed agent access with unbound grants, except bearer issuance
+  (P5 to P7) and as the setup for N10, N30, and D08;
 * existing platform JWTs and the inputs of the inputs draft;
 * WAG issuance and redemption, including deferred WAG redemption, the
   removal of a pending WAG redemption's correlation, and the WAG rows of
@@ -519,9 +532,9 @@ The suite tests nothing outside the path above, including:
   S34 test only Error Disclosure's recommendation to validate the token
   first;
 * RAS refresh tokens other than those from a deferred redemption;
-* DPoP server nonces, mutual TLS (including the refusal to defer for a
-  resource configured for mutual-TLS access tokens), and bearer access
-  tokens;
+* mutual TLS, including the refusal to defer for a resource configured
+  for mutual-TLS access tokens; bearer access tokens only as P5 to P7
+  and N35 test them, and DPoP nonces only as P8 to P10 do;
 * continuation, including the CAI's refusal to attest an access token
   from a deferred redemption or one refreshed from it;
 * in deferred redemption: grant-derived revocation while pending,
@@ -591,10 +604,34 @@ another IdP, RAS or API:
    path or an unsupported method was rejected; by default any response
    that does not serve the request counts, and only the reference
    adapter requires 404 and 405 with `Allow: GET`.
-3. Call `suite.run_case` for each case in `suite.CASES`.
+3. Call `suite.run_case` for each case in `suite.CASES`. It returns
+   `None` in place of a pass or failure for a case it did not run.
 
 `disable_check` exists only for the reference implementation's vacuity
 mode.
+
+The suite's client keeps any `DPoP-Nonce` a server returns and puts it
+in later proofs to that server. When a server demands a nonce (HTTP 400
+`use_dpop_nonce` at a token endpoint, or a 401 challenge with it at the
+API, RFC 9449 Sections 8 and 9), the client retries once with a fresh
+proof and fresh client authentication. N01 and N22 send a fixed client
+assertion and D18 a fixed proof, so they do not retry; against a
+server that demands a nonce on every request, they can fail for that
+reason alone.
+
+### RAS-only mode
+
+A RAS and API can be tested without a governed IdP. Wrap the adapter in
+`suite.SigningAdapter(adapter, issuer, key, audience)`: the suite then
+signs ID-JAGs itself, for `issuer` and the RAS issuer `audience`, with a
+private key whose public key the RAS trusts for that issuer. The grants
+carry the claims the reference IdP issues (the user's subject in the
+RAS namespace, the RAS registration as `client_id`, `resource`,
+`scope`, `act`, `cnf.jkt` for the client's key, 300 s). IdP cases, and
+any case that needs an ID Token, are reported as not run; `mint_grant`
+needs no IdP test control. With the reference, `run.py --ras-only` has
+the reference RAS trust a key the suite generates for
+`https://idp.example/`, and CI runs this mode with `--vacuity`.
 
 ## Configuration the reference assumes
 
@@ -616,7 +653,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Just-in-time correlation | Off unless test control turns it on for the IdP's issuer and `acme-data`; a created record is eligible, and the actor gate still applies | core: Optional Just-in-Time Correlation |
 | Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to that set and away from scopes policy categorically prohibits for the agent there; if nothing remains, a requested scope that is prohibited gives `actor_unauthorized`, and otherwise the result is `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
-| Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
+| Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control; bearer tokens only for a resource test control configures to permit them | core: Token Validation; Optional RAS Refresh Tokens; Access-Token Protection |
 | Introspection | RFC 7662 at the RAS, for opaque tokens; the API authenticates with HTTP Basic, calls over HTTP, and caches nothing | core: Optional Opaque Access Tokens and Introspection |
 | Agent namespaces | The API trusts the RAS to assert agents of `https://idp.example/` and `https://partner-idp.example/`; the RAS itself trusts only the first, so tokens naming the partner's agents come from test control. The API's actor gate and the policy service compare the issuer and the `sub` together | core: Delegated Access (Identity); Delegated Actor Authorization |
 | Routing | The API validates the token, its proof against the request's own method, and its applicability before routing. An unknown path gets 404, a method the read does not support 405 with `Allow: GET`, and a missing file 404 only after authorization. While introspection cannot complete, an unknown path gets 503 | core: Error Disclosure (SHOULD; precedence not specified) |

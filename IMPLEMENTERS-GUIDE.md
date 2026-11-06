@@ -336,7 +336,7 @@ suite](conformance/README.md) and how far they go:
 | The client registration's `grant_types`, permitting `jwt-dpop` for key-bound grants and the JWT bearer grant for unbound grants at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-dpop` and `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
 | Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the grant type the client will redeem with, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-dpop` | Yes | Untested: the suite does not retrieve metadata |
 | DPoP at the token endpoint, proven with the grant's key, under the `jwt-dpop` grant type | RAS | `ES256`; the same key K | DPoP algorithms; `jwt-dpop` in `grant_types_supported` | Direct: N11, N12; grant type: N29, N30 |
-| Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2 |
+| Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2; where a resource permits bearer: P5 and P6, and Direct: P7 (binding to a presented proof) and N35 (a bound token under `Bearer`) |
 
 ### RAS and API
 
@@ -372,7 +372,7 @@ names neither choice:
 | Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | Separate configuration per client and audience |
 | Carrying the tenant | The tenant-specific resource as audience, a configured tenant claim, or authoritative token context | The resource as audience |
 | Re-redeeming a bound grant | Once, or again under explicit policy with a fresh proof | Once |
-| Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; no nonces |
+| Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; nonces only under test control (P8 to P10) |
 | Grant lifetime | The configured limit, recommended at most five minutes | 300 s |
 
 Optional capabilities add their own exchanges, which their chapters
@@ -487,8 +487,8 @@ N30, and N34.
 ### At the API
 
 [Error Responses][resource-errors] and [Optional Policy
-Services][policy-services]; cases N17 to N20, N24, S02 to S07, S14 to
-S31, and S35 to S37. [Error Disclosure][security-errors]: S32 to S34.
+Services][policy-services]; cases N17 to N20, N24, N35, S02 to S07,
+S14 to S31, and S35 to S37. [Error Disclosure][security-errors]: S32 to S34.
 
 The API reports the first failure in this order, whatever order it
 evaluates its checks in:

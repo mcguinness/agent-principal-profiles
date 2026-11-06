@@ -118,6 +118,8 @@ CHECKS = {
     "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
+    "ras.bind_when_proven": "where DPoP or bearer is permitted, the access token is bound to a "
+                            "valid proof presented at redemption",
     "ras.proof_replay": "a DPoP proof jti is not reused at the RAS",
     "ras.approval_gate": "a redemption RAS policy requires approval for issues nothing without one",
     "ras.absolute_expiration": "the absolute authorization expiration set at receipt bounds "
@@ -143,6 +145,8 @@ CHECKS = {
     "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
     "ras.refresh_ends": "a refresh rejected on re-evaluation ends the refresh authorization",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
+    "api.bound_token_scheme": "a DPoP-bound access token presented with the Bearer scheme is "
+                              "rejected",
     "api.token_time": "access token iat and nbf are not in the future",
     "api.require_act": "a governed delegated token carries a valid act",
     "api.tenant": "the token's tenant matches the requested tenant",
@@ -279,6 +283,9 @@ class Server:
         self.disabled = set()
         self.offset = 0
         self.assertion_replay, self.proof_replay = {}, {}
+        # DPoP nonces (RFC 9449 Sections 8 and 9): off unless test control
+        # requires them.
+        self.require_nonce, self.nonce = False, secrets.token_urlsafe(16)
 
     def __call__(self, environ, start_response):
         path = environ.get("PATH_INFO", "")
@@ -307,6 +314,8 @@ class Server:
         elif op == "clock":
             self.offset += int(body["advance"])
             return {"offset": self.offset}
+        elif op == "set" and body.get("what") == "dpop_nonce":
+            self.require_nonce = bool(body["value"])
         elif op == "disable_check":
             if body["name"] not in CHECKS:
                 raise OAuthError("invalid_request", description="unknown check")
@@ -380,6 +389,13 @@ class Server:
             raise bad
         if access_token is not None and payload.get("ath") != jws.ath(access_token):
             raise bad
+        if self.require_nonce and payload.get("nonce") != self.nonce:
+            # A token endpoint answers HTTP 400 (RFC 9449 Section 8), a
+            # resource server HTTP 401 with a challenge (Section 9).
+            raise OAuthError("use_dpop_nonce", status, "DPoP nonce required",
+                             challenge='DPoP error="use_dpop_nonce", algs="ES256"'
+                             if status == 401 else None,
+                             headers=[("DPoP-Nonce", self.nonce)])
         self.proof_replay[payload["jti"]] = now + DPOP_WINDOW
         return jws.thumbprint(header["jwk"])
 
@@ -753,6 +769,12 @@ class RAS(Server):
                 self.actor_gate.add(("user-108", IDP_ISSUER, value, "acme-data"))
             elif what == "client_profile":
                 self.clients["analysis-api"]["profile"] = value
+            elif what == "resource_protection":
+                # "dpop", or "dpop_or_bearer": a resource explicitly configured
+                # to permit bearer tokens (core: Access-Token Protection).
+                if value not in ("dpop", "dpop_or_bearer"):
+                    raise OAuthError("invalid_request", 400, "dpop or dpop_or_bearer")
+                self.resources[RESOURCE]["protection"] = value
             elif what == "approval_required":
                 self.approval_required = set(value or ())
             elif what == "refresh_permitted":
@@ -919,16 +941,22 @@ class RAS(Server):
                                       user, config, resource, scope, now))
         if config["protection"] == "dpop" and jkt is None:
             raise OAuthError("invalid_request", description="DPoP-bound access token required")
+        # Where the resource permits DPoP or bearer, a valid proof binds the
+        # token, and bearer issues only without one (core: Access-Token
+        # Protection).
+        bind = jkt is not None and (config["protection"] == "dpop" or
+                                    self.on("ras.bind_when_proven"))
         issued_act = dict(act)
         if not self.on("ras.actor_preservation"):
             issued_act["sub"] = agent["local"] if agent else act["sub"]
         token_claims = {"iss": self.issuer, "sub": user, "aud": resource, "iat": int(now),
                         "exp": int(now) + ACCESS_TOKEN_LIFETIME, "jti": uuid.uuid4().hex,
-                        "client_id": client_id, "scope": scope, "act": issued_act,
-                        "cnf": {"jkt": jkt}}
+                        "client_id": client_id, "scope": scope, "act": issued_act}
+        if bind:
+            token_claims["cnf"] = {"jkt": jkt}
         token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
-        return {"access_token": token, "token_type": "DPoP",
+        return {"access_token": token, "token_type": "DPoP" if bind else "Bearer",
                 "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
 
     def introspect(self, environ):
@@ -1433,6 +1461,9 @@ class API(Server):
         self.trusted_ras = {RAS_ISSUER: {"key": self.ras_public_key,
                                          "namespaces": {IDP_ISSUER, PARTNER_IDP_ISSUER}}}
         self.resource_tenants = {RESOURCE: "acme-data", OTHER_RESOURCE: "beta-data"}
+        # Resources whose access tokens may be bearer tokens; none unless
+        # test control permits it (core: Access-Token Protection).
+        self.bearer_permitted = set()
         # A separate client registration distinguishes the self-acting
         # population (core: Profile Applicability).
         self.populations = {("analysis-api", RESOURCE): "delegated",
@@ -1459,6 +1490,10 @@ class API(Server):
         self.evaluation_order = "validate_first"
 
     def control_op(self, op, body):
+        if op == "set" and body["what"] == "bearer_permitted":
+            (self.bearer_permitted.add if body["value"] else self.bearer_permitted.discard)(
+                RESOURCE)
+            return {}
         if op == "set" and body["what"] == "actor_gate":
             entry = (IDP_ISSUER, "agent-42", "user-108", "acme-data")
             (self.actor_gate.add if body["value"] else self.actor_gate.discard)(entry)
@@ -1513,7 +1548,8 @@ class API(Server):
         invalid = OAuthError("invalid_token", 401,
                              challenge='DPoP error="invalid_token", algs="ES256"')
         scheme, _, token = environ.get("HTTP_AUTHORIZATION", "").partition(" ")
-        if scheme != "DPoP" or not token:
+        bearer = scheme == "Bearer" and bool(self.bearer_permitted)
+        if not (scheme == "DPoP" or bearer) or not token:
             raise OAuthError("invalid_request", 401, challenge='DPoP algs="ES256"')
         # Token validation (RFC 9068), or introspection for an opaque token.
         introspected = token.count(".") != 2
@@ -1531,11 +1567,22 @@ class API(Server):
                                       status=401) is None:
                     raise invalid
             raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
-        # Protection: DPoP proof, ath, and key binding.
-        jkt = self.validate_dpop(environ, htm, API_BASE + path, access_token=token, status=401)
+        # Protection: a bearer token where the resource permits one, which a
+        # DPoP-bound token never is (RFC 9449 Section 7.2); otherwise the
+        # DPoP proof, ath, and key binding.
         cnf = claims.get("cnf") if isinstance(claims.get("cnf"), dict) else {}
-        if jkt is None or (cnf.get("jkt") != jkt and self.on("api.key_binding")):
-            raise invalid
+        if bearer:
+            aud = claims.get("aud")
+            aud = aud[0] if isinstance(aud, list) and len(aud) == 1 else aud
+            if (cnf and self.on("api.bound_token_scheme")) or aud not in self.bearer_permitted:
+                raise OAuthError("invalid_token", 401,
+                                 challenge='Bearer error="invalid_token", '
+                                           'DPoP algs="ES256"')
+        else:
+            jkt = self.validate_dpop(environ, htm, API_BASE + path, access_token=token,
+                                     status=401)
+            if jkt is None or (cnf.get("jkt") != jkt and self.on("api.key_binding")):
+                raise invalid
         # Applicability: the configured population for this client and
         # audience, never the presence or absence of act.
         aud = claims.get("aud")
@@ -1806,13 +1853,18 @@ def serve(app):
     return httpd, f"http://127.0.0.1:{httpd.server_port}"
 
 
-def start(client_keys):
-    """Start the three reference servers; return their transport base URLs."""
+def start(client_keys, grant_signer=None):
+    """Start the three reference servers; return their transport base URLs.
+
+    grant_signer, where given, is the public key the RAS trusts for the
+    IdP's issuer in place of the reference IdP's own key: in RAS-only mode
+    the suite signs the grants.
+    """
     idp = IdP({"analysis-client": client_keys["analysis-client"].public_key()})
     # The API's introspection credential at the RAS, generated at start.
     secret = secrets.token_urlsafe(32)
     ras = RAS({cid: client_keys[cid].public_key() for cid in ("analysis-api", "other-api")},
-              idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
+              grant_signer or idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
     api = API(ras.key.public_key())
     servers = {name: serve(app) for name, app in (("idp", idp), ("ras", ras), ("api", api))}
     urls = {name: url for name, (_, url) in servers.items()}

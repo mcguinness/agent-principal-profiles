@@ -23,6 +23,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import uuid
 from dataclasses import dataclass, field
 from urllib.parse import urlencode, urlsplit
 
@@ -138,30 +139,56 @@ class Client:
         self.cfg = cfg
         self.k, self.k2 = jws.new_ec_key(), jws.new_ec_key()
         self.offset = 0
+        # DPoP nonces by server host, and the hosts that demanded one.
+        self.nonces, self.nonce_demands = {}, []
 
     def now(self):
         return int(time.time()) + self.offset
 
     def proof(self, dpop_key, method, url, access_token=None):
         return jws.dpop_proof(getattr(self, dpop_key), method, url,
-                              access_token=access_token, iat=self.now())
+                              access_token=access_token, iat=self.now(),
+                              nonce=self.nonces.get(urlsplit(url).netloc))
+
+    def send(self, htu, build, retry=True):
+        """Send build(), keeping any DPoP-Nonce the server returns.
+
+        If the server demands a nonce (RFC 9449 Sections 8 and 9), send a
+        fresh build() once: a new proof carrying the nonce, and new client
+        authentication. A request with a fixed proof or client assertion
+        passes retry=False, since repeating it would only be refused.
+        """
+        host = urlsplit(htu).netloc
+        resp = build()
+        for attempt in (0, 1):
+            nonce = resp.headers.get("DPoP-Nonce") if resp.headers else None
+            if nonce:
+                self.nonces[host] = nonce
+            if attempt or not (nonce and retry and nonce_demanded(resp)):
+                return resp
+            self.nonce_demands.append(host)
+            resp = build()
+        return resp
 
     def exchange(self, id_token, dpop_key="k", assertion=None, resources=None,
                  assertion_aud=None, scope=None):
         cfg = self.cfg
-        assertion = assertion or jws.client_assertion(
-            cfg.idp_client_key, cfg.idp_client_id, assertion_aud or cfg.idp.issuer,
-            now=self.now())
-        form = {"grant_type": TOKEN_EXCHANGE, "requested_token_type": ID_JAG_TYPE,
-                "client_id": cfg.idp_client_id, "client_assertion_type": ASSERTION_TYPE,
-                "client_assertion": assertion, "subject_token": id_token,
-                "subject_token_type": ID_TOKEN_TYPE, "audience": cfg.ras.issuer,
-                "resource": resources or [cfg.resource], "scope": scope or cfg.scope}
-        headers = {}
-        if dpop_key:
-            headers["DPoP"] = self.proof(dpop_key, "POST", cfg.idp.token_endpoint)
-        return http("POST", cfg.idp.transport + urlsplit(cfg.idp.token_endpoint).path,
-                    form, headers)
+
+        def build():
+            form = {"grant_type": TOKEN_EXCHANGE, "requested_token_type": ID_JAG_TYPE,
+                    "client_id": cfg.idp_client_id, "client_assertion_type": ASSERTION_TYPE,
+                    "client_assertion": assertion or jws.client_assertion(
+                        cfg.idp_client_key, cfg.idp_client_id,
+                        assertion_aud or cfg.idp.issuer, now=self.now()),
+                    "subject_token": id_token, "subject_token_type": ID_TOKEN_TYPE,
+                    "audience": cfg.ras.issuer, "resource": resources or [cfg.resource],
+                    "scope": scope or cfg.scope}
+            headers = {}
+            if dpop_key:
+                headers["DPoP"] = self.proof(dpop_key, "POST", cfg.idp.token_endpoint)
+            return http("POST", cfg.idp.transport + urlsplit(cfg.idp.token_endpoint).path,
+                        form, headers)
+        return self.send(cfg.idp.token_endpoint, build, retry=assertion is None)
 
     def ras_token(self, form, dpop_key="k", as_other_client=False, proof=None):
         """A token request to the RAS with fresh client authentication and DPoP proof.
@@ -171,16 +198,20 @@ class Client:
         cfg = self.cfg
         client_id = cfg.other_ras_client_id if as_other_client else cfg.ras_client_id
         key = cfg.other_ras_client_key if as_other_client else cfg.ras_client_key
-        form = dict(form, client_id=client_id, client_assertion_type=ASSERTION_TYPE,
-                    client_assertion=jws.client_assertion(key, client_id, cfg.ras.issuer,
-                                                          now=self.now()))
-        headers = {}
-        if proof:
-            headers["DPoP"] = proof
-        elif dpop_key:
-            headers["DPoP"] = self.proof(dpop_key, "POST", cfg.ras.token_endpoint)
-        return http("POST", cfg.ras.transport + urlsplit(cfg.ras.token_endpoint).path,
-                    form, headers)
+
+        def build():
+            body = dict(form, client_id=client_id, client_assertion_type=ASSERTION_TYPE,
+                        client_assertion=jws.client_assertion(key, client_id,
+                                                              cfg.ras.issuer,
+                                                              now=self.now()))
+            headers = {}
+            if proof:
+                headers["DPoP"] = proof
+            elif dpop_key:
+                headers["DPoP"] = self.proof(dpop_key, "POST", cfg.ras.token_endpoint)
+            return http("POST", cfg.ras.transport + urlsplit(cfg.ras.token_endpoint).path,
+                        body, headers)
+        return self.send(cfg.ras.token_endpoint, build, retry=not proof)
 
     def redeem(self, grant, dpop_key="k", resource=None, as_other_client=False,
                deferred=False, proof=None, grant_type=None):
@@ -209,22 +240,32 @@ class Client:
     def call(self, method, path, token=None, dpop_key="k", proof_method=None):
         """A request at the API with any method and no body; with a token, a proof
         whose htm is proof_method, or else the request's own method."""
-        headers = {}
-        if token is not None:
-            headers = {"Authorization": f"DPoP {token}",
-                       "DPoP": self.proof(dpop_key, proof_method or method,
-                                          self.cfg.api_base + path, access_token=token)}
-        return http(method, self.cfg.api_transport + path, headers=headers)
+        def build():
+            headers = {}
+            if token is not None:
+                headers = {"Authorization": f"DPoP {token}",
+                           "DPoP": self.proof(dpop_key, proof_method or method,
+                                              self.cfg.api_base + path, access_token=token)}
+            return http(method, self.cfg.api_transport + path, headers=headers)
+        return self.send(self.cfg.api_base + path, build)
+
+    def get_bearer(self, path, token):
+        """A read with the Bearer scheme and no proof (RFC 6750)."""
+        return http("GET", self.cfg.api_transport + path,
+                    headers={"Authorization": f"Bearer {token}"})
 
     def get(self, path, token, dpop_key="k", query=None, proof_token=None):
         """A read at the API; query goes in the URL, and not in htu (RFC 9449 Section 4.2).
 
         proof_token, if given, is the token the proof's ath names instead of token.
         """
-        proof = self.proof(dpop_key, "GET", self.cfg.api_base + path,
-                           access_token=proof_token or token)
         url = self.cfg.api_transport + path + ("?" + urlencode(query) if query else "")
-        return http("GET", url, headers={"Authorization": f"DPoP {token}", "DPoP": proof})
+
+        def build():
+            proof = self.proof(dpop_key, "GET", self.cfg.api_base + path,
+                               access_token=proof_token or token)
+            return http("GET", url, headers={"Authorization": f"DPoP {token}", "DPoP": proof})
+        return self.send(self.cfg.api_base + path, build)
 
 
 class Adapter:
@@ -234,7 +275,9 @@ class Adapter:
                                    an ID Token for the user, for the IdP client
                                    unless aud names another audience; claims
                                    overrides members such as iat
-    set(role, what, value)         change one relationship or setting:
+    set(role, what, value)         change one relationship or setting;
+                                   dpop_nonce (require DPoP nonces) at
+                                   any role, and:
                                      idp: binding_enabled, agent_active,
                                           client_association, delegation,
                                           client_profile ("bound" or "governed"),
@@ -250,6 +293,9 @@ class Adapter:
                                      ras: agent_active, actor_gate,
                                           jit (just-in-time correlation for
                                           the IdP's agents in `tenant`),
+                                          resource_protection ("dpop", or
+                                          "dpop_or_bearer" for a resource
+                                          that permits bearer tokens),
                                           client_profile ("bound" or "governed"),
                                           approval_required (a list of scopes
                                           RAS policy requires approval for),
@@ -266,7 +312,9 @@ class Adapter:
                                           "truncated": it closes the
                                           connection before the body it
                                           declares; false: normal)
-                                     api: actor_gate, policy_service (hand
+                                     api: bearer_permitted (accept bearer
+                                          tokens for `resource`), actor_gate,
+                                          policy_service (hand
                                           authorization to the policy
                                           service, in place of the API's own
                                           user-permission and actor-gate
@@ -418,6 +466,55 @@ class Adapter:
         raise NotImplementedError
 
 
+class NotRun(Exception):
+    """A case needs a role or capability the deployment under test does not provide."""
+
+
+class SigningAdapter:
+    """RAS-only mode: the suite plays the IdP.
+
+    It signs ID-JAGs for the IdP's issuer with a key the RAS trusts for that
+    issuer, so a RAS and an API can be tested without a governed IdP. The
+    grants carry the claims the reference IdP issues. IdP cases, and any case
+    that needs an ID Token, are not run. Every other operation goes to the
+    wrapped adapter.
+    """
+
+    signs_grants = True
+    clock = 0   # seconds the servers' clocks have been advanced
+
+    def __init__(self, inner, issuer, key, audience, kid="suite-grant-signer"):
+        self.inner, self.issuer, self.key, self.kid = inner, issuer, key, kid
+        self.audience = audience
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+    def id_token(self, user, aud=None, claims=None):
+        raise NotRun("RAS-only mode has no IdP to issue an ID Token")
+
+    def set(self, role, what, value):
+        """IdP settings have no effect: the suite issues the grants itself."""
+        if role != "idp":
+            self.inner.set(role, what, value)
+
+    def mint_grant(self, claims):
+        """An ID-JAG for the IdP's issuer: iat now, 300 s, a fresh jti, and these claims."""
+        now = int(time.time()) + self.clock
+        payload = {"iss": self.issuer, "aud": self.audience, "iat": now, "exp": now + 300,
+                   "jti": uuid.uuid4().hex}
+        payload.update(claims)
+        return jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid}, payload, self.key)
+
+    def advance_clock(self, seconds):
+        self.inner.advance_clock(seconds)
+        self.clock += seconds
+
+    def reset(self):
+        self.inner.reset()
+        self.clock = 0
+
+
 class ReferenceAdapter(Adapter):
     """Adapter for the reference servers' POST /_test/<op> endpoints."""
 
@@ -530,6 +627,16 @@ class Context:
         return self.adapter.id_token(self.cfg.user, aud, claims)
 
     def grant(self, dpop_key="k"):
+        if getattr(self.adapter, "signs_grants", False):
+            # RAS-only mode: the claims the reference IdP issues, bound to
+            # dpop_key's key, or unbound without one.
+            claims = grant_claims(self)
+            if dpop_key:
+                claims["cnf"] = {"jkt": jws.thumbprint(jws.public_jwk(
+                    getattr(self.client, dpop_key)))}
+            else:
+                claims.pop("cnf")
+            return self.adapter.mint_grant(claims)
         resp = self.client.exchange(self.id_token(), dpop_key=dpop_key)
         check(resp.status == 200, f"exchange failed: {resp}")
         return resp.json()["access_token"]
@@ -604,6 +711,14 @@ def challenge_params(challenge):
             value = re.sub(r'\\(.)', r'\1', value[1:-1])
         params.setdefault(name.lower(), value)
     return params
+
+
+def nonce_demanded(resp):
+    """A use_dpop_nonce error: HTTP 400 at a token endpoint, 401 at a resource server."""
+    if resp.status == 400:
+        return resp.json().get("error") == "use_dpop_nonce"
+    return resp.status == 401 and \
+        challenge_params(challenge_of(resp)).get("error") == "use_dpop_nonce"
 
 
 def challenge_error(resp):
@@ -743,6 +858,96 @@ def p4(ctx):
                                           typ="application/at+jwt")
     resp = ctx.client.get(ctx.cfg.read_path, token)
     check(resp.status == 200, f"read failed: {resp}")
+
+
+def bearer_setup(ctx):
+    """Unbound grants, and a resource that permits DPoP or bearer access tokens."""
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", "governed")
+    ctx.adapter.set("ras", "resource_protection", "dpop_or_bearer")
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the IdP issued a grant with cnf")
+    return grant
+
+
+def unbound_jwt(token):
+    """Whether a JWT access token carries no cnf; an opaque token is not inspected."""
+    return token.count(".") != 2 or "cnf" not in jws.decode(token)[1]
+
+
+@case("P5", "RAS", "Issues a bearer token, without cnf, to a redemption with no proof where the "
+      "resource permits bearer tokens",
+      "core: Access-Token Protection",
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection"))
+def p5(ctx):
+    resp = ctx.client.redeem(bearer_setup(ctx), dpop_key=None)
+    check(resp.status == 200, f"redemption failed: {resp}")
+    body = resp.json()
+    check(str(body.get("token_type", "")).lower() == "bearer",
+          f"token_type {body.get('token_type')!r}, expected Bearer")
+    check(unbound_jwt(body["access_token"]), "a bearer token carries cnf")
+
+
+@case("P6", "API", "Serves a read to a bearer token where the resource permits bearer tokens",
+      "core: Access-Token Protection; Token Validation; RFC 6750",
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection",
+             "set:api.bearer_permitted"))
+def p6(ctx):
+    ctx.adapter.set("api", "bearer_permitted", True)
+    resp = ctx.client.redeem(bearer_setup(ctx), dpop_key=None)
+    check(resp.status == 200, f"redemption failed: {resp}")
+    resp = ctx.client.get_bearer(ctx.cfg.read_path, resp.json()["access_token"])
+    check(resp.status == 200, f"read failed: {resp}")
+
+
+@case("P7", "RAS", "Binds the access token to a proof presented at redemption, where the resource "
+      "permits DPoP or bearer",
+      "core: Access-Token Protection (DPoP or bearer)",
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection"),
+      defeats=("ras.bind_when_proven",))
+def p7(ctx):
+    resp = ctx.client.redeem(bearer_setup(ctx), dpop_key="k")
+    check(resp.status == 200, f"redemption failed: {resp}")
+    body = resp.json()
+    check(str(body.get("token_type", "")).lower() == "dpop",
+          f"token_type {body.get('token_type')!r}, expected DPoP")
+    token = body["access_token"]
+    if token.count(".") == 2:
+        check(jkt(jws.decode(token)[1]) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
+              "the access token is not bound to the redemption proof key")
+
+
+@case("P8", "IdP", "Issues the grant after demanding a DPoP nonce, to the retry that carries it",
+      "RFC 9449 Section 8; core: Grant Protection", needs=("set:idp.dpop_nonce",))
+def p8(ctx):
+    ctx.adapter.set("idp", "dpop_nonce", True)
+    resp = ctx.client.exchange(ctx.id_token())
+    check(resp.status == 200, f"exchange failed: {resp}")
+    check(urlsplit(ctx.cfg.idp.token_endpoint).netloc in ctx.client.nonce_demands,
+          "setup: the IdP did not demand a nonce")
+
+
+@case("P9", "RAS", "Issues the access token after demanding a DPoP nonce, to the retry that carries "
+      "it", "RFC 9449 Section 8; core: Access-Token Protection",
+      needs=("set:ras.dpop_nonce",))
+def p9(ctx):
+    grant = ctx.grant()
+    ctx.adapter.set("ras", "dpop_nonce", True)
+    resp = ctx.client.redeem(grant)
+    check(resp.status == 200, f"redemption failed: {resp}")
+    check(urlsplit(ctx.cfg.ras.token_endpoint).netloc in ctx.client.nonce_demands,
+          "setup: the RAS did not demand a nonce")
+
+
+@case("P10", "API", "Serves the read after demanding a DPoP nonce, to the retry that carries it",
+      "RFC 9449 Section 9; core: Token Validation", needs=("set:api.dpop_nonce",))
+def p10(ctx):
+    token = ctx.access_token()
+    ctx.adapter.set("api", "dpop_nonce", True)
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 200, f"read failed: {resp}")
+    check(urlsplit(ctx.cfg.api_base).netloc in ctx.client.nonce_demands,
+          "setup: the API did not demand a nonce")
 
 
 # IdP rejections ------------------------------------------------------------
@@ -1094,6 +1299,19 @@ def n34(ctx):
     grant = ctx.adapter.mint_grant(grant_claims(
         ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.uncorrelated_agent}))
     expect_error(ctx.client.redeem(grant), 400, ("actor_unauthorized", "invalid_grant"))
+
+
+@case("N35", "API", "Rejects a DPoP-bound access token presented with the Bearer scheme",
+      "RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement)",
+      needs=("set:api.bearer_permitted",), defeats=("api.bound_token_scheme",))
+def n35(ctx):
+    # The API accepts bearer tokens for the resource, so the scheme alone
+    # does not refuse the request; the token's binding must.
+    ctx.adapter.set("api", "bearer_permitted", True)
+    resp = ctx.client.get_bearer(ctx.cfg.read_path, ctx.access_token())
+    check(resp.status == 401, f"expected HTTP 401, got {resp}")
+    error = challenge_error(resp)
+    check(error in (None, "invalid_token"), f"expected invalid_token, got {error!r}")
 
 
 # Deferred redemption at the RAS ---------------------------------------------
@@ -2304,7 +2522,13 @@ def s37(ctx):
 
 
 def run_case(c, cfg, adapter, disable=()):
-    """Run one case from a reset deployment; return (passed, detail, notes)."""
+    """Run one case from a reset deployment; return (passed, detail, notes).
+
+    passed is None for a case not run: an IdP case in RAS-only mode, or a
+    case that needs an ID Token there.
+    """
+    if getattr(adapter, "signs_grants", False) and c.role == "IdP":
+        return None, "IdP case: RAS-only mode", []
     adapter.reset()
     for name in disable:
         adapter.disable_check(name.split(".")[0], name)
@@ -2312,6 +2536,8 @@ def run_case(c, cfg, adapter, disable=()):
     try:
         c.run(ctx)
         return True, "", ctx.notes
+    except NotRun as reason:
+        return None, str(reason), ctx.notes
     except AssertionError as err:
         return False, str(err), ctx.notes
 

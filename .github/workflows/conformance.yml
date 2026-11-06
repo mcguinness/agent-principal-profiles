@@ -36,5 +36,8 @@ jobs:
     - name: "Conformance suite, with vacuity check"
       run: .venv-conformance/bin/python conformance/run.py --vacuity
 
+    - name: "RAS-only mode: the suite signs the grants"
+      run: .venv-conformance/bin/python conformance/run.py --ras-only --vacuity
+
     - name: "Examples match their drafts"
       run: python3 tools/check_examples.py
