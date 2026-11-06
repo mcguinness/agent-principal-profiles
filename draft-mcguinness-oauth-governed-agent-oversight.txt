@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         5 November 2026
-Expires: 9 May 2027
+Intended status: Standards Track                         6 November 2026
+Expires: 10 May 2027
 
 
          Human Oversight Profile for Governed Agent Federation
@@ -69,7 +69,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 9 May 2027.
+   This Internet-Draft will expire on 10 May 2027.
 
 Copyright Notice
 
@@ -1161,6 +1161,17 @@ Table of Contents
    standing authority is an authorization change (Section 3), not a side
    effect of approving.
 
+   A limit on pending requests does not stop sequential prompting.
+   After a denial, a later request for the same authority is a new
+   request (Section 4.4), so an agent, or content that misleads it, can
+   prompt an approver again as soon as the previous request ends, until
+   the approver accepts.  This document does not define suppression of a
+   request that matches one recently denied: doing so needs a definition
+   of equivalent requests, a way for a policy change or an authorized
+   reconsideration to clear it, a party that owns the limit, and the
+   refusal it returns.  Approval channels and policy can rate-limit
+   prompts per agent and approver in the meantime.
+
 10.2.  Misleading Requests
 
    An agent can phrase a request to mislead an approver.  The governed
@@ -1198,8 +1209,16 @@ Table of Contents
    A stolen deferral code could otherwise yield the grant after
    approval.  The code is bound to the client and to a DPoP key
    (Section 4.2, Section 5.2), as Section 10.1 of [DTR] requires for
-   clients whose profile mandates DPoP, and the grant carries the same
-   key.
+   clients whose profile mandates DPoP.  A grant issued after a deferred
+   issuance carries the same key, and so does a bound grant whose
+   redemption is deferred.
+
+   An unbound grant does not.  Whoever first redeems a stolen unbound
+   grant, with credentials for the client it names, chooses the key the
+   deferral code is bound to, and the approver sees the same agent,
+   user, client, and resource as for the legitimate request.  Approval
+   therefore does not protect an unbound grant against its first
+   redemption ("Unbound Grant Theft" in [FEDERATION]).
 
 10.6.  Approval Binding at the RAS
 
@@ -1261,11 +1280,25 @@ Table of Contents
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-federation.html>.
 
-   [DTR]      de Oliveira Niero, G. and D. Liu, "Deferred Token
-              Response", Work in Progress, Internet-Draft, draft-ietf-
-              oauth-deferred-token-response-01, 31 October 2026,
-              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              deferred-token-response-01>.
+   [CONTINUATION]
+              McGuinness, K., "Identity Continuation Profile for
+              Governed Agent Federation", Work in Progress, Internet-
+              Draft, draft-mcguinness-oauth-governed-agent-continuation,
+              <https://mcguinness.github.io/governed-agent-profiles/
+              draft-mcguinness-oauth-governed-agent-continuation.html>.
+
+   [DTR]      Jacobsen, F. K., de Oliveira Niero, G., and M. Gerber,
+              "Deferred Token Response", Work in Progress, Internet-
+              Draft, draft-ietf-oauth-deferred-token-response-00, 16
+              September 2026, <https://datatracker.ietf.org/doc/html/
+              draft-ietf-oauth-deferred-token-response-00>.
+
+   [ICA]      McGuinness, K. and A. Parecki, "Identity Continuation
+              Assertion for OAuth 2.0 Token Exchange", Work in Progress,
+              Internet-Draft, draft-mcguinness-oauth-id-continuation-
+              assertion-02, 8 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-id-continuation-assertion-02>.
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
@@ -1321,20 +1354,6 @@ Table of Contents
               Backchannel Authentication Flow - Core 1.0", 1 September
               2021, <https://openid.net/specs/openid-client-initiated-
               backchannel-authentication-core-1_0.html>.
-
-   [CONTINUATION]
-              McGuinness, K., "Identity Continuation Profile for
-              Governed Agent Federation", Work in Progress, Internet-
-              Draft, draft-mcguinness-oauth-governed-agent-continuation,
-              <https://mcguinness.github.io/governed-agent-profiles/
-              draft-mcguinness-oauth-governed-agent-continuation.html>.
-
-   [ICA]      McGuinness, K. and A. Parecki, "Identity Continuation
-              Assertion for OAuth 2.0 Token Exchange", Work in Progress,
-              Internet-Draft, draft-mcguinness-oauth-id-continuation-
-              assertion-02, 8 September 2026,
-              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-id-continuation-assertion-02>.
 
    [MCP]      Model Context Protocol, "Model Context Protocol
               Specification, Revision 2026-07-28", 28 July 2026,

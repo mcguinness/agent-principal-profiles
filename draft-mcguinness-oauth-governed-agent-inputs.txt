@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         5 November 2026
-Expires: 9 May 2027
+Intended status: Standards Track                         6 November 2026
+Expires: 10 May 2027
 
 
      Agent Resolution Input Profiles for Governed Agent Federation
@@ -53,7 +53,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 9 May 2027.
+   This Internet-Draft will expire on 10 May 2027.
 
 Copyright Notice
 
@@ -416,22 +416,23 @@ Table of Contents
    [ATTEST]   Looker, T., Bastian, P., and C. Bormann, "OAuth 2.0
               Attestation-Based Client Authentication", Work in
               Progress, Internet-Draft, draft-ietf-oauth-attestation-
-              based-client-auth-12, 12 October 2026,
+              based-client-auth-11, 3 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              attestation-based-client-auth-12>.
+              attestation-based-client-auth-11>.
 
    [ATTESTER-ENDORSEMENT]
               McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-attesters-01, 2 November 2026,
+              client-attesters-00, 28 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-attesters-01>.
+              oauth-client-attesters-00>.
 
-   [INSTANCE] McGuinness, K., "OAuth 2.0 Client Instance Identifiers",
-              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-instance-id-01, 2 November 2026,
+   [INSTANCE] McGuinness, K., "Client Instance Identification for
+              Attestation-Based Client Authentication", Work in
+              Progress, Internet-Draft, draft-mcguinness-oauth-client-
+              instance-id-00, 28 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-instance-id-01>.
+              oauth-client-instance-id-00>.
 
    [RFC8705]  Campbell, B., Bradley, J., Sakimura, N., and T.
               Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication
@@ -448,16 +449,16 @@ Table of Contents
               Schwenkschuster, A., Kasselman, P., Rose, S., Thorgersen,
               S., and N. Cam-Winget, "OAuth SPIFFE Client
               Authentication", Work in Progress, Internet-Draft, draft-
-              ietf-oauth-spiffe-client-auth-03, 2 November 2026,
+              ietf-oauth-spiffe-client-auth-02, 15 June 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              spiffe-client-auth-03>.
+              spiffe-client-auth-02>.
 
    [WIT]      Campbell, B., Salowey, J. A., Schwenkschuster, A.,
               Sheffer, Y., and Y. Rosomakho, "WIMSE Workload
               Credentials", Work in Progress, Internet-Draft, draft-
-              ietf-wimse-workload-creds-03, 30 October 2026,
+              ietf-wimse-workload-creds-02, 2 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
-              workload-creds-03>.
+              workload-creds-02>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.

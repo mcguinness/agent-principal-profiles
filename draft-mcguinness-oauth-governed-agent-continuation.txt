@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         5 November 2026
-Expires: 9 May 2027
+Intended status: Standards Track                         6 November 2026
+Expires: 10 May 2027
 
 
       Identity Continuation Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 9 May 2027.
+   This Internet-Draft will expire on 10 May 2027.
 
 Copyright Notice
 
@@ -2012,12 +2012,15 @@ A.7.1.  One-Time Setup
    agent:     agent-42
    runner:    analysis-client
    handle:    Wd4nKs8QpZ2vXe6TbR1mLy   # H0
-   schedule:  daily at 06:00 UTC
+   schedule:  daily at 06:00 UTC for 30 days
    status:    active
 
-   The client does not need the refresh token for this task again.
    Every run continues from H0, so the deployment sets the continuation
-   window (Section 3.1) to the task's duration.
+   window (Section 3.1) to the task's 30 days.  Within that window the
+   client does not need the refresh token for this task.  Once H0's
+   deadline passes, a longer task needs a new chain, which only a user
+   credential can start: the client keeps the refresh token for that
+   while it remains valid, or Alice signs in again.
 
 A.7.2.  Each Scheduled Run
 
@@ -2066,9 +2069,9 @@ A.7.2.  Each Scheduled Run
    because the root client continued the chain; the root hop itself
    contributes no entry (Section 6.5.2).
 
-   Runs need no retained user credential.  Each creates a new child of
-   H0 and obtains a short-lived, sender-constrained assertion and onward
-   grant, both bound to K.
+   Within H0's window, runs need no retained user credential.  Each
+   creates a new child of H0 and obtains a short-lived, sender-
+   constrained assertion and onward grant, both bound to K.
 
 A.7.3.  Withdrawal
 

@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         5 November 2026
-Expires: 9 May 2027
+Intended status: Standards Track                         6 November 2026
+Expires: 10 May 2027
 
 
          SCIM Profile for Governed Agent Federation Management
@@ -64,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 9 May 2027.
+   This Internet-Draft will expire on 10 May 2027.
 
 Copyright Notice
 
@@ -1172,11 +1172,12 @@ Table of Contents
               profiles/draft-mcguinness-oauth-governed-agent-
               federation.html>.
 
-   [INSTANCE] McGuinness, K., "OAuth 2.0 Client Instance Identifiers",
-              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-instance-id-01, 2 November 2026,
+   [INSTANCE] McGuinness, K., "Client Instance Identification for
+              Attestation-Based Client Authentication", Work in
+              Progress, Internet-Draft, draft-mcguinness-oauth-client-
+              instance-id-00, 28 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-instance-id-01>.
+              oauth-client-instance-id-00>.
 
    [SCIM-AGENT]
               Wahl, M., Zollner, D., Dingle, P., and I. Kazzouzi, "AI

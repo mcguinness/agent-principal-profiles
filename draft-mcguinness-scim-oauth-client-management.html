@@ -1038,7 +1038,7 @@ svg {
   & :is([stroke="white"], [stroke^="#fff"]) {
     stroke: var(--background-color);
   }
-  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+  & :is([fill="black"], [fill^="#000"], :not([fill], [fill] *)) {
     fill: var(--text-color);
   }
   & :is([fill="white"], [fill^="#fff"]) {
@@ -1057,7 +1057,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 9 May 2027</td>
+<td class="center">Expires 10 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1070,12 +1070,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-scim-oauth-client-management-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-05" class="published">5 November 2026</time>
+<time datetime="2026-11-06" class="published">6 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-09">9 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-10">10 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1135,7 +1135,7 @@ an authorization principal from a client registration.<a href="#section-abstract
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 9 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 10 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1715,15 +1715,15 @@ The exception is <code>client_attesters</code>, below.
 SCIM attribute-name matching is case-insensitive; values use their OAuth
 comparison rules. Responses <span class="bcp14">SHOULD</span> use the spelling in this table.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
 <p id="section-4.2-7">The optional <code>client_attesters</code> attribute carries Client Attester
-Endorsements (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>). It is a
+Endorsements (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>). It is a
 multi-valued complex attribute whose values are the endorsement objects,
 with the required sub-attributes <code>issuer</code> and <code>jwks_uri</code> as that section
 defines them. The Service Provider <span class="bcp14">MUST</span> accept a <code>client_attesters</code>
 value only from a provisioning client authorized to set endorsements for
-that client (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01#section-2.2" class="relref">Section 2.2</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>), including when a
+that client (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-2.2" class="relref">Section 2.2</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>), including when a
 request replaces or removes the attribute; authority to manage the
 registration alone does not suffice. An unauthorized change receives
-<code>403</code>. A malformed endorsement (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>),
+<code>403</code>. A malformed endorsement (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>),
 or one the Service Provider's policy does not accept, receives <code>400</code>
 with <code>invalidValue</code>. In either case the request fails and the stored
 resource is unchanged (<a href="#errors" class="auto internal xref">Section 5.4</a>). A CIMD resource carries no
@@ -1810,7 +1810,7 @@ agent, user, or resource authority. A document update cannot alter local
 SCIM administrative state. The SCIM ETag versions that state, not the
 remote document or its cache entry.<a href="#section-4.3-6" class="pilcrow">¶</a></p>
 <p id="section-4.3-7">CIMD capability uses <code>client_id_metadata_document_supported</code> under
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-6" class="relref">Section 6</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span>. This profile defines no additional OAuth discovery
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02#section-6" class="relref">Section 6</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span>. This profile defines no additional OAuth discovery
 parameter and does not require the SCIM service to host CIMD documents.<a href="#section-4.3-7" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2194,11 +2194,11 @@ type is registered by this document.<a href="#section-9.2-2" class="pilcrow">¶<
 <dl class="references">
 <dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters-01</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
-<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-03</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03</a>&gt;</span>. </dd>
+<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC6749">[RFC6749]</dt>
         <dd>
