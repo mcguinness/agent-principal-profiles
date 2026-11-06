@@ -16,8 +16,8 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 These notes record dependencies and deferred work.
 Assessed revisions: WAG-02, ID-JAG-06, JWT DPoP Grant-02, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
-Identification-00, Client Attester Endorsement-00, DTR-00, RFC 7523bis-11
-(its Section 4), and WISE draft 03.
+Identification-00, Client Attester Endorsement-00, DTR-00, RFC
+7523bis-11 (its Section 4), and WISE draft 03.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
@@ -56,8 +56,31 @@ for token exchange issuance; Section 8 advertises
 three. The core uses them (`wag-claims`, `wag-redemption`,
 `server-metadata`).
 
+Reference class: the core cites WAG informatively because it restates
+every WAG requirement on the path it defines. Checked line by line
+against WAG-02 Sections 5, 5.1 and 6.1 to 6.3: the grant type, the
+access token's audience, `typ`, the claim set, the
+refresh-token prohibition, issuer and key binding, and `sub` and `jti`
+scoped to the issuer are restated (`wag-claims`, `wag-redemption`,
+`redemption-common`, `time-validation`). The rest are recorded
+departures (client authentication, per-agent registration, unseen
+agents, `resource` required) or open items (access-token lifetime,
+shared issuers). The core uses the token type, media type and grant
+profile values that Section 11 of WAG registers; if WAG does not
+publish, those values are unregistered.
+
 Coordination is needed on:
 
+* **Shared issuers:** Section 6.3 of WAG, present since -01, tells
+  Workload Identity Providers that share one issuer apart by a claim
+  registered for each, and recommends dedicated issuers or the ID-JAG
+  `tenant` claim. The core lets Governance Tenants share an issuer and
+  carries no Governance Tenant in either grant, so a RAS cannot
+  restrict shared-issuer trust to one governance partition from the
+  grant (`base-differences`). The WAG-01 and WAG-02 assessments missed
+  this. A two-tenant negative test comes before a fix, and the fix
+  must not conflate the user's tenant with the agent's Governance
+  Tenant.
 * **Issuer metadata:** WAG defines no metadata for the issuer. The core
   has the IdP advertise the WAG token type in
   `identity_chaining_requested_token_types_supported`

@@ -1788,8 +1788,8 @@ The RAS:
 
 **Processing:** The RAS MUST:
 
-1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
-   {{Section 5 of WAG}}. Require the JWT `typ` header parameter
+1. **Grant:** Validate the grant under {{RFC7523}}, with the claims of
+   {{wag-claims}}. Require the JWT `typ` header parameter
    `oauth-wag+jwt` ({{Section 6.1 of WAG}}), so that an ID-JAG or
    another JWT from the same issuer cannot be accepted as a WAG. Require
    `iss` to be a configured governing IdP for the asserted agent
@@ -3161,6 +3161,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
+| Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | Not defined: neither grant carries the Governance Tenant ({{canonical-identity}}); open ({{wag-gaps}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}
 
@@ -3185,7 +3186,9 @@ items are:
   unseen agents ({{Section 3 of WAG}});
 * a token exchange in which the authenticated client is the subject
   without a subject token ({{wag-request}}), which would also give
-  X.509-SVID authentication a self-acting path; and
+  X.509-SVID authentication a self-acting path;
+* telling apart agents of Governance Tenants that share an issuer,
+  which {{Section 6.3 of WAG}} does with a registered claim; and
 * self-acting Client Associations ({{AGENT-MANAGEMENT}}).
 
 ## Excluded Compositions {#excluded-compositions}
