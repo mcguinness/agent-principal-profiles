@@ -1637,13 +1637,16 @@ user:      alice-tasks
 agent:     agent-42
 runner:    analysis-client
 handle:    Wd4nKs8QpZ2vXe6TbR1mLy   # H0
-schedule:  daily at 06:00 UTC
+schedule:  daily at 06:00 UTC for 30 days
 status:    active
 ~~~
 
-The client does not need the refresh token for this task again. Every
-run continues from H0, so the deployment sets the continuation window
-({{governed-chain-authorization}}) to the task's duration.
+Every run continues from H0, so the deployment sets the continuation
+window ({{governed-chain-authorization}}) to the task's 30 days. Within
+that window the client does not need the refresh token for this task.
+Once H0's deadline passes, a longer task needs a new chain, which only
+a user credential can start: the client keeps the refresh token for
+that while it remains valid, or Alice signs in again.
 
 ### Each Scheduled Run {#walkthrough-scheduled-run}
 
@@ -1694,9 +1697,9 @@ root ({{Section 5.5.5 of ICA}}). `continuation_via` names
 `analysis-client` because the root client continued the chain; the root
 hop itself contributes no entry ({{continuation-via}}).
 
-Runs need no retained user credential. Each creates a new child of H0
-and obtains a short-lived, sender-constrained assertion and onward
-grant, both bound to K.
+Within H0's window, runs need no retained user credential. Each
+creates a new child of H0 and obtains a short-lived, sender-constrained
+assertion and onward grant, both bound to K.
 
 ### Withdrawal {#walkthrough-scheduled-withdrawal}
 

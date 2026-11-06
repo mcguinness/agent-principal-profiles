@@ -1220,13 +1220,14 @@ user:      alice-tasks
 agent:     agent-42
 runner:    analysis-client
 handle:    Wd4nKs8QpZ2vXe6TbR1mLy   # H0
-schedule:  daily at 06:00 UTC
+schedule:  daily at 06:00 UTC for 30 days
 status:    active
 ```
 
-Every run continues from H0, which is why the window covers the task
-([continuation, One-Time Setup][cont-scheduled-setup]); where each
-window is configured is the deployment's choice.
+Every run continues from H0, which is why the window covers the task's
+30 days ([continuation, One-Time Setup][cont-scheduled-setup]); where
+each window is configured is the deployment's choice. A longer task
+needs a new chain after H0's deadline, started from a user credential.
 
 #### Each run
 
