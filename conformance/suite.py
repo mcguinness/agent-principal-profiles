@@ -217,6 +217,11 @@ class Client:
                                           self.cfg.api_base + path, access_token=token)}
         return http(method, self.cfg.api_transport + path, headers=headers)
 
+    def get_bearer(self, path, token):
+        """A read with the Bearer scheme and no proof (RFC 6750)."""
+        return http("GET", self.cfg.api_transport + path,
+                    headers={"Authorization": f"Bearer {token}"})
+
     def get(self, path, token, dpop_key="k", query=None, proof_token=None):
         """A read at the API; query goes in the URL, and not in htu (RFC 9449 Section 4.2).
 
@@ -251,6 +256,9 @@ class Adapter:
                                      ras: agent_active, actor_gate,
                                           jit (just-in-time correlation for
                                           the IdP's agents in `tenant`),
+                                          resource_protection ("dpop", or
+                                          "dpop_or_bearer" for a resource
+                                          that permits bearer tokens),
                                           client_profile ("bound" or "governed"),
                                           approval_required (a list of scopes
                                           RAS policy requires approval for),
@@ -267,7 +275,9 @@ class Adapter:
                                           "truncated": it closes the
                                           connection before the body it
                                           declares; false: normal)
-                                     api: actor_gate, policy_service (hand
+                                     api: bearer_permitted (accept bearer
+                                          tokens for `resource`), actor_gate,
+                                          policy_service (hand
                                           authorization to the policy
                                           service, in place of the API's own
                                           user-permission and actor-gate
@@ -445,6 +455,11 @@ class SigningAdapter:
 
     def id_token(self, user, aud=None, claims=None):
         raise NotRun("RAS-only mode has no IdP to issue an ID Token")
+
+    def set(self, role, what, value):
+        """IdP settings have no effect: the suite issues the grants itself."""
+        if role != "idp":
+            self.inner.set(role, what, value)
 
     def mint_grant(self, claims):
         """An ID-JAG for the IdP's issuer: iat now, 300 s, a fresh jti, and these claims."""
@@ -800,6 +815,63 @@ def p4(ctx):
     check(resp.status == 200, f"read failed: {resp}")
 
 
+def bearer_setup(ctx):
+    """Unbound grants, and a resource that permits DPoP or bearer access tokens."""
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", "governed")
+    ctx.adapter.set("ras", "resource_protection", "dpop_or_bearer")
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the IdP issued a grant with cnf")
+    return grant
+
+
+def unbound_jwt(token):
+    """Whether a JWT access token carries no cnf; an opaque token is not inspected."""
+    return token.count(".") != 2 or "cnf" not in jws.decode(token)[1]
+
+
+@case("P5", "RAS", "Issues a bearer token, without cnf, to a redemption with no proof where the "
+      "resource permits bearer tokens",
+      "core: Access-Token Protection",
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection"))
+def p5(ctx):
+    resp = ctx.client.redeem(bearer_setup(ctx), dpop_key=None)
+    check(resp.status == 200, f"redemption failed: {resp}")
+    body = resp.json()
+    check(str(body.get("token_type", "")).lower() == "bearer",
+          f"token_type {body.get('token_type')!r}, expected Bearer")
+    check(unbound_jwt(body["access_token"]), "a bearer token carries cnf")
+
+
+@case("P6", "API", "Serves a read to a bearer token where the resource permits bearer tokens",
+      "core: Access-Token Protection; Token Validation; RFC 6750",
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection",
+             "set:api.bearer_permitted"))
+def p6(ctx):
+    ctx.adapter.set("api", "bearer_permitted", True)
+    resp = ctx.client.redeem(bearer_setup(ctx), dpop_key=None)
+    check(resp.status == 200, f"redemption failed: {resp}")
+    resp = ctx.client.get_bearer(ctx.cfg.read_path, resp.json()["access_token"])
+    check(resp.status == 200, f"read failed: {resp}")
+
+
+@case("P7", "RAS", "Binds the access token to a proof presented at redemption, where the resource "
+      "permits DPoP or bearer",
+      "core: Access-Token Protection (DPoP or bearer)",
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection"),
+      defeats=("ras.bind_when_proven",))
+def p7(ctx):
+    resp = ctx.client.redeem(bearer_setup(ctx), dpop_key="k")
+    check(resp.status == 200, f"redemption failed: {resp}")
+    body = resp.json()
+    check(str(body.get("token_type", "")).lower() == "dpop",
+          f"token_type {body.get('token_type')!r}, expected DPoP")
+    token = body["access_token"]
+    if token.count(".") == 2:
+        check(jkt(jws.decode(token)[1]) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
+              "the access token is not bound to the redemption proof key")
+
+
 # IdP rejections ------------------------------------------------------------
 
 @case("N01", "IdP", "Rejects a reused client assertion as a client-authentication failure",
@@ -1149,6 +1221,19 @@ def n34(ctx):
     grant = ctx.adapter.mint_grant(grant_claims(
         ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.uncorrelated_agent}))
     expect_error(ctx.client.redeem(grant), 400, ("actor_unauthorized", "invalid_grant"))
+
+
+@case("N35", "API", "Rejects a DPoP-bound access token presented with the Bearer scheme",
+      "RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement)",
+      needs=("set:api.bearer_permitted",), defeats=("api.bound_token_scheme",))
+def n35(ctx):
+    # The API accepts bearer tokens for the resource, so the scheme alone
+    # does not refuse the request; the token's binding must.
+    ctx.adapter.set("api", "bearer_permitted", True)
+    resp = ctx.client.get_bearer(ctx.cfg.read_path, ctx.access_token())
+    check(resp.status == 401, f"expected HTTP 401, got {resp}")
+    error = challenge_error(resp)
+    check(error in (None, "invalid_token"), f"expected invalid_token, got {error!r}")
 
 
 # Deferred redemption at the RAS ---------------------------------------------
