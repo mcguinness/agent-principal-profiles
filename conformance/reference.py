@@ -283,6 +283,9 @@ class Server:
         self.disabled = set()
         self.offset = 0
         self.assertion_replay, self.proof_replay = {}, {}
+        # DPoP nonces (RFC 9449 Sections 8 and 9): off unless test control
+        # requires them.
+        self.require_nonce, self.nonce = False, secrets.token_urlsafe(16)
 
     def __call__(self, environ, start_response):
         path = environ.get("PATH_INFO", "")
@@ -311,6 +314,8 @@ class Server:
         elif op == "clock":
             self.offset += int(body["advance"])
             return {"offset": self.offset}
+        elif op == "set" and body.get("what") == "dpop_nonce":
+            self.require_nonce = bool(body["value"])
         elif op == "disable_check":
             if body["name"] not in CHECKS:
                 raise OAuthError("invalid_request", description="unknown check")
@@ -384,6 +389,13 @@ class Server:
             raise bad
         if access_token is not None and payload.get("ath") != jws.ath(access_token):
             raise bad
+        if self.require_nonce and payload.get("nonce") != self.nonce:
+            # A token endpoint answers HTTP 400 (RFC 9449 Section 8), a
+            # resource server HTTP 401 with a challenge (Section 9).
+            raise OAuthError("use_dpop_nonce", status, "DPoP nonce required",
+                             challenge='DPoP error="use_dpop_nonce", algs="ES256"'
+                             if status == 401 else None,
+                             headers=[("DPoP-Nonce", self.nonce)])
         self.proof_replay[payload["jti"]] = now + DPOP_WINDOW
         return jws.thumbprint(header["jwk"])
 

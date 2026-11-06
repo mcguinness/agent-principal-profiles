@@ -126,12 +126,14 @@ def ath(access_token):
     return b64u(hashlib.sha256(access_token.encode("ascii")).digest())
 
 
-def dpop_proof(key, htm, htu, access_token=None, iat=None, jti=None):
+def dpop_proof(key, htm, htu, access_token=None, iat=None, jti=None, nonce=None):
     """A DPoP proof (RFC 9449) signed with a P-256 key."""
     payload = {"jti": jti or uuid.uuid4().hex, "htm": htm, "htu": htu,
                "iat": int(time.time()) if iat is None else iat}
     if access_token is not None:
         payload["ath"] = ath(access_token)
+    if nonce is not None:
+        payload["nonce"] = nonce
     return sign({"typ": "dpop+jwt", "jwk": public_jwk(key)}, payload, key)
 
 

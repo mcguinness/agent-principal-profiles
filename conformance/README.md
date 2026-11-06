@@ -69,6 +69,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P5 | RAS | With unbound grants and a resource that permits DPoP or bearer, a redemption with no proof gets `token_type` Bearer and an access token without `cnf` | core: Access-Token Protection | Let the IdP issue, and the RAS accept, unbound grants; permit bearer for the resource |
 | P6 | API | That bearer token, presented with the `Bearer` scheme, reads the file | core: Access-Token Protection; Token Validation; RFC 6750 | As P5; permit bearer tokens at the API |
 | P7 | RAS | With the same configuration, a redemption with a valid proof gets `token_type` DPoP and an access token bound to the proof key | core: Access-Token Protection (DPoP or bearer) | As P5 |
+| P8 | IdP | With the IdP requiring DPoP nonces, the exchange gets `use_dpop_nonce` and a `DPoP-Nonce`, and the retry that carries the nonce gets the grant | RFC 9449 Section 8; core: Grant Protection | Require nonces at the IdP |
+| P9 | RAS | With the RAS requiring DPoP nonces, the redemption's retry with the nonce gets the access token | RFC 9449 Section 8; core: Access-Token Protection | Require nonces at the RAS |
+| P10 | API | With the API requiring DPoP nonces, the read gets HTTP 401 with `use_dpop_nonce`, and the retry with the nonce is served | RFC 9449 Section 9; core: Token Validation | Require nonces at the API |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -525,9 +528,9 @@ The suite tests nothing outside the path above, including:
   S34 test only Error Disclosure's recommendation to validate the token
   first;
 * RAS refresh tokens other than those from a deferred redemption;
-* DPoP server nonces, and mutual TLS (including the refusal to defer
-  for a resource configured for mutual-TLS access tokens); bearer
-  access tokens only as P5 to P7 and N35 test them;
+* mutual TLS, including the refusal to defer for a resource configured
+  for mutual-TLS access tokens; bearer access tokens only as P5 to P7
+  and N35 test them, and DPoP nonces only as P8 to P10 do;
 * continuation, including the CAI's refusal to attest an access token
   from a deferred redemption or one refreshed from it;
 * in deferred redemption: grant-derived revocation while pending,
@@ -602,6 +605,15 @@ another IdP, RAS or API:
 
 `disable_check` exists only for the reference implementation's vacuity
 mode.
+
+The suite's client keeps any `DPoP-Nonce` a server returns and puts it
+in later proofs to that server. When a server demands a nonce (HTTP 400
+`use_dpop_nonce` at a token endpoint, or a 401 challenge with it at the
+API, RFC 9449 Sections 8 and 9), the client retries once with a fresh
+proof and fresh client authentication. N01 and N22 send a fixed client
+assertion and D18 a fixed proof, so they do not retry; against a
+server that demands a nonce on every request, they can fail for that
+reason alone.
 
 ### RAS-only mode
 
