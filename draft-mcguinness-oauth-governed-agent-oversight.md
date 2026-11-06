@@ -34,7 +34,16 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+  CONTINUATION:
+    title: "Identity Continuation Profile for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   DTR: I-D.ietf-oauth-deferred-token-response-00
+  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   RFC6749:
   RFC8693:
   RFC9449:
@@ -66,15 +75,6 @@ informative:
       - org: OpenID Foundation
     date: 2021-09-01
     target: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
-  CONTINUATION:
-    title: "Identity Continuation Profile for Governed Agent Federation"
-    author:
-      - name: Karl McGuinness
-    date: false
-    seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
-  ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   MCP:
     title: "Model Context Protocol Specification, Revision 2026-07-28"
     author:

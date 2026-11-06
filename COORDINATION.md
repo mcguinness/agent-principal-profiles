@@ -856,6 +856,17 @@ and SEP-2643 (structured authorization denials) are cited as
 proposals. If SEP-2848 is accepted, its task held in `working` is the
 per-action realization the companion describes.
 
+### References
+
+The companion references the core, DTR, the continuation companion and
+ICA normatively. Deferred continuation (`deferred-continuation`) is
+optional, but an IdP that claims it applies the continuation exchange
+and ICA's replay reservation, and Note 1 of the IESG statement on
+normative and informative references classifies such dependencies as
+normative even for an optional feature. The core and the continuation
+companion reference this companion informatively, so no publication
+cluster forms.
+
 ### Open Items
 
 The companion's open items (`open-items`) are AROP at the IdP and
