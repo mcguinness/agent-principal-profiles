@@ -75,6 +75,9 @@ class Config:
     uncorrelated_agent: str = "agent-99"
     # A user the IdP has no record of (N32).
     unknown_user: str = "carol"
+    # A Governance Tenant on the IdP's issuer that policy does not authorize
+    # for `tenant` (N33).
+    other_governance_tenant: str = "beta-gov"
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
     # the self-acting population for `resource`, whose tokens name the local
@@ -240,8 +243,13 @@ class Adapter:
                                           the agent permits, creating it),
                                           prohibited_scope (scopes policy
                                           categorically prohibits the agent
-                                          for at the resource)
+                                          for at the resource),
+                                          agent_governance_tenant (the
+                                          Governance Tenant the agent
+                                          belongs to)
                                      ras: agent_active, actor_gate,
+                                          jit (just-in-time correlation for
+                                          the IdP's agents in `tenant`),
                                           client_profile ("bound" or "governed"),
                                           approval_required (a list of scopes
                                           RAS policy requires approval for),
@@ -1056,6 +1064,36 @@ def n31(ctx):
 def n32(ctx):
     id_token = ctx.id_token(claims={"sub": ctx.cfg.unknown_user})
     expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
+
+
+@case("N33", "IdP", "Refuses issuance for an agent whose Governance Tenant is not authorized for "
+      "the Target Tenant",
+      "core: Issuance Authorization; Canonical Identity and Tenant Boundaries",
+      needs=("set:idp.agent_governance_tenant",), defeats=("idp.tenant_pair",))
+def n33(ctx):
+    # The Governance Tenant resolves; policy does not authorize it for the
+    # resource's Target Tenant. The core assigns no code to this refusal
+    # (README, draft question 9), so any error without a grant passes.
+    ctx.adapter.set("idp", "agent_governance_tenant", ctx.cfg.other_governance_tenant)
+    resp = ctx.client.exchange(ctx.id_token())
+    body = resp.json()
+    check(resp.status == 400 and isinstance(body.get("error"), str),
+          f"expected HTTP 400 with an error, got {resp}")
+    check("access_token" not in body, "an error response carried a grant")
+
+
+@case("N34", "RAS", "A just-in-time correlation does not authorize the agent it creates",
+      "core: Optional Just-in-Time Correlation; Redemption Errors",
+      needs=("mint_grant", "set:ras.jit"), defeats=("ras.jit_correlation_only",))
+def n34(ctx):
+    # The RAS creates a record for an agent it has not seen. The actor gate
+    # refuses it (actor_unauthorized), or local policy creates the record
+    # ineligible, which denies the request (invalid_grant).
+    cfg = ctx.cfg
+    ctx.adapter.set("ras", "jit", True)
+    grant = ctx.adapter.mint_grant(grant_claims(
+        ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.uncorrelated_agent}))
+    expect_error(ctx.client.redeem(grant), 400, ("actor_unauthorized", "invalid_grant"))
 
 
 # Deferred redemption at the RAS ---------------------------------------------

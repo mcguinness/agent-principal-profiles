@@ -97,6 +97,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N30 | RAS | An unbound grant presented with `jwt-dpop` fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5 | Let the IdP issue, and the RAS accept, unbound grants |
 | N31 | IdP | An ID Token whose `sub` is `null` or the number 123 fails with `invalid_request`, as an invalid subject credential | core: Issuance Errors; RFC 8693 Section 2.2.2 | ID Token with chosen claims |
 | N32 | IdP | A valid ID Token whose `sub` is `carol`, a user the IdP has no record of, fails with `invalid_grant`, as a user resolution failure | core: Subject Resolution; Issuance Errors | ID Token with chosen claims |
+| N33 | IdP | With the agent moved to `beta-gov`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
+| N34 | RAS | With just-in-time correlation on, a grant whose `act` names `agent-99`, which the RAS has not seen, fails with `actor_unauthorized` or `invalid_grant`: the created record does not authorize the agent | core: Optional Just-in-Time Correlation; Redemption Errors | Mint a grant; turn on just-in-time correlation |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -190,9 +192,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2 and D02, name the reference
 checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 88 cases runs once for each check it names,
+`--vacuity`, each of these 90 cases runs once for each check it names,
 with that check switched off; eight S cases name two checks, so there
-are 96 runs, and every run fails. Twenty-eight N cases fail because
+are 98 runs, and every run fails. Thirty N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`. N11 fails because the RAS's
 access-token protection check then
@@ -541,7 +543,10 @@ another IdP, RAS or API:
    grant lifetime limit. N13 needs a second client registered at the RAS;
    N17 needs a second tenant in which the user and the agent also have
    rights. N27 needs `uncorrelated_agent`, an agent the RAS has no
-   correlation for. D10 and D11 need `second_agent`, another agent the RAS
+   correlation for; N34 uses it too, with just-in-time correlation
+   turned on (`set:ras.jit`). N33 needs `other_governance_tenant`, a
+   Governance Tenant on the IdP's issuer that policy does not authorize
+   for `tenant`, and `set:idp.agent_governance_tenant`. D10 and D11 need `second_agent`, another agent the RAS
    correlates and lets act for the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
    use it as a scope the IdP can exclude from the delegation or prohibit
@@ -606,7 +611,9 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; the RAS mints its tokens through test control | core: Profile Applicability (separate client registrations) |
 | Where the tenant is carried | The tenant-specific resource URI, as the access token's audience | core: Access Token Issuance and Response (the default) |
 | Client registration association | One RAS registration, `analysis-api`, for the dedicated IdP client `analysis-client` | core: Issuance Prerequisites |
-| Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API | core: Delegated Actor Authorization ("not a protocol object") |
+| Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API; at the RAS, a rule admitting every agent of an issuer for a tenant only under test control | core: Delegated Actor Authorization ("not a protocol object"); RAS and API implementation considerations ("another explicit rule") |
+| Governance Tenants | `agent-42` belongs to `acme-gov` on the IdP's issuer; policy authorizes only (`acme-gov`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized` | core: Issuance Authorization (no code assigned) |
+| Just-in-time correlation | Off unless test control turns it on for the IdP's issuer and `acme-data`; a created record is eligible, and the actor gate still applies | core: Optional Just-in-Time Correlation |
 | Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to that set and away from scopes policy categorically prohibits for the agent there; if nothing remains, a requested scope that is prohibited gives `actor_unauthorized`, and otherwise the result is `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
 | Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
@@ -665,5 +672,15 @@ that settled it.
    denial is HTTP 403 with a challenge that carries no `error` attribute
    (S05, S06); a scope the operation needs and the token lacks is HTTP
    403 `insufficient_scope` (S07). S14 to S19 test the order and the 503.
+9. **The IdP's error when the agent's Governance Tenant is not
+   authorized for the Target Tenant.** Open. Issuance Authorization
+   requires authorizing "Governance and Target Tenants" but assigns no
+   code to this refusal: the delegated rule pins `actor_unauthorized`
+   only for a missing Delegation Authorization or a categorical
+   prohibition, and `invalid_target` covers a Target Tenant that cannot
+   be resolved. The reference returns `actor_unauthorized`; N33 accepts
+   any error without a grant. The [shared-issuer
+   experiment](../experiments/shared-issuer/README.md) records why this
+   refusal is the only control at a shared issuer.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

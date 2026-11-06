@@ -433,7 +433,7 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, N28, N31, and N32.
+cases N01 to N09, N21, N22, N25, N28, and N31 to N33.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
@@ -457,7 +457,7 @@ cases N01 to N09, N21, N22, N25, N28, N31, and N32.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-and N30.
+N30, and N34.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
