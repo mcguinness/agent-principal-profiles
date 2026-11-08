@@ -904,6 +904,10 @@ supervised issuance for a target only where both hold:
   * withdrawing or narrowing the Delegation or Agent Authorization,
     which stops new grants and ends or narrows continuation
     ({{CONTINUATION}});
+  * for a grant that can be continued, the IdP's revocation of its
+    chain or of the grant's subtree ({{Section 6.2 of ICA}}), since
+    revocation at one target does not stop descendants accepted at
+    others;
   * a Local Suspension at the target; or
   * disabling the agent, once the target applies it.
 
