@@ -20,6 +20,7 @@
     "8": "Authorization Server Metadata"
   },
   "I-D.ietf-oauth-deferred-token-response-01": {
+    "4.2": "Profile Obligations",
     "5.1": "The completion_mode Parameter",
     "5.3": "Authorization Server Discretion",
     "6.4": "Token Endpoint \u2014 Deferred Response",

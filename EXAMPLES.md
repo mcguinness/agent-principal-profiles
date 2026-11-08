@@ -1737,7 +1737,7 @@ first transaction.
 | Variant | Where its messages are |
 |---|---|
 | A shared platform client presenting a platform JWT, such as AWS STS, as the actor token | Core, [Input Variants][core-inputs] |
-| SPIFFE JWT-SVID, WIT-SVID, and X.509-SVID inputs, and Client Attestation | [Inputs draft][inputs-examples]: decoded credentials and a comparison table, without requests |
+| SPIFFE JWT-SVID, WIT-SVID, and X.509-SVID inputs, and Client Attestation | [Inputs draft][inputs-examples]: a comparison table and a decoded JWT-SVID, without requests |
 | Onboarding a shared platform client through SCIM, with an Agent Client Association | SCIM management, [Example: Platform Onboarding][scim-onboarding] |
 | Admitting a Client ID Metadata Document client | SCIM client management, [Example: Admit a CIMD Client][oc-cimd] |
 | A self-acting chain through a gateway | Continuation, [Self-Acting Variant][cont-self-acting] |

@@ -3219,8 +3219,8 @@ of this document ({{excluded-compositions}}).
 This informative appendix records how this document differs from its
 base specifications, what it depends on, and the compositions it does
 not define. They were assessed against WAG-02, ID-JAG-06, JWT DPoP
-Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11,
-CIMD-02, and Client Instance Identification-00.
+Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-03, ATTEST-12,
+CIMD-03, and Client Instance Identifiers-01.
 
 ## Differences from Base Specifications {#base-differences}
 
