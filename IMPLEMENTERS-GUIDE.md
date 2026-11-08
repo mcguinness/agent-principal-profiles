@@ -461,7 +461,7 @@ cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, and N34.
+N30, N34, and N40.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or

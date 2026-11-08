@@ -200,10 +200,15 @@ that fills those gaps.
 Giving each agent its own OAuth client, as some deployments do, makes
 the agent identifiable to the authorization server that registered it,
 but the client identifier is not that principal. It names a
-registration, assigned separately at each authorization server and
-replaced when the agent moves to another platform or client. This
-profile's mandatory path starts from such a dedicated client ({{scope}})
-and adds what the client identifier lacks. The IdP resolves the client
+registration, usually assigned separately at each authorization server
+and replaced when the agent moves to another platform or client. The
+difference shows in three cases. A resource domain that restricts an
+agent by its client identifier readmits it when the agent moves to
+another client; agents behind one shared client cannot be told apart;
+and a gateway that calls further resource domains is one client for
+every agent behind it. This profile's mandatory path starts from such
+a dedicated client ({{scope}}) and adds what the client identifier
+lacks. The IdP resolves the client
 to an Agent Principal through an Identity Binding ({{identity}}) and
 authorizes the client to use that principal through a Client Association
 ({{identity-binding}}). The grant carries the principal as the actor,
