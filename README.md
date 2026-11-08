@@ -16,8 +16,9 @@ and revocation is all or nothing.
 Three parties decide. The enterprise IdP identifies the agent and
 authorizes a grant naming it; the resource domain's authorization server
 (RAS) decides what access to issue; and the API enforces that access
-with its own checks. The agent's OAuth client carries the grant between
-them. The grant depends on whom the agent acts for:
+with its own checks. The agent runs on an agent platform, whose OAuth
+client carries the grant between them. The grant depends on whom the
+agent acts for:
 
 | The agent acts | Grant | The resource domain sees |
 |---|---|---|
@@ -25,22 +26,35 @@ them. The grant depends on whom the agent acts for:
 | For itself | Workload Authorization Grant (WAG) | The agent as subject |
 
 ```mermaid
-flowchart LR
-  client["Agent's OAuth client"]
-  idp["Governing IdP<br/>identifies and authorizes the agent"]
-  ras["RAS<br/>decides what access to issue"]
-  api["API<br/>enforces access"]
-  client -->|"token exchange"| idp
-  idp -->|"ID-JAG or WAG"| client
-  client -->|"redeem the grant"| ras
-  ras -->|"access token"| client
+flowchart TB
+  subgraph platform["Agent platform"]
+    connector["SCIM connector"]
+    agent["Agent<br/>identified by a client key,<br/>platform JWT, SVID,<br/>or attestation"]
+    client["OAuth client<br/>one per agent, or shared"]
+  end
+  idp["Governing IdP<br/>resolves the Agent Principal<br/>and authorizes the grant"]
+  subgraph domain["Resource domain"]
+    ras["RAS<br/>decides what access<br/>to issue"]
+    api["API<br/>enforces access"]
+  end
+  agent -->|"its credential"| client
+  connector -->|"register agents, bindings,<br/>and client associations"| idp
+  client <-->|"token exchange,<br/>ID-JAG or WAG"| idp
+  client <-->|"redeem the grant,<br/>access token"| ras
   client -->|"call"| api
 ```
 
-Companion profiles add workload inputs, gateways, SCIM administration,
-lifecycle propagation, and human oversight to this path without
-changing it; the architecture overview shows [how they
-connect](ARCHITECTURE.md#how-they-connect).
+An agent platform connects to the IdP in three ways:
+
+| Connection | What happens | Defined in |
+|---|---|---|
+| Registration | The platform's SCIM connector registers each agent at the IdP. For an agent that obtains grants, it also binds the agent's identity to it and associates the OAuth clients that may use it. Each is a separate permission the IdP grants the connector | [SCIM management][management]; [SCIM OAuth client management][oauth-client] for the clients themselves |
+| Token exchange | The platform's OAuth client presents the agent's identity: its own client authentication when it serves one agent, the platform's JWT for the agent when it is shared, or a SPIFFE SVID or Client Attestation. The IdP trusts only issuers and keys configured in advance, and resolves the identity to the Agent Principal through an enabled Identity Binding | [Core][core]; [input profiles][inputs] for SVIDs and Client Attestation |
+| Lifecycle | Agents and their disablement are provisioned to the resource domains, and to a platform for the agents it hosts. Each applies a disablement to the OAuth authorization it issued | [Lifecycle][lifecycle] |
+
+Companion profiles also add gateways that call further resource domains,
+and human oversight, without changing this path; the architecture
+overview shows [how they all connect](ARCHITECTURE.md#how-they-connect).
 
 ## The drafts
 
