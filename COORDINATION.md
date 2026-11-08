@@ -780,12 +780,12 @@ the backquoted names below refer to.
 
 ### Deferred Token Response
 
-The companion profiles `draft-ietf-oauth-deferred-token-response-00`
+The companion profiles `draft-ietf-oauth-deferred-token-response-01`
 for governed token exchange. It narrows DTR in two places. A deferred
 governed request always carries a DPoP proof (`opt-in`), where DTR
-Section 10.1 lets a confidential client using `private_key_jwt` omit
+Section 11.1 lets a confidential client using `private_key_jwt` omit
 one. Every governed check runs before deferral and again at resolution
-(`deferring`, `resolution`), where DTR Section 10.7 re-checks consent
+(`deferring`, `resolution`), where DTR Section 11.7 re-checks consent
 and client authorization only.
 
 DTR says nothing about which identities the token returned after a
@@ -795,11 +795,11 @@ request's Agent Principal, acting relationship, user, and client
 
 The companion also profiles DTR for the redemption of an ID-JAG or a
 WAG at the RAS (`deferred-redemption`), which DTR's introduction and
-Section 8.2 anticipate for ID-JAG. There it narrows DTR further. A
+Section 9.3 anticipate for ID-JAG. There it narrows DTR further. A
 deferred grant is accepted once, so the parallel request without
-`completion_mode` that Section 8.2 suggests fails
+`completion_mode` that Section 9.3 suggests fails
 (`redemption-deferring`). The RAS does not defer where configuration
-selects mutual-TLS access tokens, since Section 10.1 requires the
+selects mutual-TLS access tokens, since Section 11.1 requires the
 issued token to be DPoP-bound to the request's key
 (`redemption-opt-in`). A lost deferred response is recovered with the
 same grant and key (`redemption-recovery`).
@@ -807,8 +807,8 @@ same grant and key (`redemption-recovery`).
 Two questions for DTR, not yet filed:
 
 * whether a grant profile's replay rules can forbid the parallel
-  request of Section 8.2, as the companion does; and
-* whether the originating-grant preconditions that Section 10.7
+  request of Section 9.3, as the companion does; and
+* whether the originating-grant preconditions that Section 11.7
   re-evaluates include the grant's own expiration when the client does
   not present the grant again. The companion checks the grant's `exp`
   on receipt (`redemption-deferring`) and records the question as an

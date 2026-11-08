@@ -18,19 +18,19 @@
   "I-D.ietf-oauth-client-id-metadata-document-02": {
     "6": "Authorization Server Metadata"
   },
-  "I-D.ietf-oauth-deferred-token-response-00": {
-    "4.1": "The completion_mode Parameter",
-    "4.2": "Pre-Token Hints",
-    "5.4": "Token Endpoint \u2014 Deferred Response",
-    "5.5.1": "Polling Request Validation",
-    "5.5.2": "Successful Polling Response",
-    "5.6": "Token Endpoint \u2014 Error Responses",
-    "6": "Callback Notification",
-    "7": "Cancellation",
-    "8.2": "Obtaining an Immediate Result Alongside a Deferred Request",
-    "8.3": "Progress Information in Errors",
-    "10.1": "Sender-Constraint Requirements",
-    "10.7": "Consent Staleness at Resolution"
+  "I-D.ietf-oauth-deferred-token-response-01": {
+    "5.1": "The completion_mode Parameter",
+    "5.3": "Authorization Server Discretion",
+    "6.4": "Token Endpoint \u2014 Deferred Response",
+    "6.5.1": "Polling Request Validation",
+    "6.5.2": "Successful Polling Response",
+    "6.6": "Token Endpoint \u2014 Error Responses",
+    "7": "Callback Notification",
+    "8": "Cancellation",
+    "9.3": "Obtaining an Immediate Result Alongside a Deferred Request",
+    "9.4": "Progress Information in Errors",
+    "11.1": "Sender-Constraint Requirements",
+    "11.7": "Consent Staleness at Resolution"
   },
   "I-D.ietf-oauth-identity-assertion-authz-grant-06": {
     "3.1": "ID-JAG Claims",

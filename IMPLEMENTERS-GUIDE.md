@@ -1609,7 +1609,7 @@ agent cannot use the token directly.
 [ov-opt-in]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#opt-in
 [ov-redemption-deferring]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-deferring
 [ov-redemption-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-refresh
-[DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-00.html
+[DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-01.html
 [CIBA]: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
 [ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html
 [cont-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#scope-boundaries
