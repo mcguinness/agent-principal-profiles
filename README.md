@@ -98,11 +98,25 @@ $ make
 Command line usage requires that you have the necessary software installed.  See
 [the instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/SETUP.md).
 
-Continuous integration also runs the conformance suite with its vacuity
-check, `conformance/run.py --vacuity` (setup in
-[conformance/README.md](conformance/README.md)), and
-`tools/check_examples.py`, which checks the messages EXAMPLES.md copies
-from the drafts.
+Continuous integration also runs:
+
+* the conformance suite with its vacuity check, in full and RAS-only
+  modes (`conformance/run.py --vacuity`, with and without `--ras-only`;
+  setup in [conformance/README.md](conformance/README.md));
+* `tools/check_examples.py`, which checks the messages EXAMPLES.md copies
+  from the drafts; and
+* `tools/check_citations.py`, which fails when an Internet-Draft
+  reference is not pinned to a revision, or when a draft cites a section
+  of another specification that `tools/cited-sections.json` does not
+  record at the referenced revision.
+
+After changing a pin or citing a new section, run
+`python3 tools/check_citations.py --fetch --update` and review what it
+prints: it records the heading of each newly cited section at the
+referenced revision, and `--fetch` alone compares every recorded heading
+with that revision's text. The check finds renumbered, missing and
+unverified sections; it cannot tell that a real section does not
+support the sentence citing it.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
