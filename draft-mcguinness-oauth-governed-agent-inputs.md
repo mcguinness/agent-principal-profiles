@@ -160,14 +160,14 @@ section.
 * **Presentation:** Client authentication by `client_assertion` with
   `client_assertion_type`
   `urn:ietf:params:oauth:client-assertion-type:jwt-spiffe`.
-* **Validation:** Before resolving the agent, the IdP MUST apply
+* **Validation:** The server MUST apply
   {{Section 3.2 of SPIFFE-OAUTH}}, including the assertion type and the
   client identification of {{Section 3.1 of SPIFFE-OAUTH}}, and
   {{Section 5 of SPIFFE-OAUTH}} and {{Section 6 of SPIFFE-OAUTH}} for
   trust establishment and key distribution. It MUST also verify the
-  signature, before resolving the agent, with keys authorized for the
-  SPIFFE ID's trust domain. An
-  optional `iss` MUST NOT select another trust domain or key authority.
+  signature with keys authorized for the SPIFFE ID's trust domain. The
+  IdP MUST do both before resolving the agent. An optional `iss` MUST
+  NOT select another trust domain or key authority.
 * **Resolution:** The IdP MUST resolve the exact SPIFFE ID in the
   validated `sub` through an Identity Binding ("Identity Binding" in
   {{FEDERATION}}). The
