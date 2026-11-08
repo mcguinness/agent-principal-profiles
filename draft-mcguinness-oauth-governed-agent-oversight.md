@@ -472,10 +472,16 @@ user; an access request service under {{ARAP}} is another. A third is
 the `interaction_uri` that a deferred or polling response can carry
 ({{Section 6.4 of DTR}}), as in the agent example of
 {{Appendix A.6 of DTR}}. The page it identifies shows the governed
-request context, and the approver authenticates there at the strength
-policy requires. Reaching the URI is not that authentication, and
+request context, and the approver authenticates there, after the
+request was created, at the strength policy requires. Reaching the URI is not that authentication, and
 neither is a session in a browser the agent operates, through which
-the agent could approve its own request ({{security-self}}). The
+the agent could approve its own request ({{security-self}}). Because
+the requesting client receives the URI, the IdP MUST NOT accept a
+decision made through it unless the approver authenticated there after
+the pending request was created; an existing session does not satisfy
+this. Where another server authenticates the approver, the IdP requests
+fresh authentication and checks that the reported authentication time
+is later than the request's creation. The
 channel rarely fits self-acting access, whose approver is seldom the
 client's user. A client that can present the URI to the user includes
 `deferred_interactive` with `deferred` ({{Section 5.1 of DTR}}).
@@ -1037,7 +1043,8 @@ decision from an automated one depends on the approval channel, which
 this document does not define; the channel's authentication of the
 approver is what makes the rule enforceable. An `interaction_uri` opened
 in a browser the agent operates is the plainest case: the page must
-authenticate the approver itself ({{approval}}). A deployment that
+authenticate the approver itself, after the request was created, so
+that a session already in that browser cannot decide ({{approval}}). A deployment that
 routes decisions to an automated approver is human out of the loop and
 records it as such ({{modes}}).
 
