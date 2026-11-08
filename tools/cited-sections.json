@@ -15,8 +15,8 @@
     "5.2": "Using DPoP as the Proof of Possession",
     "10.3": "Refresh Token Binding"
   },
-  "I-D.ietf-oauth-client-id-metadata-document-02": {
-    "6": "Authorization Server Metadata"
+  "I-D.ietf-oauth-client-id-metadata-document-03": {
+    "8": "Authorization Server Metadata"
   },
   "I-D.ietf-oauth-deferred-token-response-01": {
     "5.1": "The completion_mode Parameter",

@@ -40,7 +40,7 @@ normative:
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
   RFC7523bis: I-D.ietf-oauth-rfc7523bis-11
-  CIMD: I-D.ietf-oauth-client-id-metadata-document-02
+  CIMD: I-D.ietf-oauth-client-id-metadata-document-03
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
     target: https://openid.net/specs/openid-connect-core-1_0.html

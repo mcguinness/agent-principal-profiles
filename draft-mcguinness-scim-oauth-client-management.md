@@ -25,7 +25,7 @@ author:
    email: public@karlmcguinness.com
 normative:
   ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-01
-  CIMD: I-D.ietf-oauth-client-id-metadata-document-02
+  CIMD: I-D.ietf-oauth-client-id-metadata-document-03
   RFC6749:
   RFC7591:
   RFC7592:
@@ -388,7 +388,7 @@ SCIM administrative state. The SCIM ETag versions that state, not the
 remote document or its cache entry.
 
 CIMD capability uses `client_id_metadata_document_supported` under
-{{Section 6 of CIMD}}. This profile defines no additional OAuth discovery
+{{Section 8 of CIMD}}. This profile defines no additional OAuth discovery
 parameter and does not require the SCIM service to host CIMD documents.
 
 ## Credentials and Extensions {#credentials}
