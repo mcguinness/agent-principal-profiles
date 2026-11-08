@@ -112,6 +112,12 @@ applies to delegated access only ("Self-Acting Issuance: WAG" in
 For Client Attestation, `sub` identifies the OAuth client, and the
 client-to-agent mapping is explicit.
 
+An approved trust domain is a SPIFFE trust domain that the IdP's
+configuration trusts for an input, with the source of its bundle: a
+bundle or bundle endpoint configured as {{Section 6 of SPIFFE-OAUTH}}
+describes, or, for one client only, that client's Client ID Metadata
+Document ({{client-metadata-bundles}}).
+
 ## Trust Bundles from Client Metadata {#client-metadata-bundles}
 
 For the SPIFFE inputs, an IdP configured to do so for a client MAY
@@ -123,10 +129,15 @@ subdomain of, the host of the client's `client_id` URL
 SVIDs presented to authenticate as that client
 ({{Section 6.1 of SPIFFE-OAUTH}}), and a SPIFFE ID validated with it
 resolves an agent only through an Identity Binding configured for that
-client. Otherwise the IdP ignores `spiffe_bundle_endpoint` in Client ID
-Metadata Documents, as {{Section 8.2 of SPIFFE-OAUTH}} requires of a
-deployment that does not accept that trust model, and the document
-establishes no approved trust domain.
+client. An IdP that holds a bundle for that trust domain obtained as
+{{Section 6 of SPIFFE-OAUTH}} describes MUST validate with that bundle
+and MUST ignore the document's `spiffe_bundle_endpoint`, so a document
+cannot supply keys for a trust domain the IdP already trusts through
+its own configuration. Otherwise the IdP ignores
+`spiffe_bundle_endpoint` in Client ID Metadata Documents, as
+{{Section 8.2 of SPIFFE-OAUTH}} requires of a deployment that does not
+accept that trust model, and the document establishes no approved trust
+domain.
 
 ## Grant Lifetime {#lifetime}
 
