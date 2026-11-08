@@ -2457,7 +2457,8 @@ cited are met.
 
 # Implementation Status {#implementation-status}
 
-Note to the RFC Editor: please remove this section before publication.
+Note to the RFC Editor: please remove this section before publication,
+as well as the reference to RFC 7942.
 
 This section records the status of known implementations of the
 protocol defined by this specification at the time of posting of this
@@ -2499,11 +2500,11 @@ fit".
   bindings; and the deferred redemption of {{OVERSIGHT}} at the RAS.
   It does not implement WAG issuance or redemption, platform JWT
   selectors, the binding of key-bound platform JWTs (it refuses them),
-  the inputs of {{INPUTS}}, mutual TLS, refresh tokens outside a
-  deferred redemption, {{CONTINUATION}}, {{AGENT-LIFECYCLE}}, or
-  {{AGENT-MANAGEMENT}}.
+  the inputs of {{INPUTS}}, Client ID Metadata Documents, mutual TLS,
+  refresh tokens outside a deferred redemption, {{CONTINUATION}},
+  {{AGENT-LIFECYCLE}}, or {{AGENT-MANAGEMENT}}.
 * **Version compatibility:** the editor's copy of this document and its
-  companions.
+  companions; no revision has been submitted.
 * **Licensing:** a Contribution under BCP 78, BCP 79, and the IETF
   Trust Legal Provisions; see the repository's LICENSE.md.
 * **Interoperability:** not yet tested with another implementation. The
