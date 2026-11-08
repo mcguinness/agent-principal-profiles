@@ -448,7 +448,9 @@ cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
   binding, active Agent Principal, or Governance Tenant.
 * `actor_unauthorized`, with HTTP 400: no Client Association permits
   the binding; no applicable Delegation Authorization covers the agent,
-  user, client, and target; or policy categorically prohibits the agent.
+  user, client, and target; policy categorically prohibits the agent;
+  or policy does not authorize the agent's Governance Tenant for the
+  Target Tenant.
 * `invalid_scope`: beyond an applicable authorization's scope ceiling.
 * `invalid_target`: the target, its Target Tenant, or the client
   registration association cannot be resolved.

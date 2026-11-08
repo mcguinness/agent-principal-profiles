@@ -581,9 +581,8 @@ class IdP(Server):
         if downstream_client is None:
             raise OAuthError("invalid_target")
         # The agent's Governance Tenant must be authorized for the Target
-        # Tenant (core: Issuance Authorization). The core assigns no code to
-        # this refusal; the reference uses actor_unauthorized, as for other
-        # policy refusals of a resolved agent in delegated issuance.
+        # Tenant (core: Issuance Authorization), or delegated issuance is
+        # refused with actor_unauthorized (core: Issuance Errors).
         pair = (self.agents[agent]["governance_tenant"], target["resources"][resource])
         if pair not in self.tenant_pairs and self.on("idp.tenant_pair"):
             raise OAuthError("actor_unauthorized",

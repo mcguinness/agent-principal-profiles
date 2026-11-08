@@ -91,8 +91,8 @@ Coordination is needed on:
   (Governance Tenant, Target Tenant) authorization. Its fix candidates
   are dedicated issuers, a Governance Tenant claim distinct from
   ID-JAG's `tenant`, or a security consideration only; none is chosen.
-  Which code the IdP returns for an unauthorized pair is also open
-  (conformance draft question 9).
+  An unauthorized pair is refused with `actor_unauthorized` (delegated)
+  or `invalid_target` (self-acting).
 * **Issuer metadata:** WAG defines no metadata for the issuer. The core
   has the IdP advertise the WAG token type in
   `identity_chaining_requested_token_types_supported`

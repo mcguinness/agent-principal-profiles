@@ -110,7 +110,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N30 | RAS | An unbound grant presented with `jwt-dpop` fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5 | Let the IdP issue, and the RAS accept, unbound grants |
 | N31 | IdP | An ID Token whose `sub` is `null` or the number 123 fails with `invalid_request`, as an invalid subject credential | core: Issuance Errors; RFC 8693 Section 2.2.2 | ID Token with chosen claims |
 | N32 | IdP | A valid ID Token whose `sub` is `carol`, a user the IdP has no record of, fails with `invalid_grant`, as a user resolution failure | core: Subject Resolution; Issuance Errors | ID Token with chosen claims |
-| N33 | IdP | With the agent moved to `beta`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
+| N33 | IdP | With the agent moved to `beta`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with `actor_unauthorized` | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
 | N34 | RAS | With just-in-time correlation on, a grant whose `act` names `agent-99`, which the RAS has not seen, fails with `actor_unauthorized` or `invalid_grant`: the created record does not authorize the agent | core: Optional Just-in-Time Correlation; Redemption Errors | Mint a grant; turn on just-in-time correlation |
 | N35 | API | Where the API accepts bearer tokens for the resource, a DPoP-bound access token presented with the `Bearer` scheme fails with HTTP 401 | RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement) | Permit bearer tokens at the API |
 | N36 | IdP | The shared client's exchange without a platform JWT fails with `invalid_request`, not a fallback to the client's own authentication | core: Agent Resolution Input Validation; Issuance Errors | A shared client configured |
@@ -753,15 +753,12 @@ that settled it.
    (S05, S06); a scope the operation needs and the token lacks is HTTP
    403 `insufficient_scope` (S07). S14 to S19 test the order and the 503.
 9. **The IdP's error when the agent's Governance Tenant is not
-   authorized for the Target Tenant.** Open. Issuance Authorization
-   requires authorizing "Governance and Target Tenants" but assigns no
-   code to this refusal: the delegated rule pins `actor_unauthorized`
-   only for a missing Delegation Authorization or a categorical
-   prohibition, and `invalid_target` covers a Target Tenant that cannot
-   be resolved. The reference returns `actor_unauthorized`; N33 accepts
-   any error without a grant. The [shared-issuer
-   experiment](../experiments/shared-issuer/README.md) records why this
-   refusal is the only control at a shared issuer.
+   authorized for the Target Tenant.** Resolved. The core's Issuance
+   Errors assigns `actor_unauthorized` in delegated issuance, since
+   Section 6.6.2 of Actor Profile requires it when local policy
+   prohibits the relationship, and `invalid_target` in self-acting
+   issuance, with the other refusals of an agent for a target. N33
+   asserts the first; the reference has no self-acting issuance.
 10. **Whether two IdP clients may share one RAS registration.** Open.
    Issuance Prerequisites derives the grant's `client_id` from "an
    authoritative association between the authenticated IdP client and

@@ -1318,20 +1318,15 @@ def n32(ctx):
     expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
 
 
-@case("N33", "IdP", "Refuses issuance for an agent whose Governance Tenant is not authorized for "
-      "the Target Tenant",
+@case("N33", "IdP", "Refuses with actor_unauthorized an agent whose Governance Tenant is not "
+      "authorized for the Target Tenant",
       "core: Issuance Authorization; Canonical Identity and Tenant Boundaries",
       needs=("set:idp.agent_governance_tenant",), defeats=("idp.tenant_pair",))
 def n33(ctx):
     # The Governance Tenant resolves; policy does not authorize it for the
-    # resource's Target Tenant. The core assigns no code to this refusal
-    # (README, draft question 9), so any error without a grant passes.
+    # resource's Target Tenant (core: Issuance Errors).
     ctx.adapter.set("idp", "agent_governance_tenant", ctx.cfg.other_governance_tenant)
-    resp = ctx.client.exchange(ctx.id_token())
-    body = resp.json()
-    check(resp.status == 400 and isinstance(body.get("error"), str),
-          f"expected HTTP 400 with an error, got {resp}")
-    check("access_token" not in body, "an error response carried a grant")
+    expect_error(ctx.client.exchange(ctx.id_token()), 400, "actor_unauthorized")
 
 
 @case("N34", "RAS", "A just-in-time correlation does not authorize the agent it creates",

@@ -1616,6 +1616,7 @@ In addition to {{errors}}, the IdP uses these errors:
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
 | Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 | No applicable Delegation Authorization covers the agent, user, client, and target, or policy categorically prohibits the agent for the requested scope ({{issuance-authorization}}) | `actor_unauthorized` |
+| Policy does not authorize the agent's Governance Tenant for the Target Tenant ({{issuance-authorization}}), a relationship local policy prohibits ({{Section 6.6.2 of ACTOR-PROFILE}}) | `actor_unauthorized` |
 | An applicable Delegation Authorization's scope ceiling excludes the requested scope | `invalid_scope` |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
@@ -1633,7 +1634,7 @@ Self-acting issuance adds these errors:
 | Actor-token parameters present in a self-acting exchange | `invalid_request` |
 | Subject token is not byte-identical to the authentication credential in authentication-context resolution | `invalid_request` |
 | Resolved Agent Principal, but no Client Association permits self-acting issuance for the binding | `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
-| Agent not authorized for the requested RAS or resource | `invalid_target` |
+| Agent not authorized for the requested RAS or resource, including when policy does not authorize its Governance Tenant for the resource's Target Tenant | `invalid_target` |
 | Agent not authorized for the requested authority | `invalid_scope` |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce ({{issuance-authorization}}) | `invalid_target` |
 {: title="Self-acting issuance errors"}
