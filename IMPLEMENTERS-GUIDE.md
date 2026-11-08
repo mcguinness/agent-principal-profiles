@@ -197,8 +197,8 @@ configuration object types are prescribed.
   Prerequisites][flow-configuration]). No companion profile provisions
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
-  Client Identifier URL provides one identifier at both servers by
-  construction.
+  Client Identifier URL provides one identifier at both servers when
+  both servers use the document.
 
 **At the RAS:**
 
@@ -1568,8 +1568,8 @@ agent cannot use the token directly.
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [AGENT-MANAGEMENT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06
-[CIMD]: https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/
-[SCIM-AGENT]: https://datatracker.ietf.org/doc/draft-wzdk-scim-agent-resource/
+[CIMD]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02
+[SCIM-AGENT]: https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00
 [RFC7643]: https://www.rfc-editor.org/rfc/rfc7643
 [RFC7644]: https://www.rfc-editor.org/rfc/rfc7644
 [overview]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#overview
@@ -1661,7 +1661,7 @@ agent cannot use the token directly.
 [AROP]: https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md
 [AUTHZEN-ACTOR]: https://openid.github.io/authzen/authzen-access-request-actor-profile-1_0.html
 [AUTHZEN-ISSUANCE]: https://openid.github.io/authzen/authzen-oauth-token-issuance-1_0.html
-[ACTOR-PROFILE]: https://datatracker.ietf.org/doc/draft-mcguinness-oauth-actor-profile/
+[ACTOR-PROFILE]: https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01
 [MISSION-AUTHZEN]: https://github.com/mcguinness/mission-bound-authorization/blob/main/draft-mcguinness-mission-authzen.md
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted
 [lc-platform-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
