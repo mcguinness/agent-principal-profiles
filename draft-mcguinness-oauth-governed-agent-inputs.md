@@ -112,6 +112,22 @@ applies to delegated access only ("Self-Acting Issuance: WAG" in
 For Client Attestation, `sub` identifies the OAuth client, and the
 client-to-agent mapping is explicit.
 
+## Trust Bundles from Client Metadata {#client-metadata-bundles}
+
+For the SPIFFE inputs, an IdP configured to do so for a client MAY
+validate SVIDs with a bundle it obtains from the
+`spiffe_bundle_endpoint` of a client's Client ID Metadata Document only
+when the trust domain of the document's `spiffe_id` equals, or is a
+subdomain of, the host of the client's `client_id` URL
+({{Section 8.2 of SPIFFE-OAUTH}}). It then uses the bundle only for
+SVIDs presented to authenticate as that client
+({{Section 6.1 of SPIFFE-OAUTH}}), and a SPIFFE ID validated with it
+resolves an agent only through an Identity Binding configured for that
+client. Otherwise the IdP ignores `spiffe_bundle_endpoint` in Client ID
+Metadata Documents, as {{Section 8.2 of SPIFFE-OAUTH}} requires of a
+deployment that does not accept that trust model, and the document
+establishes no approved trust domain.
+
 ## Grant Lifetime {#lifetime}
 
 Under the grant lifetime rule ("Common Grant Claims, Lifetime, and

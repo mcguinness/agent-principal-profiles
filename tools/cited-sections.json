@@ -66,7 +66,9 @@
     "3.3": "Client Authentication using X509-SVID",
     "3.4": "Client Authentication with WIT-SVIDs",
     "5": "SPIFFE Trust Establishment and Client Registration",
-    "6": "SPIFFE Key Distribution and Validation"
+    "6": "SPIFFE Key Distribution and Validation",
+    "6.1": "Bundles from Client Metadata",
+    "8.2": "Trust Bundles from Client ID Metadata Documents"
   },
   "I-D.ietf-wimse-aims-01": {
     "10.8": "Human in the Loop"
