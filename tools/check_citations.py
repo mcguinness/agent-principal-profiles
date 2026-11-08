@@ -43,7 +43,9 @@ CACHE = os.environ.get("CITATION_CACHE",
                        os.path.join(os.path.expanduser("~"), ".cache", "governed-agent-citations"))
 
 REFERENCE = re.compile(r"^  ([A-Za-z0-9._-]+):[ \t]*(\S[^\n]*)?$", re.M)
-CITATION = re.compile(r"\{\{(Section|Appendix) ([0-9A-Z][0-9A-Za-z.]*) of ([A-Za-z0-9._-]+)\}\}")
+# Whitespace inside a citation may include a line break.
+CITATION = re.compile(r"\{\{(Section|Appendix)\s+([0-9A-Z][0-9A-Za-z.]*)\s+of\s+"
+                      r"([A-Za-z0-9._-]+)\}\}")
 # A section heading at column 0: "4.1.  Title", "A.1.  Title" or "Appendix A.  Title".
 HEADING = re.compile(r"^(?:Appendix )?((?:\d+|[A-Z])(?:\.\d+)*)\.?[ \t]+(\S.*)$")
 
