@@ -3329,6 +3329,7 @@ This document does not define the following compositions:
 | Authorization details without scope | Scope is required; the scope-free mode of {{RFC9396}} is not defined |
 | Grant key transition | A bound grant is redeemed with proof of its own key ({{grant-protection}}); no transition to another key is defined |
 | Portable authorization deadlines | ID-JAG `exp` limits redemption only; downstream lifetimes follow RAS policy ({{authorization-lifetime}}) |
+| Public or unattested native agents | Both grant paths authenticate the client ({{scope}}); a client that uses `none` and presents no attestation from a configured attester ({{INPUTS}}) has no governed grant path, and enrolling a key is out of scope ({{overview}}) |
 | User access tokens as subjects, as in deployed on-behalf-of (OBO) flows such as {{AWS-AGENTCORE-OBO}} | Subjects follow {{subject-token-validation}}; accepting an access token needs eligibility, audience, resolution, sender-constraint, and authority rules coordinated with ID-JAG |
 {: title="Excluded compositions"}
 
