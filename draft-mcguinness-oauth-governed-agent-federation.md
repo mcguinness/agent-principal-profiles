@@ -34,8 +34,8 @@ normative:
       - name: D. Sneeggen
       - name: S. O'Dell
     date: 2026-09-28
-  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-11
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
+  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-12
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-01
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile-01
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
@@ -147,7 +147,7 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
-  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-02
+  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-03
 --- abstract
 
 Resource domains need a stable identity for an enterprise-governed agent

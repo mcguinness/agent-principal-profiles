@@ -11,9 +11,9 @@
     "10": "Security Considerations",
     "11": "IANA Considerations"
   },
-  "I-D.ietf-oauth-attestation-based-client-auth-11": {
+  "I-D.ietf-oauth-attestation-based-client-auth-12": {
     "5.2": "Using DPoP as the Proof of Possession",
-    "10.3": "Refresh token binding"
+    "10.3": "Refresh Token Binding"
   },
   "I-D.ietf-oauth-client-id-metadata-document-02": {
     "6": "Authorization Server Metadata"
@@ -58,10 +58,11 @@
   "I-D.ietf-oauth-rfc7523bis-11": {
     "4": "Updates to RFC 7523"
   },
-  "I-D.ietf-oauth-spiffe-client-auth-02": {
-    "3.1": "Client Authentication with JWT-SVIDs",
-    "3.2": "Client Authentication using X509-SVID",
-    "3.3": "Client Authentication with WIT-SVIDs",
+  "I-D.ietf-oauth-spiffe-client-auth-03": {
+    "3.1": "Client Identification",
+    "3.2": "Client Authentication with JWT-SVIDs",
+    "3.3": "Client Authentication using X509-SVID",
+    "3.4": "Client Authentication with WIT-SVIDs",
     "5": "SPIFFE Trust Establishment and Client Registration",
     "6": "SPIFFE Key Distribution and Validation"
   },
@@ -79,12 +80,12 @@
     "9": "Error Responses",
     "10.1": "Authorization Server Metadata"
   },
-  "I-D.mcguinness-oauth-client-attesters-00": {
+  "I-D.mcguinness-oauth-client-attesters-01": {
     "2.1": "Acceptance Policy",
     "2.2": "Registered Endorsements",
     "3": "Client Metadata"
   },
-  "I-D.mcguinness-oauth-client-instance-id-00": {
+  "I-D.mcguinness-oauth-client-instance-id-01": {
     "1.1": "Identity and Scope",
     "4.1": "Receiver Scope",
     "6": "Attester Requirements",
