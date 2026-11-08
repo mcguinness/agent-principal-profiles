@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                          9 October 2026
-Expires: 12 April 2027
+Intended status: Standards Track                         8 November 2026
+Expires: 12 May 2027
 
 
               SCIM Profile for OAuth 2.0 Client Management
@@ -62,7 +62,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 12 April 2027.
+   This Internet-Draft will expire on 12 May 2027.
 
 Copyright Notice
 
@@ -824,9 +824,9 @@ Table of Contents
    [ATTESTER-ENDORSEMENT]
               McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-attesters-00, 28 September 2026,
+              client-attesters-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-attesters-00>.
+              oauth-client-attesters-01>.
 
    [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
               Document", Work in Progress, Internet-Draft, draft-ietf-
