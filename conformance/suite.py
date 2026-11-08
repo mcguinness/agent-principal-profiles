@@ -1458,19 +1458,25 @@ def n39(ctx):
 @case("N40", "RAS", "Keeps an agent disabled at the RAS disabled when it arrives through "
       "another client",
       "core: Introduction; Agent Principal Correlation; Applied Disablement and Revocation",
-      needs=("set:ras.agent_active", "mint_grant"), defeats=("ras.agent_eligibility",))
+      needs=("set:ras.agent_active", "mint_grant"),
+      defeats=("ras.agent_eligibility", "ras.restriction_follows_agent"))
 def n40(ctx):
-    # The agent moves to a second dedicated client. A RAS that keys its
-    # restriction on the client identifier, not on the agent, readmits it.
+    # The agent first arrives through a second dedicated client after it
+    # is disabled; the adapter's reset must leave the RAS with no record
+    # of it arriving there before. A RAS that keys its restriction on the
+    # client identifier, or restricts only the clients it already knows
+    # the agent through, readmits it. Re-enabling the agent then shows
+    # the second client works, so the rejection is the disablement's.
     cfg = ctx.cfg
 
     def through_other_client():
         grant = ctx.adapter.mint_grant(grant_claims(ctx, client_id=cfg.other_ras_client_id))
         return ctx.client.redeem(grant, as_other_client=True)
 
-    expect_token(through_other_client())
     ctx.adapter.set("ras", "agent_active", False)
     expect_error(through_other_client(), 400, "invalid_grant")
+    ctx.adapter.set("ras", "agent_active", True)
+    expect_token(through_other_client())
 
 
 # Deferred redemption at the RAS ---------------------------------------------
