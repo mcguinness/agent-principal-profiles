@@ -1066,7 +1066,7 @@ and carries no `act` (excerpt):
   "iss": "https://ras.example/",
   "sub": "service-principal-42",
   "aud": "https://api.example/tenants/acme-data/",
-  "client_id": "analysis-api",
+  "client_id": "analysis-agent-client",
   "scope": "files.read"
 }
 ~~~
@@ -1077,7 +1077,7 @@ and carries no `act` (excerpt):
   "action": {"name": "read_file"},
   "resource": {"type": "file", "id": "reports/q3.csv"},
   "context": {
-    "client": "analysis-api",
+    "client": "analysis-agent-client",
     "tenant": "acme-data",
     "constraints": {
       "scope": "files.read",
@@ -1087,9 +1087,12 @@ and carries no `act` (excerpt):
 }
 ~~~
 
-The resource is configured for self-acting access, so the local
-principal stands for the Agent Principal and the policy evaluates the
-agent's own authority. No actor gate applies.
+The client registration `analysis-agent-client` is configured for
+self-acting access at this resource, which is how the API tells this
+population apart from the delegated one with the same audience
+([Profile Applicability][api-applicability]). The local principal
+stands for the Agent Principal, and the policy evaluates the agent's
+own authority. No actor gate applies.
 
 #### Access through gateways
 
