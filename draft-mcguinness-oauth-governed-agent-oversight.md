@@ -905,16 +905,20 @@ supervised issuance for a target only where both hold:
     which stops new grants and ends or narrows continuation
     ({{CONTINUATION}});
   * for a grant that can be continued, the IdP's revocation of its
-    chain or of the grant's subtree ({{Section 6.2 of ICA}}), since
-    revocation at one target does not stop descendants accepted at
-    others;
+    chain or of the grant's subtree, which stops new continuations,
+    including from descendants accepted at other targets that
+    revocation at one target does not reach ({{Section 6.2 of ICA}});
   * a Local Suspension at the target; or
   * disabling the agent, once the target applies it.
 
 Revoking one WAG is deployment-specific ({{AGENT-LIFECYCLE}}), so
 supervised self-acting issuance rests on the other interventions.
 
-The intervention bound includes tokens already accepted. An API that
+The intervention bound includes what an intervention leaves usable:
+grants issued and not yet redeemed, the tokens a later redemption
+obtains, tokens already accepted, and any refresh authorization a RAS
+issued. Revoking a chain, for example, leaves an ID-JAG already issued
+redeemable for its own lifetime ({{Section 6.2 of ICA}}). An API that
 validates access tokens without a check accepts them until they expire,
 and no intervention reverses an operation already performed. A
 deployment that cannot document an intervention bound for a target
