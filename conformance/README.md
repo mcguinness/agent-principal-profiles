@@ -116,6 +116,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N36 | IdP | The shared client's exchange without a platform JWT fails with `invalid_request`, not a fallback to the client's own authentication | core: Agent Resolution Input Validation; Issuance Errors | A shared client configured |
 | N37 | IdP | A platform JWT whose `aud` is `https://another-idp.example/` fails with `invalid_request` | core: Existing Platform JWT (Audience); Issuance Errors | A shared client configured |
 | N38 | IdP | A valid platform JWT for `workload-43-shadow`, which only begins with the bound `workload-43`, fails with `invalid_grant` | core: Existing Platform JWT (Resolution); Issuance Errors | A shared client configured |
+| N39 | IdP | A platform JWT whose `cnf.jkt` names another key than the one the request proves fails with `invalid_request`: the reference supports no platform JWT binding, and an unsupported binding never gets bearer treatment | core: Existing Platform JWT (Proof); Issuance Errors | A shared client configured |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -209,9 +210,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7, P12 and D02, name the reference
 checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 96 cases runs once for each check it names,
+`--vacuity`, each of these 97 cases runs once for each check it names,
 with that check switched off; eight S cases name two checks, so there
-are 104 runs, and every run fails. Thirty-three N cases fail because
+are 105 runs, and every run fails. Thirty-four N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, and P12 because the grant then outlives the platform JWT. N36
@@ -515,9 +516,10 @@ The suite tests nothing outside the path above, including:
 
 * governed agent access with unbound grants, except bearer issuance
   (P5 to P7) and as the setup for N10, N30, and D08;
-* the existing platform JWT input beyond P11, P12 and N36 to N38: JSON
-  Pointer selectors, key-bound platform JWTs, a configured maximum age,
-  and self-acting presentation; and the inputs of the inputs draft;
+* the existing platform JWT input beyond P11, P12 and N36 to N39: JSON
+  Pointer selectors, the binding of key-bound platform JWTs (which the
+  reference refuses, N39), a configured maximum age, and self-acting
+  presentation; and the inputs of the inputs draft;
 * WAG issuance and redemption, including deferred WAG redemption, the
   removal of a pending WAG redemption's correlation, and the WAG rows of
   Redemption Errors; self-acting access at the API is covered only with

@@ -109,6 +109,8 @@ CHECKS = {
     "idp.platform_audience": "a platform JWT's aud includes an audience accepted for this IdP",
     "idp.exact_binding": "a platform JWT resolves only through an exact issuer and sub binding, "
                          "never a prefix",
+    "idp.platform_cnf": "a platform JWT with cnf is rejected, since the reference implements no "
+                        "platform JWT binding",
     "idp.evidence_deadline": "the grant expires no later than the platform JWT's evidence "
                              "deadline",
     "idp.client_association": "Client Association permits delegated use of the binding",
@@ -666,6 +668,11 @@ class IdP(Server):
             raise OAuthError("invalid_request", description="platform JWT time")
         if "act" in claims:
             raise OAuthError("invalid_request", description="inbound actor chain")
+        # A key-bound platform JWT needs its proof enforced; the reference
+        # implements none, so it never gives such a JWT bearer treatment
+        # (core: Existing Platform JWT, Proof).
+        if "cnf" in claims and self.on("idp.platform_cnf"):
+            raise OAuthError("invalid_request", description="unsupported platform JWT binding")
         sub = claims.get("sub")
         exact = self.on("idp.exact_binding")
         matches = [(bid, b) for bid, b in self.bindings.items()

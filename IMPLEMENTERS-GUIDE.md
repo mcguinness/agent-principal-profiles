@@ -313,7 +313,7 @@ suite](conformance/README.md) and how far they go:
 | The client registration's `grant_types`, permitting token exchange at the IdP ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:token-exchange` | Client metadata or CIMD | Untested |
 | The client's OpenID Connect registration, so ID Tokens name it as audience | IdP | ID Token `aud` `analysis-client` | No | Direct: N05 |
 | Token exchange for ID-JAG, and the resolution mode: the dedicated client's own authentication, with no actor token | Agreed; IdP configures | Authentication-context resolution | Token exchange and ID-JAG support only; the mode is configuration ([Agent Resolution Input Validation][actor-inputs]) | Positive path: P1 |
-| For a shared client, the existing platform JWT input: the platform issuer and credential class, approved keys and algorithms, evidence deadline, accepted audiences, and each exact issuer-and-`sub` binding ([Existing Platform JWT][imported-jwt-input]) | Agreed; IdP configures | `https://platform.example/` as a dedicated issuer; `ES256`; `exp`; `https://idp.example/`; `workload-43` to `agent-43` | No | Positive path: P11. Direct: P12 (evidence deadline), N36 (no mode fallback), N37 (audience), N38 (exact binding) |
+| For a shared client, the existing platform JWT input: the platform issuer and credential class, approved keys and algorithms, evidence deadline, accepted audiences, and each exact issuer-and-`sub` binding ([Existing Platform JWT][imported-jwt-input]) | Agreed; IdP configures | `https://platform.example/` as a dedicated issuer; `ES256`; `exp`; `https://idp.example/`; `workload-43` to `agent-43` | No | Positive path: P11. Direct: P12 (evidence deadline), N36 (no mode fallback), N37 (audience), N38 (exact binding), N39 (an unsupported key binding refused) |
 | The minimum profile for this client and target: bound, with DPoP at issuance | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; DPoP `ES256` | DPoP algorithms only; the minimum is configuration ([Profile Applicability and Downgrade Prevention][discovery]) | Direct: N03 |
 | The targets the client may request: RAS issuer as `audience`, one resource per grant, and scopes | IdP | `https://ras.example/`; `https://api.example/tenants/acme-data/`; `files.read` | No | Direct for one resource: N04. Direct for scope beyond the delegation: N25 (`invalid_scope`) and N28 (a categorical prohibition, `actor_unauthorized`). Positive path: P1 |
 
@@ -436,7 +436,7 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N38.
+cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.

@@ -1443,6 +1443,18 @@ def n38(ctx):
                  "invalid_grant")
 
 
+@case("N39", "IdP", "Rejects a platform JWT bound to a key the request does not prove",
+      "core: Existing Platform JWT (Proof); Issuance Errors",
+      needs=("shared_client",), defeats=("idp.platform_cnf",))
+def n39(ctx):
+    # The JWT names K2 in cnf; the request proves K1. An IdP that supports
+    # the binding finds the mismatch; one that does not must refuse it
+    # rather than treat the JWT as bearer evidence.
+    evidence = platform_jwt(ctx, cnf={"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k2))})
+    expect_error(ctx.client.shared_exchange(shared_id_token(ctx), evidence), 400,
+                 "invalid_request")
+
+
 # Deferred redemption at the RAS ---------------------------------------------
 #
 # The oversight companion's Deferred Redemption rows. In every case RAS
