@@ -371,7 +371,7 @@ This separates two authorities:
 
 | Authority | Managed values |
 |---|---|
-| CIMD document publisher | OAuth metadata, including authentication method, keys, and redirect URIs |
+| CIMD document publisher | OAuth metadata, including authentication methods, keys, and redirect URIs |
 | Authorization-server administrator through SCIM | Local admission, `active`, `externalId`, and authorized administrative extensions |
 
 CIMD retrieval, validation, caching, and client authentication continue

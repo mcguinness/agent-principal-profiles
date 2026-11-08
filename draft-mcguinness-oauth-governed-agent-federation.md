@@ -2336,6 +2336,13 @@ CIMD. Its `grant_types` MUST permit:
   `urn:ietf:params:oauth:grant-type:jwt-dpop` there when the client
   redeems grants containing `cnf`.
 
+When that metadata is a Client ID Metadata Document, its
+`token_endpoint_auth_methods_supported` MUST include `private_key_jwt`,
+and it MUST publish the client's keys with `jwks` or `jwks_uri`
+({{Section 5 of CIMD}}). A document that lists no authentication method
+describes a client that does not authenticate, which cannot use
+either grant path ({{scope}}).
+
 ### Capability Discovery {#capability-discovery}
 
 Before using either grant path:

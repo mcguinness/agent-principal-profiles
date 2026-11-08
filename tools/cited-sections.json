@@ -16,6 +16,7 @@
     "10.3": "Refresh Token Binding"
   },
   "I-D.ietf-oauth-client-id-metadata-document-03": {
+    "5": "Client Authentication",
     "8": "Authorization Server Metadata"
   },
   "I-D.ietf-oauth-deferred-token-response-01": {
