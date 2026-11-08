@@ -199,8 +199,8 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14, S15, S18, S35 to S37, and the setup
-reads of S25 to S28) therefore requires the code,
+API (N20, S02, S03, S07, S11, S14, S15, S18, S35 to S37, S39, and the
+setup reads of S25 to S28) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
 
@@ -613,10 +613,12 @@ another IdP, RAS or API:
    and an audience the IdP accepts; the IdP also holds the Client
    Association and the user's Delegation Authorization for that agent
    through the shared client. Without it, those cases are not run.
-2. Implement `suite.Adapter` for the deployment. Every case needs
-   `id_token`; the "Test control" column lists the other capabilities.
-   A case whose capability the deployment cannot provide can be skipped
-   and reported as not run. N25 and N28 use `set` on the IdP
+2. Implement `suite.Adapter` for the deployment. Every case whose grant
+   the IdP issues needs `id_token`; the "Test control" column lists the
+   other capabilities. A case whose capability the deployment cannot
+   provide is skipped by raising `suite.NotRun` from the adapter method
+   it needs; `run_case` then reports it as not run. Any other exception
+   ends the run. N25 and N28 use `set` on the IdP
    (`delegation_scope`, `prohibited_scope`). The D cases use `set` on
    the RAS (`approval_required`, `refresh_permitted`,
    `max_pending_lifetime`, `authorization_lifetime`, `client_profile`),
@@ -702,7 +704,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Refresh after a deferred redemption | Only where test control permits it; bound to the client and the DPoP key, not rotated | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation |
 | Client assertion `aud` | The issuer identifier as a string or a one-element array | core: Dedicated Client Identity (Audience) |
 | ID Token audience | Accepted when the `aud` string or array contains the authenticated client, without checking `azp` | ID-JAG Section 4.3.3 |
-| Clock skew and DPoP proof age | 60 s each; no server nonces | core: Time, Replay, and Key Validation; RFC 9449 |
+| Clock skew and DPoP proof age | 60 s each; nonces only under test control (P8 to P10) | core: Time, Replay, and Key Validation; RFC 9449 |
 | Time claims | `exp` enforced on every JWT; `iat` required on ID Tokens, grants and access tokens; `iat` and `nbf`, where present, rejected beyond the skew | core: Time, Replay, and Key Validation; RFC 7519; RFC 7523 Section 3 |
 | Explicit types | `typ` accepted with or without the `application/` prefix | RFC 7515 Section 4.1.9; RFC 9068 Section 4 |
 | Lifetimes | ID Token 65 min (as the oversight walkthrough uses), grant 300 s, access token 600 s | core: Common Grant Claims |
