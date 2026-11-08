@@ -603,6 +603,14 @@ use](IMPLEMENTERS-GUIDE.md#distributed-platforms-and-key-use) and
 [optional
 exchanges](IMPLEMENTERS-GUIDE.md#optional-exchanges-within-the-core).
 
+A platform's agents can authenticate in three ways, at these costs:
+
+| Choice | Benefit | Cost |
+|---|---|---|
+| A client per agent, without a governed principal | Plain OAuth client authentication; each agent's tokens carry its own `client_id` | The client identifier stands for the agent, so a resource domain's restriction keyed on it lapses when the agent moves to another client, and agents behind a shared client or a gateway cannot be told apart |
+| A dedicated client per governed agent | The agent keeps one Agent Principal across clients and platforms; resource domains restrict it by issuer and identifier | Per agent: a client at the IdP, a registration at each RAS with its client registration association, which no companion provisions, and a user authorization flow for each client, since ID Tokens are issued to that client |
+| A shared platform client presenting platform JWTs | One client, registration, and user authorization flow for many agents | The IdP trusts the platform as a credential authority; the evidence is bearer unless key-bound; an optional input that an IdP claiming only the mandatory path does not accept ([shared platform clients](#shared-platform-clients)) |
+
 ## Changes, failures, and recovery
 
 Identity and authority have separate owners, checks, and lifetimes, so
