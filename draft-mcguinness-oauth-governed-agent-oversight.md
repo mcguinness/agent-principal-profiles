@@ -1311,6 +1311,14 @@ Each case changes this variant as stated; all other checks succeed.
    include the grant's own expiration when the client does not present
    the grant again. {{redemption-deferring}} reads them as checked on
    receipt.
+6. **Continuation mode floor.** Whether a continuation's mode may be
+   lower than the mode policy requires for the same agent, user,
+   target, and authority requested directly. Policy selects the mode at
+   each decision point ({{modes}}), so a deployment that keys approval
+   on the requesting client does not require it when a gateway
+   continues to the same target. A negative test comes before the
+   choice between a rule and guidance: approval required for a direct
+   request, and the gateway's continuation without the opt-in.
 
 # Document History
 {:numbered="false"}
