@@ -28,7 +28,6 @@ agent acts for:
 ```mermaid
 flowchart TB
   subgraph platform["Agent platform"]
-    connector["SCIM connector"]
     agent["Agent<br/>identified by a client key,<br/>platform JWT, SVID,<br/>or attestation"]
     client["OAuth client<br/>one per agent, or shared"]
   end
@@ -38,19 +37,33 @@ flowchart TB
     api["API<br/>enforces access"]
   end
   agent -->|"its credential"| client
-  connector -->|"register agents, bindings,<br/>and client associations"| idp
   client <-->|"token exchange,<br/>ID-JAG or WAG"| idp
   client <-->|"redeem the grant,<br/>access token"| ras
   client -->|"call"| api
 ```
 
-An agent platform connects to the IdP in three ways:
+Around that path, SCIM keeps the IdP, the platform, and the resource
+domains in step, and optional Shared Signals Framework (SSF) streams
+carry events between them:
+
+```mermaid
+flowchart LR
+  platform["Agent platform<br/>SCIM connector"]
+  idp["Governing IdP"]
+  domain["Resource domain<br/>RAS and API"]
+  platform -->|"SCIM: register agents,<br/>bindings, client associations"| idp
+  idp -->|"SCIM: status of the<br/>agents it hosts"| platform
+  platform <-.->|"SSF: WISE and CAEP events<br/>about the agents it hosts"| idp
+  idp -->|"SCIM: provision agents<br/>and their status"| domain
+  idp -.->|"SSF: SCIM events,<br/>CAEP session revocation"| domain
+```
 
 | Connection | What happens | Defined in |
 |---|---|---|
-| Registration | The platform's SCIM connector registers each agent at the IdP. For an agent that obtains grants, it also binds the agent's identity to it and associates the OAuth clients that may use it. Each is a separate permission the IdP grants the connector | [SCIM management][management]; [SCIM OAuth client management][oauth-client] for the clients themselves |
-| Token exchange | The platform's OAuth client presents the agent's identity: its own client authentication when it serves one agent, the platform's JWT for the agent when it is shared, or a SPIFFE SVID or Client Attestation. The IdP trusts only issuers and keys configured in advance, and resolves the identity to the Agent Principal through an enabled Identity Binding | [Core][core]; [input profiles][inputs] for SVIDs and Client Attestation |
-| Lifecycle | Agents and their disablement are provisioned to the resource domains, and to a platform for the agents it hosts. Each applies a disablement to the OAuth authorization it issued | [Lifecycle][lifecycle] |
+| Token exchange (OAuth) | The platform's OAuth client presents the agent's identity: its own client authentication when it serves one agent, the platform's JWT for the agent when it is shared, or a SPIFFE SVID or Client Attestation. The IdP trusts only issuers and keys configured in advance, and resolves the identity to the Agent Principal through an enabled Identity Binding | [Core][core]; [input profiles][inputs] for SVIDs and Client Attestation |
+| Registration (SCIM, platform to IdP) | The platform's SCIM connector registers each agent at the IdP. For an agent that obtains grants, it also binds the agent's identity to it and associates the OAuth clients that may use it. Each is a separate permission the IdP grants the connector | [SCIM management][management]; [SCIM OAuth client management][oauth-client] for the clients themselves |
+| Provisioning (SCIM, from the IdP) | Agents and their status are provisioned to each resource domain, and a platform obtains the status of the agents it hosts. Each applies a disablement to the OAuth authorization it issued | [Lifecycle][lifecycle] |
+| Signals (SSF, optional) | Resource domains receive SCIM change notices and CAEP session revocation. A platform can send WISE credential and posture events and CAEP session revocation about the agents it hosts, and receive CAEP risk changes. No event changes an agent's status directly: a SCIM change notice triggers retrieval of the current state | [Lifecycle][lifecycle] |
 
 Companion profiles also add gateways that call further resource domains,
 and human oversight, without changing this path; the architecture
