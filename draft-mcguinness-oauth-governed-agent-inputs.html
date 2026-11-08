@@ -1174,10 +1174,13 @@ agent-resolution input contract and is claimed separately.<a href="#section-abst
                 <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-qualified-identities" class="internal xref">Qualified Identities</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
-                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-grant-lifetime" class="internal xref">Grant Lifetime</a></p>
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-trust-bundles-from-client-m" class="internal xref">Trust Bundles from Client Metadata</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
-                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-algorithms" class="internal xref">Algorithms</a></p>
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-grant-lifetime" class="internal xref">Grant Lifetime</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-algorithms" class="internal xref">Algorithms</a></p>
 </li>
             </ul>
 </li>
@@ -1360,13 +1363,33 @@ applies to delegated access only ("Self-Acting Issuance: WAG" in
 client-to-agent mapping is explicit.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="lifetime">
+<div id="client-metadata-bundles">
 <section id="section-3.2">
-        <h3 id="name-grant-lifetime">
-<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-grant-lifetime" class="section-name selfRef">Grant Lifetime</a>
+        <h3 id="name-trust-bundles-from-client-m">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-trust-bundles-from-client-m" class="section-name selfRef">Trust Bundles from Client Metadata</a>
         </h3>
-<p id="section-3.2-1">Under the grant lifetime rule ("Common Grant Claims, Lifetime, and
-Response" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), these inputs bound the grant as follows:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-1">For the SPIFFE inputs, an IdP configured to do so for a client <span class="bcp14">MAY</span>
+validate SVIDs with a bundle it obtains from the
+<code>spiffe_bundle_endpoint</code> of a client's Client ID Metadata Document only
+when the trust domain of the document's <code>spiffe_id</code> equals, or is a
+subdomain of, the host of the client's <code>client_id</code> URL
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>). It then uses the bundle only for
+SVIDs presented to authenticate as that client
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>), and a SPIFFE ID validated with it
+resolves an agent only through an Identity Binding configured for that
+client. Otherwise the IdP ignores <code>spiffe_bundle_endpoint</code> in Client ID
+Metadata Documents, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> requires of a
+deployment that does not accept that trust model, and the document
+establishes no approved trust domain.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="lifetime">
+<section id="section-3.3">
+        <h3 id="name-grant-lifetime">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-grant-lifetime" class="section-name selfRef">Grant Lifetime</a>
+        </h3>
+<p id="section-3.3-1">Under the grant lifetime rule ("Common Grant Claims, Lifetime, and
+Response" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), these inputs bound the grant as follows:<a href="#section-3.3-1" class="pilcrow">¶</a></p>
 <span id="name-grant-lifetime-bound-by-inp"></span><table class="center" id="table-2">
           <caption>
 <a href="#table-2" class="selfRef">Table 2</a>:
@@ -1397,12 +1420,12 @@ Response" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</spa
 </section>
 </div>
 <div id="algorithms-inputs">
-<section id="section-3.3">
+<section id="section-3.4">
         <h3 id="name-algorithms">
-<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-algorithms" class="section-name selfRef">Algorithms</a>
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-algorithms" class="section-name selfRef">Algorithms</a>
         </h3>
-<p id="section-3.3-1">Implementations that support the JWT-SVID input <span class="bcp14">MUST</span> support this
-capability in addition to those of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>:<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.4-1">Implementations that support the JWT-SVID input <span class="bcp14">MUST</span> support this
+capability in addition to those of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>:<a href="#section-3.4-1" class="pilcrow">¶</a></p>
 <span id="name-mandatory-to-implement-algo"></span><table class="center" id="table-3">
           <caption>
 <a href="#table-3" class="selfRef">Table 3</a>:
@@ -1417,7 +1440,7 @@ capability in addition to those of <span>[<a href="#FEDERATION" class="cite xref
           <tbody>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">JWT-SVID, where supported</td>
-              <td class="text-left" rowspan="1" colspan="1">IdP validation: <code>RS256</code> under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, plus <code>ES256</code> added by this profile</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP validation: <code>RS256</code> under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.2" class="relref">Section 3.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, plus <code>ES256</code> added by this profile</td>
             </tr>
           </tbody>
         </table>
@@ -1442,8 +1465,9 @@ section.<a href="#section-4-1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-4-2.2">
           <p id="section-4-2.2.1"><strong>Validation:</strong> Before resolving the agent, the IdP <span class="bcp14">MUST</span> apply
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, including the assertion type, and
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-5" class="relref">Section 5</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> for
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.2" class="relref">Section 3.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, including the assertion type and the
+client identification of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, and
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-5" class="relref">Section 5</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> for
 trust establishment and key distribution. It <span class="bcp14">MUST</span> also verify the
 signature, before resolving the agent, with keys authorized for the
 SPIFFE ID's trust domain. An
@@ -1494,7 +1518,7 @@ that attester.<a href="#section-5-2.2.1" class="pilcrow">¶</a></p>
         <li class="normal" id="section-5-2.3">
           <p id="section-5-2.3.1"><strong>Attester endorsement:</strong> The IdP <span class="bcp14">MAY</span> derive the attester-to-client
 association from an endorsement it accepts under
-<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-2.1" class="relref">Section 2.1</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>. An endorsement <span class="bcp14">MUST NOT</span>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01#section-2.1" class="relref">Section 2.1</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>. An endorsement <span class="bcp14">MUST NOT</span>
 create or change an Identity Binding or Client Association. Because
 the binding names the attester, a newly endorsed attester resolves no
 Agent Principal until an Identity Binding names it. An endorsement
@@ -1511,8 +1535,8 @@ validated <code>sub</code> through an approved Identity Binding
 Client Attestation carrying <code>client_instance_id</code> under <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
             <span class="bcp14">MAY</span> resolve the agent instead. The IdP <span class="bcp14">MUST</span> accept it only from an
 attester configured to assign that identifier at Installation
-granularity (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-1.1" class="relref">Section 1.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>) under the continuity rules
-of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-6" class="relref">Section 6</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. The Identity Binding names the exact
+granularity (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01#section-1.1" class="relref">Section 1.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>) under the continuity rules
+of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01#section-6" class="relref">Section 6</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. The Identity Binding names the exact
 attester, client (<code>sub</code>), IdP Receiver Scope, and
 <code>client_instance_id</code>. Trusted configuration for the client selects
 client-level or installation-level resolution. Attestation claims <span class="bcp14">MUST NOT</span> select the level, and a failed match <span class="bcp14">MUST NOT</span> fall back to the
@@ -1523,7 +1547,7 @@ across identifiers or attesters.<a href="#section-5-2.5.1" class="pilcrow">¶</a
         <li class="normal" id="section-5-2.6">
           <p id="section-5-2.6.1"><strong>Proof:</strong> With <code>attest_jwt_client_auth</code>, any grant proof key <span class="bcp14">MUST</span>
 match the attestation's confirmation key. This narrows the allowance
-in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.2" class="relref">Section 5.2</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> for a separate DPoP key. With
+in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-12#section-5.2" class="relref">Section 5.2</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> for a separate DPoP key. With
 <code>attest_jwt_client_auth_dpop</code>, one DPoP proof serves both roles. Key
 retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Section 7.1</a>, and
 <a href="#implementation-instance" class="auto internal xref">Section 7.2</a> covers instance keys at the RAS.<a href="#section-5-2.6.1" class="pilcrow">¶</a></p>
@@ -1556,7 +1580,7 @@ identity granularity. <a href="#svid-context-example" class="auto internal xref"
 proof in <code>OAuth-Client-Attestation-PoP</code>.<a href="#section-6.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.1-1.2">
-            <p id="section-6.1-1.2.1"><strong>Validation:</strong> The IdP <span class="bcp14">MUST</span> apply <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-3.3" class="relref">Section 3.3</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and
+            <p id="section-6.1-1.2.1"><strong>Validation:</strong> The IdP <span class="bcp14">MUST</span> apply <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.4" class="relref">Section 3.4</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and
 <span>[<a href="#WIT" class="cite xref">WIT</a>]</span>, including their client-identifier association, trust,
 validity, and proof requirements. It <span class="bcp14">MUST</span> require <code>typ=wit+jwt</code>. It
 <span class="bcp14">MUST</span> validate possession of the key in <code>cnf.jwk</code> through the Client
@@ -1592,10 +1616,11 @@ Attestation PoP JWT remains required. Key retention follows
 carrying the token request.<a href="#section-6.2-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.2-1.2">
-            <p id="section-6.2-1.2.1"><strong>Validation:</strong> The IdP <span class="bcp14">MUST</span> apply <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-3.2" class="relref">Section 3.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and
-<span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span> to the certificate and proof established by mutual TLS
-for this request. This includes their client-identifier association,
-trust, validity, and proof requirements. A certificate supplied only
+            <p id="section-6.2-1.2.1"><strong>Validation:</strong> The IdP <span class="bcp14">MUST</span> apply <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.3" class="relref">Section 3.3</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>,
+which profiles <span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>, to the certificate and proof established
+by mutual TLS for this request. This includes its client
+identification (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>), trust, validity,
+and proof requirements. A certificate supplied only
 in a request parameter or an untrusted forwarding header <span class="bcp14">MUST NOT</span>
 establish the workload identity, and the request then fails client
 authentication. TLS termination follows <span><a href="https://rfc-editor.org/rfc/rfc8705#section-6.5" class="relref">Section 6.5</a> of [<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>.<a href="#section-6.2-1.2.1" class="pilcrow">¶</a></p>
@@ -1646,7 +1671,7 @@ defined ("Excluded Compositions" in <span>[<a href="#FEDERATION" class="cite xre
 <a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-instance-keys-at-the-ras" class="section-name selfRef">Instance Keys at the RAS</a>
         </h3>
 <p id="section-7.2-1">With <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>, instance keys differ per receiver scope
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>). A bound grant carries the IdP-scoped key.
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01#section-4.1" class="relref">Section 4.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>). A bound grant carries the IdP-scoped key.
 A client that also authenticates to the RAS with a Client Attestation
 therefore uses <code>attest_jwt_client_auth</code> there and proves the grant key
 with a separate DPoP proof, unless the IdP and RAS share a receiver
@@ -1665,7 +1690,7 @@ bearer evidence limits. In the JWT-SVID path, the same bearer credential
 also satisfies client authentication, so that check is not an
 independent possession factor.<a href="#section-8-1" class="pilcrow">¶</a></p>
 <p id="section-8-2">Managed-installation resolution relies on the attester's continuity
-evidence and enrollment controls (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-9" class="relref">Section 9</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>).<a href="#section-8-2" class="pilcrow">¶</a></p>
+evidence and enrollment controls (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01#section-9" class="relref">Section 9</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>).<a href="#section-8-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="privacy-considerations">
@@ -1674,7 +1699,7 @@ evidence and enrollment controls (<span><a href="https://datatracker.ietf.org/do
 <a href="#section-9" class="section-number selfRef">9. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
       </h2>
 <p id="section-9-1">The privacy considerations of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> apply. Client instance
-identifiers are scoped per receiver under <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-10" class="relref">Section 10</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>.<a href="#section-9-1" class="pilcrow">¶</a></p>
+identifiers are scoped per receiver under <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01#section-10" class="relref">Section 10</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>.<a href="#section-9-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana-considerations">
@@ -1697,15 +1722,15 @@ identifiers are scoped per receiver under <span><a href="https://datatracker.iet
 <dd class="break"></dd>
 <dt id="ATTEST">[ATTEST]</dt>
       <dd>
-<span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-11</span>, <time datetime="2026-09-03" class="refDate">3 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11</a>&gt;</span>. </dd>
+<span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-12</span>, <time datetime="2026-10-12" class="refDate">12 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-12">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-12</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
       <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters-01</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-01</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="INSTANCE">[INSTANCE]</dt>
       <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Client Instance Identification for Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-id-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Instance Identifiers"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-id-01</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-01</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC8705">[RFC8705]</dt>
       <dd>
@@ -1717,11 +1742,11 @@ identifiers are scoped per receiver under <span><a href="https://datatracker.iet
 <dd class="break"></dd>
 <dt id="SPIFFE-OAUTH">[SPIFFE-OAUTH]</dt>
       <dd>
-<span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Rose, S.</span>, <span class="refAuthor">Thorgersen, S.</span>, and <span class="refAuthor">N. Cam-Winget</span>, <span class="refTitle">"OAuth SPIFFE Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-spiffe-client-auth-02</span>, <time datetime="2026-06-15" class="refDate">15 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02</a>&gt;</span>. </dd>
+<span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Rose, S.</span>, <span class="refAuthor">Thorgersen, S.</span>, and <span class="refAuthor">N. Cam-Winget</span>, <span class="refTitle">"OAuth SPIFFE Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-spiffe-client-auth-03</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="WIT">[WIT]</dt>
       <dd>
-<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Sheffer, Y.</span>, and <span class="refAuthor">Y. Rosomakho</span>, <span class="refTitle">"WIMSE Workload Credentials"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-workload-creds-02</span>, <time datetime="2026-07-02" class="refDate">2 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02</a>&gt;</span>. </dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Sheffer, Y.</span>, and <span class="refAuthor">Y. Rosomakho</span>, <span class="refTitle">"WIMSE Workload Credentials"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-workload-creds-03</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-03">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-03</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
     <dd>
@@ -1788,7 +1813,7 @@ except that the WIT-SVID variant uses the WIT-SVID key. The
 X.509-SVID variant's DPoP key may differ from its TLS key.<a href="#appendix-A-4.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-A-4.2">
-          <p id="appendix-A-4.2.1"><strong>Lifetime:</strong> The input bounds the grant lifetime under <a href="#lifetime" class="auto internal xref">Section 3.2</a>.<a href="#appendix-A-4.2.1" class="pilcrow">¶</a></p>
+          <p id="appendix-A-4.2.1"><strong>Lifetime:</strong> The input bounds the grant lifetime under <a href="#lifetime" class="auto internal xref">Section 3.3</a>.<a href="#appendix-A-4.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-A-4.3">
           <p id="appendix-A-4.3.1"><strong>Client Association:</strong> Each variant needs a Client Association for

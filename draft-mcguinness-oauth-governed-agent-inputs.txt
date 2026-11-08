@@ -76,8 +76,9 @@ Table of Contents
    2.  Conformance
    3.  Common Rules for These Inputs
      3.1.  Qualified Identities
-     3.2.  Grant Lifetime
-     3.3.  Algorithms
+     3.2.  Trust Bundles from Client Metadata
+     3.3.  Grant Lifetime
+     3.4.  Algorithms
    4.  SPIFFE JWT-SVID
    5.  Client Attestation
    6.  SPIFFE WIT-SVID and X.509-SVID Resolution
@@ -174,7 +175,23 @@ Table of Contents
    For Client Attestation, sub identifies the OAuth client, and the
    client-to-agent mapping is explicit.
 
-3.2.  Grant Lifetime
+3.2.  Trust Bundles from Client Metadata
+
+   For the SPIFFE inputs, an IdP configured to do so for a client MAY
+   validate SVIDs with a bundle it obtains from the
+   spiffe_bundle_endpoint of a client's Client ID Metadata Document only
+   when the trust domain of the document's spiffe_id equals, or is a
+   subdomain of, the host of the client's client_id URL (Section 8.2 of
+   [SPIFFE-OAUTH]).  It then uses the bundle only for SVIDs presented to
+   authenticate as that client (Section 6.1 of [SPIFFE-OAUTH]), and a
+   SPIFFE ID validated with it resolves an agent only through an
+   Identity Binding configured for that client.  Otherwise the IdP
+   ignores spiffe_bundle_endpoint in Client ID Metadata Documents, as
+   Section 8.2 of [SPIFFE-OAUTH] requires of a deployment that does not
+   accept that trust model, and the document establishes no approved
+   trust domain.
+
+3.3.  Grant Lifetime
 
    Under the grant lifetime rule ("Common Grant Claims, Lifetime, and
    Response" in [FEDERATION]), these inputs bound the grant as follows:
@@ -194,7 +211,7 @@ Table of Contents
 
                    Table 2: Grant lifetime bound by input
 
-3.3.  Algorithms
+3.4.  Algorithms
 
    Implementations that support the JWT-SVID input MUST support this
    capability in addition to those of [FEDERATION]:
@@ -204,7 +221,7 @@ Table of Contents
           |                 | capability                       |
           +=================+==================================+
           | JWT-SVID, where | IdP validation: RS256 under      |
-          | supported       | Section 3.1 of [SPIFFE-OAUTH],   |
+          | supported       | Section 3.2 of [SPIFFE-OAUTH],   |
           |                 | plus ES256 added by this profile |
           +-----------------+----------------------------------+
 
@@ -223,7 +240,8 @@ Table of Contents
       type:jwt-spiffe.
 
    *  *Validation:* Before resolving the agent, the IdP MUST apply
-      Section 3.1 of [SPIFFE-OAUTH], including the assertion type, and
+      Section 3.2 of [SPIFFE-OAUTH], including the assertion type and
+      the client identification of Section 3.1 of [SPIFFE-OAUTH], and
       Section 5 of [SPIFFE-OAUTH] and Section 6 of [SPIFFE-OAUTH] for
       trust establishment and key distribution.  It MUST also verify the
       signature, before resolving the agent, with keys authorized for
@@ -315,7 +333,7 @@ Table of Contents
    *  *Presentation:* The WIT-SVID in OAuth-Client-Attestation, with its
       proof in OAuth-Client-Attestation-PoP.
 
-   *  *Validation:* The IdP MUST apply Section 3.3 of [SPIFFE-OAUTH] and
+   *  *Validation:* The IdP MUST apply Section 3.4 of [SPIFFE-OAUTH] and
       [WIT], including their client-identifier association, trust,
       validity, and proof requirements.  It MUST require typ=wit+jwt.
       It MUST validate possession of the key in cnf.jwk through the
@@ -339,14 +357,14 @@ Table of Contents
    *  *Presentation:* The client certificate on the mutual-TLS
       connection carrying the token request.
 
-   *  *Validation:* The IdP MUST apply Section 3.2 of [SPIFFE-OAUTH] and
-      [RFC8705] to the certificate and proof established by mutual TLS
-      for this request.  This includes their client-identifier
-      association, trust, validity, and proof requirements.  A
-      certificate supplied only in a request parameter or an untrusted
-      forwarding header MUST NOT establish the workload identity, and
-      the request then fails client authentication.  TLS termination
-      follows Section 6.5 of [RFC8705].
+   *  *Validation:* The IdP MUST apply Section 3.3 of [SPIFFE-OAUTH],
+      which profiles [RFC8705], to the certificate and proof established
+      by mutual TLS for this request.  This includes its client
+      identification (Section 3.1 of [SPIFFE-OAUTH]), trust, validity,
+      and proof requirements.  A certificate supplied only in a request
+      parameter or an untrusted forwarding header MUST NOT establish the
+      workload identity, and the request then fails client
+      authentication.  TLS termination follows Section 6.5 of [RFC8705].
 
    *  *Resolution:* The IdP MUST resolve the approved trust domain and
       exact SPIFFE ID in the certificate's URI Subject Alternative Name
@@ -416,23 +434,22 @@ Table of Contents
    [ATTEST]   Looker, T., Bastian, P., and C. Bormann, "OAuth 2.0
               Attestation-Based Client Authentication", Work in
               Progress, Internet-Draft, draft-ietf-oauth-attestation-
-              based-client-auth-11, 3 September 2026,
+              based-client-auth-12, 12 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              attestation-based-client-auth-11>.
+              attestation-based-client-auth-12>.
 
    [ATTESTER-ENDORSEMENT]
               McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-attesters-00, 28 September 2026,
+              client-attesters-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-attesters-00>.
+              oauth-client-attesters-01>.
 
-   [INSTANCE] McGuinness, K., "Client Instance Identification for
-              Attestation-Based Client Authentication", Work in
-              Progress, Internet-Draft, draft-mcguinness-oauth-client-
-              instance-id-00, 28 September 2026,
+   [INSTANCE] McGuinness, K., "OAuth 2.0 Client Instance Identifiers",
+              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
+              client-instance-id-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-instance-id-00>.
+              oauth-client-instance-id-01>.
 
    [RFC8705]  Campbell, B., Bradley, J., Sakimura, N., and T.
               Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication
@@ -449,16 +466,16 @@ Table of Contents
               Schwenkschuster, A., Kasselman, P., Rose, S., Thorgersen,
               S., and N. Cam-Winget, "OAuth SPIFFE Client
               Authentication", Work in Progress, Internet-Draft, draft-
-              ietf-oauth-spiffe-client-auth-02, 15 June 2026,
+              ietf-oauth-spiffe-client-auth-03, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              spiffe-client-auth-02>.
+              spiffe-client-auth-03>.
 
    [WIT]      Campbell, B., Salowey, J. A., Schwenkschuster, A.,
               Sheffer, Y., and Y. Rosomakho, "WIMSE Workload
               Credentials", Work in Progress, Internet-Draft, draft-
-              ietf-wimse-workload-creds-02, 2 July 2026,
+              ietf-wimse-workload-creds-03, 30 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
-              workload-creds-02>.
+              workload-creds-03>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
@@ -511,7 +528,7 @@ Appendix A.  Input Variants
       proof, except that the WIT-SVID variant uses the WIT-SVID key.
       The X.509-SVID variant's DPoP key may differ from its TLS key.
 
-   *  *Lifetime:* The input bounds the grant lifetime under Section 3.2.
+   *  *Lifetime:* The input bounds the grant lifetime under Section 3.3.
 
    *  *Client Association:* Each variant needs a Client Association for
       its authenticated client.  The JWT-SVID variant needs a separate
