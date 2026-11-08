@@ -160,6 +160,10 @@ CHECKS = {
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
     "api.bound_token_scheme": "a DPoP-bound access token presented with the Bearer scheme is "
                               "rejected",
+    "api.challenge_scheme": "every challenge uses the request's scheme: Bearer, with a realm, "
+                            "for a bearer request",
+    "api.bearer_outage": "a bearer request whose token cannot be validated gets HTTP 503; no "
+                         "proof failure is established for it",
     "api.token_time": "access token iat and nbf are not in the future",
     "api.require_act": "a governed delegated token carries a valid act",
     "api.tenant": "the token's tenant matches the requested tenant",
@@ -1635,19 +1639,23 @@ class API(Server):
         # Request-derived attributes, standing in for a tool call's arguments.
         attributes = {k: v[0] if len(v) == 1 else v for k, v in
                       parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=True).items()}
+        scheme, _, token = environ.get("HTTP_AUTHORIZATION", "").partition(" ")
+        bearer = scheme == "Bearer" and bool(self.bearer_permitted)
+        # Challenges use the selected scheme (core: Error Responses).
+        selected = "Bearer" if bearer and self.on("api.challenge_scheme") else "DPoP"
         # Invalid arguments rank after token and token-context failures and
         # before every authorization failure (core: Error Responses, row 3).
         bad_arguments = routed and method == "GET" and self.invalid_arguments(attributes)
         validate_first = self.evaluation_order == "validate_first"
         if bad_arguments and validate_first and not self.on("api.argument_rank"):
             # Non-conforming: reported as found, before the token is checked.
-            raise self.argument_rejection()
+            raise self.argument_rejection(selected)
         invalid = OAuthError("invalid_token", 401,
-                             challenge='DPoP error="invalid_token", algs="ES256"')
-        scheme, _, token = environ.get("HTTP_AUTHORIZATION", "").partition(" ")
-        bearer = scheme == "Bearer" and bool(self.bearer_permitted)
+                             challenge=self.challenge(selected, error="invalid_token"))
         if not (scheme == "DPoP" or bearer) or not token:
-            raise OAuthError("invalid_request", 401, challenge='DPoP algs="ES256"')
+            offered = self.challenge("DPoP") + (", " + self.challenge("Bearer")
+                                                if self.bearer_permitted else "")
+            raise OAuthError("invalid_request", 401, challenge=offered)
         # Token validation (RFC 9068), or introspection for an opaque token.
         introspected = token.count(".") != 2
         try:
@@ -1656,10 +1664,12 @@ class API(Server):
         except IntrospectionUnavailable:
             if not self.on("api.introspection_unavailable"):
                 raise invalid   # non-conforming: an outage read as an invalid token
-            if self.on("api.established_failure"):
+            if self.on("api.established_failure") and \
+                    (not bearer or not self.on("api.bearer_outage")):
                 # Token validation is unfinished, but a proof failure in the
                 # same row is established without the response (core: Error
                 # Responses); the key binding needs cnf, so it stays unchecked.
+                # A bearer request has no proof, so nothing is established.
                 if self.validate_dpop(environ, htm, API_BASE + path, access_token=token,
                                       status=401) is None:
                     raise invalid
@@ -1673,8 +1683,8 @@ class API(Server):
             aud = aud[0] if isinstance(aud, list) and len(aud) == 1 else aud
             if (cnf and self.on("api.bound_token_scheme")) or aud not in self.bearer_permitted:
                 raise OAuthError("invalid_token", 401,
-                                 challenge='Bearer error="invalid_token", '
-                                           'DPoP algs="ES256"')
+                                 challenge=self.challenge("Bearer", error="invalid_token") +
+                                 ", " + self.challenge("DPoP"))
         else:
             jkt = self.validate_dpop(environ, htm, API_BASE + path, access_token=token,
                                      status=401)
@@ -1710,7 +1720,7 @@ class API(Server):
         if token_tenant is None or (token_tenant != tenant and self.on("api.tenant")):
             raise invalid
         if bad_arguments and validate_first:
-            raise self.argument_rejection()
+            raise self.argument_rejection(selected)
         # Authorization of a valid token (core: Error Responses). Every
         # failing condition is recorded, and the first in the reporting
         # order is reported: the actor gate, then token authority, then any
@@ -1759,7 +1769,7 @@ class API(Server):
             # first, before any denial and before an unfinished check.
             if incomplete is not None and not self.on("api.arguments_outrank_unfinished"):
                 raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
-            raise self.argument_rejection()
+            raise self.argument_rejection(selected)
         if incomplete is not None:
             # An evaluation that could not complete is not a denial. A failure
             # is still reported when no unfinished check comes before it in
@@ -1772,10 +1782,10 @@ class API(Server):
                 failures.setdefault("other", [])   # non-conforming: treated as a denial
         if failures:
             reason = next(r for r in order if r in failures)
-            raise self.denial(population, reason, failures[reason])
+            raise self.denial(population, reason, failures[reason], selected)
         if bad_arguments:
             # Non-conforming order: reached only after every authorization check passed.
-            raise self.argument_rejection()
+            raise self.argument_rejection(selected)
         data = self.files.get((tenant, name))
         if data is None:
             return _respond(start_response, 404, {"error": "not_found"})
@@ -1898,11 +1908,19 @@ class API(Server):
         return "version" in attributes and not _positive_integer(attributes["version"])
 
     @staticmethod
-    def argument_rejection():
+    def challenge(scheme, **params):
+        """A challenge in the selected scheme (core: Error Responses): DPoP with its
+        algorithms (RFC 9449 Section 7.1), or Bearer with a realm (RFC 6750 Section 3)."""
+        attributes = [f'{name}="{value}"' for name, value in params.items()]
+        if scheme == "Bearer":
+            return "Bearer " + ", ".join(['realm="api.example"'] + attributes)
+        return "DPoP " + ", ".join(attributes + ['algs="ES256"'])
+
+    def argument_rejection(self, scheme="DPoP"):
         """HTTP 400 invalid_request (RFC 6750 Section 3.1) for an invalid argument (core:
         Error Responses, row 3). The body conveys no denial code."""
         return OAuthError("invalid_request", 400,
-                          challenge='DPoP error="invalid_request", algs="ES256"')
+                          challenge=self.challenge(scheme, error="invalid_request"))
 
     def order(self):
         """The reporting order for a valid token's denials (core: Error Responses)."""
@@ -1914,7 +1932,7 @@ class API(Server):
         return isinstance(decision, dict) and isinstance(decision.get("decision"), bool) and \
             (decision["decision"] or decision.get("reason") in ERROR_ORDER)
 
-    def denial(self, population, reason, scopes):
+    def denial(self, population, reason, scopes, scheme="DPoP"):
         """HTTP 403 for a valid token, by the first failing condition (core: Error Responses).
 
         The actor gate gets actor_unauthorized, and token authority gets
@@ -1926,16 +1944,15 @@ class API(Server):
             # Non-conforming: one code for every denial, actor_unauthorized
             # for a delegated token and insufficient_scope for a self-acting one.
             code = "actor_unauthorized" if population == "delegated" else "insufficient_scope"
-            return OAuthError(code, 403, challenge=f'DPoP error="{code}", algs="ES256"')
+            return OAuthError(code, 403, challenge=self.challenge(scheme, error=code))
         if reason == "actor":
             return OAuthError("actor_unauthorized", 403,
-                              challenge='DPoP error="actor_unauthorized", algs="ES256"')
+                              challenge=self.challenge(scheme, error="actor_unauthorized"))
         if reason == "authority":
             scope = " ".join(dict.fromkeys(scopes))
-            return OAuthError("insufficient_scope", 403,
-                              challenge=f'DPoP error="insufficient_scope", scope="{scope}", '
-                                        'algs="ES256"')
-        return OAuthError(None, 403, challenge='DPoP algs="ES256"')
+            return OAuthError("insufficient_scope", 403, challenge=self.challenge(
+                scheme, error="insufficient_scope", scope=scope))
+        return OAuthError(None, 403, challenge=self.challenge(scheme))
 
 
 class _QuietHandler(WSGIRequestHandler):

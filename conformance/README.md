@@ -177,6 +177,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S35 | API | A read of a file that does not exist, while the API's actor gate denies, gets 403 `actor_unauthorized`, not 404 | core: Error Responses; Error Disclosure | Close the actor gate at the API |
 | S36 | API | A token whose `act` names `agent-42` under the home issuer is served; the same `sub` under a trusted partner issuer gets 403 `actor_unauthorized` at the API's own actor gate, and under an untrusted issuer 401 `invalid_token` | core: Delegated Access (Identity); Delegated Actor Authorization; Error Responses | Mint access tokens |
 | S37 | API | Through the policy service, whose gate permits only the home issuer's `agent-42`, the partner issuer's `agent-42` gets 403 `actor_unauthorized`, and the evaluation names it with the partner's issuer | core: Optional Policy Services; Delegated Actor Authorization | Mint access tokens; turn on the policy service; set its policy; read its evaluations |
+| S38 | API | With bearer tokens permitted, a bearer request whose opaque token cannot be introspected gets HTTP 503, not 401 `invalid_token` | core: Optional Opaque Access Tokens and Introspection; Error Responses | Mint opaque tokens; permit bearer tokens; make introspection fail |
+| S39 | API | Every challenge to a bearer request uses the `Bearer` scheme: 401 `invalid_token` for an expired token, 400 `invalid_request` for an invalid argument, 403 `insufficient_scope`, 403 `actor_unauthorized`, and a 403 with `realm` and no `error` for any other denial | core: Error Responses (the selected scheme); RFC 6750 Section 3 | Mint access tokens; permit bearer tokens; close the API's actor gate |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -210,9 +212,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7, P12 and D02, name the reference
 checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 97 cases runs once for each check it names,
+`--vacuity`, each of these 99 cases runs once for each check it names,
 with that check switched off; eight S cases name two checks, so there
-are 105 runs, and every run fails. Thirty-four N cases fail because
+are 107 runs, and every run fails. Thirty-four N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, and P12 because the grant then outlives the platform JWT. N36
@@ -286,6 +288,10 @@ Without these, they fail on the response the API selects:
   introspection call as an invalid token, HTTP 401 `invalid_token`;
 * S21 (`api.established_failure`): the API answers HTTP 503 without
   checking the proof it could have rejected;
+* S38 (`api.bearer_outage`): the API looks for a DPoP proof on the
+  bearer request, finds none, and answers HTTP 401 `invalid_token`;
+* S39 (`api.challenge_scheme`): the API answers the bearer request with
+  `DPoP` challenges;
 * S23, S24 and S31 (`api.argument_rank`), with the arguments checked
   first: the API reports the invalid argument as soon as it finds it,
   HTTP 400, before the proof (S23), the tenant (S24) or the unfinished
@@ -544,8 +550,8 @@ The suite tests nothing outside the path above, including:
   first;
 * RAS refresh tokens other than those from a deferred redemption;
 * mutual TLS, including the refusal to defer for a resource configured
-  for mutual-TLS access tokens; bearer access tokens only as P5 to P7
-  and N35 test them, and DPoP nonces only as P8 to P10 do;
+  for mutual-TLS access tokens; bearer access tokens only as P5 to P7,
+  N35, S38 and S39 test them, and DPoP nonces only as P8 to P10 do;
 * continuation, including the CAI's refusal to attest an access token
   from a deferred redemption or one refreshed from it;
 * in deferred redemption: grant-derived revocation while pending,

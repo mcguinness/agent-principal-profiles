@@ -296,10 +296,10 @@ class Client:
             return http(method, self.cfg.api_transport + path, headers=headers)
         return self.send(self.cfg.api_base + path, build)
 
-    def get_bearer(self, path, token):
+    def get_bearer(self, path, token, query=None):
         """A read with the Bearer scheme and no proof (RFC 6750)."""
-        return http("GET", self.cfg.api_transport + path,
-                    headers={"Authorization": f"Bearer {token}"})
+        url = self.cfg.api_transport + path + ("?" + urlencode(query) if query else "")
+        return http("GET", url, headers={"Authorization": f"Bearer {token}"})
 
     def get(self, path, token, dpop_key="k", query=None, proof_token=None):
         """A read at the API; query goes in the URL, and not in htu (RFC 9449 Section 4.2).
@@ -2660,6 +2660,83 @@ def s37(ctx):
     _, context = last_evaluation(ctx)
     check(context.get("agent") == {"iss": cfg.partner_agent_iss, "sub": cfg.expect["agent"]},
           f"the evaluation named the agent {context.get('agent')!r}, not the partner issuer's")
+
+
+# Bearer requests at the API (core: Error Responses, the selected scheme).
+
+def bearer_claims(ctx, **overrides):
+    """Claims of a valid delegated access token without cnf, with overrides."""
+    claims = minted_token_claims(ctx, **overrides)
+    claims.pop("cnf", None)
+    return claims
+
+
+def expect_bearer_challenge(resp, status, error, label):
+    """The status, and a Bearer challenge with this error, or with none and a realm."""
+    challenge = challenge_of(resp)
+    check(resp.status == status and challenge.startswith("Bearer"),
+          f"{label}: expected HTTP {status} with a Bearer challenge, got {resp} {challenge!r}")
+    params = challenge_params(challenge)
+    if error is None:
+        check("error" not in params and "realm" in params,
+              f"{label}: expected a Bearer challenge with realm and no error, got {challenge!r}")
+    else:
+        check(params.get("error") == error,
+              f"{label}: expected error {error}, got {challenge!r}")
+
+
+@case("S38", "API", "Answers HTTP 503 to a bearer request whose token cannot be introspected",
+      "core: Optional Opaque Access Tokens and Introspection; Error Responses (evaluation "
+      "that cannot complete)",
+      needs=("mint_opaque_token", "set:ras.introspection_unavailable", "set:api.bearer_permitted"),
+      defeats=("api.bearer_outage",))
+def s38(ctx):
+    # A bearer request carries no proof, so no failure is established while
+    # the token cannot be validated.
+    ctx.adapter.set("api", "bearer_permitted", True)
+    claims = dict(bearer_claims(ctx), token_type="Bearer")
+    resp = ctx.client.get_bearer(ctx.cfg.read_path, ctx.adapter.mint_opaque_token(claims))
+    check(resp.status == 200 and resp.body, f"setup: bearer read failed: {resp}")
+    data = resp.body
+    token = ctx.adapter.mint_opaque_token(claims)   # never introspected
+    ctx.adapter.set("ras", "introspection_unavailable", "error")
+    resp = ctx.client.get_bearer(ctx.cfg.read_path, token)
+    check(resp.status == 503, f"expected HTTP 503, got {resp} {challenge_of(resp)!r}")
+    check(data not in resp.body, "the response carried the file's data")
+    challenge = challenge_of(resp)
+    for code in ("invalid_token", "actor_unauthorized", "insufficient_scope"):
+        check(code not in challenge and code.encode() not in resp.body,
+              f"the response reports {code}: {resp} {challenge!r}")
+    if not resp.headers.get("Retry-After"):
+        ctx.notes.append("no Retry-After header field (core: Error Responses SHOULD)")
+
+
+@case("S39", "API", "Uses the Bearer scheme in every challenge to a bearer request",
+      "core: Error Responses (challenges use the selected scheme); RFC 6750 Section 3",
+      needs=("mint_access_token", "set:api.bearer_permitted", "set:api.actor_gate"),
+      defeats=("api.challenge_scheme",))
+def s39(ctx):
+    cfg, now = ctx.cfg, ctx.now()
+    ctx.adapter.set("api", "bearer_permitted", True)
+    token = ctx.adapter.mint_access_token(bearer_claims(ctx))
+    resp = ctx.client.get_bearer(cfg.read_path, token)
+    check(resp.status == 200, f"setup: bearer read failed: {resp}")
+    expired = ctx.adapter.mint_access_token(bearer_claims(ctx, iat=now - 7200, exp=now - 3600))
+    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, expired), 401,
+                            "invalid_token", "expired token")
+    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, token, query=BAD_VERSION),
+                            400, "invalid_request", "invalid argument")
+    narrow = ctx.adapter.mint_access_token(bearer_claims(ctx, scope=cfg.extra_scope))
+    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, narrow), 403,
+                            "insufficient_scope", "token authority")
+    other = ctx.adapter.mint_access_token({
+        "sub": OTHER_SELF_ACTING, "aud": cfg.resource, "client_id": cfg.self_acting_client_id,
+        "scope": cfg.scope})
+    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, other), 403, None,
+                            "other denial")
+    ctx.adapter.set("api", "actor_gate", False)
+    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, token), 403,
+                            "actor_unauthorized", "actor gate")
 
 
 def run_case(c, cfg, adapter, disable=()):
