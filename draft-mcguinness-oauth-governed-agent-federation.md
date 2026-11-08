@@ -3306,8 +3306,13 @@ items are:
   without a subject token ({{wag-request}}), which would also give
   X.509-SVID authentication a self-acting path;
 * telling apart agents of Governance Tenants that share an issuer,
-  which {{Section 6.3 of WAG}} does with a registered claim; and
-* self-acting Client Associations ({{AGENT-MANAGEMENT}}).
+  which {{Section 6.3 of WAG}} does with a registered claim;
+* self-acting Client Associations ({{AGENT-MANAGEMENT}}); and
+* a WAG lifecycle composition: {{AGENT-LIFECYCLE}} defines no WAG wire
+  composition, and revoking one WAG is deployment-specific.
+
+Until these close, a self-acting claim has no management path for client
+use or lifecycle composition in this family to be tested against.
 
 ## Excluded Compositions {#excluded-compositions}
 
