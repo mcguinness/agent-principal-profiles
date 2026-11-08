@@ -100,7 +100,7 @@ class Config:
     unknown_user: str = "carol"
     # A Governance Tenant on the IdP's issuer that policy does not authorize
     # for `tenant` (N33).
-    other_governance_tenant: str = "beta-gov"
+    other_governance_tenant: str = "beta"
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
     # the self-acting population for `resource`, whose tokens name the local

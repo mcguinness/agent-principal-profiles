@@ -15,7 +15,7 @@ import jws  # noqa: E402
 import run as conformance  # noqa: E402
 import suite  # noqa: E402
 
-OTHER_AGENT = "agent-77"   # an agent of beta-gov, on the same issuer
+OTHER_AGENT = "agent-77"   # an agent of beta, on the same issuer
 
 
 def claim_names(token):
@@ -23,7 +23,7 @@ def claim_names(token):
 
 
 def minted(ctx, agent):
-    """The ID-JAG an IdP that authorized (beta-gov, acme-data) would issue for agent."""
+    """The ID-JAG an IdP that authorized (beta, acme-data) would issue for agent."""
     cfg = ctx.cfg
     return ctx.adapter.mint_grant(suite.grant_claims(
         ctx, act={"iss": cfg.expect["agent_iss"], "sub": agent}))
@@ -37,19 +37,19 @@ def outcome(resp):
 
 
 def cell_idp_unauthorized(ctx):
-    ctx.adapter.set("idp", "agent_governance_tenant", "beta-gov")
+    ctx.adapter.set("idp", "agent_governance_tenant", "beta")
     return outcome(ctx.client.exchange(ctx.id_token()))
 
 
 def cell_idp_authorized(ctx):
-    ctx.adapter.set("idp", "agent_governance_tenant", "beta-gov")
-    ctx.adapter.set("idp", "tenant_pair", ["beta-gov", "acme-data", True])
+    ctx.adapter.set("idp", "agent_governance_tenant", "beta")
+    ctx.adapter.set("idp", "tenant_pair", ["beta", "acme-data", True])
     resp = ctx.client.exchange(ctx.id_token())
     if resp.status != 200:
         return outcome(resp)
     grant = resp.json()["access_token"]
-    # The grant names no Governance Tenant: nothing in it says beta-gov.
-    suite.check("beta-gov" not in json.dumps(jws.decode(grant)[1]),
+    # The grant names no Governance Tenant: nothing in it says beta.
+    suite.check("beta" not in json.dumps(jws.decode(grant)[1]),
                 "the grant carries the Governance Tenant")
     return "issued, no Governance Tenant in the grant"
 
@@ -67,7 +67,7 @@ def cell_ras(jit, gate_rule, correlated):
 
 
 def cell_same_shape(ctx):
-    """A grant for acme-gov's agent-42 and one for beta-gov's agent-77 have the same claims."""
+    """A grant for acme's agent-42 and one for beta's agent-77 have the same claims."""
     ours = minted(ctx, ctx.cfg.expect["agent"])
     theirs = minted(ctx, OTHER_AGENT)
     suite.check(claim_names(ours) == claim_names(theirs), "claim sets differ")
@@ -75,16 +75,16 @@ def cell_same_shape(ctx):
 
 
 CELLS = [
-    ("IdP", "beta-gov not authorized for acme-data", cell_idp_unauthorized,
+    ("IdP", "beta not authorized for acme-data", cell_idp_unauthorized,
      "actor_unauthorized"),
-    ("IdP", "beta-gov authorized for acme-data", cell_idp_authorized,
+    ("IdP", "beta authorized for acme-data", cell_idp_authorized,
      "issued, no Governance Tenant in the grant"),
     ("RAS", "JIT off, per-agent actor gate", cell_ras(False, False, False), "invalid_grant"),
     ("RAS", "JIT on, per-agent actor gate", cell_ras(True, False, False), "actor_unauthorized"),
     ("RAS", "JIT on, issuer-wide actor-gate rule", cell_ras(True, True, False), "admitted"),
     ("RAS", "agent-77 correlated and admitted by an explicit gate entry",
      cell_ras(False, False, True), "admitted"),
-    ("RAS", "grants for acme-gov's and beta-gov's agents", cell_same_shape,
+    ("RAS", "grants for acme's and beta's agents", cell_same_shape,
      "same claim names; only act.sub differs"),
 ]
 

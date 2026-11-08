@@ -27,16 +27,16 @@ them.
 ## Setup
 
 The reference IdP's issuer `https://idp.example/` serves two Governance
-Tenants, `acme-gov` and `beta-gov`. An agent identifier is unique across
+Tenants, `acme` and `beta`. An agent identifier is unique across
 them, as core Canonical Identity and Tenant Boundaries requires. Policy
 at the IdP authorizes (Governance Tenant, Target Tenant) pairs for
-issuance; by default only (`acme-gov`, `acme-data`). The RAS governs
+issuance; by default only (`acme`, `acme-data`). The RAS governs
 `acme-data`, trusts the IdP's issuer for users and agents, and resolves
 Alice as `user-108`.
 
-The RAS cells redeem a grant naming `agent-77`, an agent of `beta-gov`
+The RAS cells redeem a grant naming `agent-77`, an agent of `beta`
 that the RAS has never seen. The suite mints it through the IdP's test
-control. It stands for the grant an IdP that authorized (`beta-gov`,
+control. It stands for the grant an IdP that authorized (`beta`,
 `acme-data`) would issue: the IdP cells show that the IdP issues such a
 grant only when that pair is authorized, and that the grant it then
 issues names no Governance Tenant.
@@ -45,13 +45,13 @@ issues names no Governance Tenant.
 
 | Role | Configuration | Outcome |
 |---|---|---|
-| IdP | `beta-gov` not authorized for `acme-data` | Refused, `actor_unauthorized` |
-| IdP | `beta-gov` authorized for `acme-data` | Issued; no claim names the Governance Tenant |
+| IdP | `beta` not authorized for `acme-data` | Refused, `actor_unauthorized` |
+| IdP | `beta` authorized for `acme-data` | Issued; no claim names the Governance Tenant |
 | RAS | Just-in-time correlation off, per-agent actor gate | `invalid_grant` (no correlation) |
 | RAS | Just-in-time correlation on, per-agent actor gate | `actor_unauthorized` (correlation is not authorization) |
 | RAS | Just-in-time correlation on, an actor-gate rule admitting every agent the issuer asserts for users in `acme-data` | Admitted |
 | RAS | `agent-77` correlated and admitted by an explicit gate entry | Admitted |
-| RAS | Grants for `acme-gov`'s `agent-42` and `beta-gov`'s `agent-77` | Same claim names; only `act.sub` differs |
+| RAS | Grants for `acme`'s `agent-42` and `beta`'s `agent-77` | Same claim names; only `act.sub` differs |
 
 The admitting rule in the fifth row conforms. The actor-gate
 requirement leaves the decision to the RAS: it "MUST independently
