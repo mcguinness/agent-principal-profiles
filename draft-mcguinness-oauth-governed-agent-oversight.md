@@ -468,7 +468,17 @@ enforce.
 
 This document does not define the approval channel. {{CIBA}}, with a
 `binding_message` that describes the request, is one way to reach the
-user; an access request service under {{ARAP}} is another.
+user; an access request service under {{ARAP}} is another. A third is
+the `interaction_uri` that a deferred or polling response can carry
+({{Section 6.4 of DTR}}), as in the agent example of
+{{Appendix A.6 of DTR}}. The page it identifies shows the governed
+request context, and the approver authenticates there at the strength
+policy requires. Reaching the URI is not that authentication, and
+neither is a session in a browser the agent operates, through which
+the agent could approve its own request ({{security-self}}). The
+channel rarely fits self-acting access, whose approver is seldom the
+client's user. A client that can present the URI to the user includes
+`deferred_interactive` with `deferred` ({{Section 5.1 of DTR}}).
 
 ## Resolution {#resolution}
 
@@ -758,6 +768,10 @@ request that presents:
 * `deferred` in `completion_mode`; and
 * the same `grant_type`, `resource`, `scope`, and `authorization_details`.
 
+Recovery returns the deferred response of {{Section 6.4 of DTR}}. An
+`interaction_uri` that it carries, or that a later poll returns,
+identifies the same approval request.
+
 Recovery matches the stored grant and does not validate it again, so it
 succeeds after the grant's `exp`. It is not an acceptance, opens no
 approval request, and changes neither the maximum pending lifetime, the
@@ -1021,9 +1035,11 @@ the requesting agent, its client, nor another agent can approve
 ({{approval}}, {{per-action}}). How an IdP or API tells a person's
 decision from an automated one depends on the approval channel, which
 this document does not define; the channel's authentication of the
-approver is what makes the rule enforceable. A deployment that routes
-decisions to an automated approver is human out of the loop and records
-it as such ({{modes}}).
+approver is what makes the rule enforceable. An `interaction_uri` opened
+in a browser the agent operates is the plainest case: the page must
+authenticate the approver itself ({{approval}}). A deployment that
+routes decisions to an automated approver is human out of the loop and
+records it as such ({{modes}}).
 
 ## Stale Approvals {#security-stale}
 

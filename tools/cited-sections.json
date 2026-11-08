@@ -30,7 +30,8 @@
     "9.3": "Obtaining an Immediate Result Alongside a Deferred Request",
     "9.4": "Progress Information in Errors",
     "11.1": "Sender-Constraint Requirements",
-    "11.7": "Consent Staleness at Resolution"
+    "11.7": "Consent Staleness at Resolution",
+    "A.6": "AI Agent with Browser Access"
   },
   "I-D.ietf-oauth-identity-assertion-authz-grant-06": {
     "3.1": "ID-JAG Claims",
