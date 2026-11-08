@@ -73,7 +73,7 @@ request:
   names the agent's workload (presented-evidence resolution). An
   implementation that claims generic shared-client interoperability
   supports this input. The conformance suite tests an IdP's acceptance
-  of it (P11, P12, and N36 to N38), and the [claim
+  of it (P11, P12, and N36 to N39), and the [claim
   template](conformance/CLAIM-TEMPLATE.md) records the claim.
 
 The IdP validates the input, maps it to an Agent Principal through an
@@ -149,6 +149,7 @@ explicitly permits bearer tokens.
 | IdP | Input validation and Identity Binding; Client Association; Delegation or Agent Authorization; ID-JAG or WAG issuance; the client registration association that supplies the grant's `client_id` | [Grant Issuance at the IdP][issuance] |
 | RAS | Grant validation and replay protection; Agent Principal correlation; user resolution and the actor gate for delegated grants; access-token issuance and protection | [Grant Redemption at the RAS][redemption] |
 | API | Access-token validation; tenant checks; user authority and the actor gate for delegated tokens; the agent's own authority for self-acting tokens | [Access at the Resource Server][api-processing] |
+| Agent platform | Its agents' clients, with one of: a dedicated client per agent, or a shared client presenting the platform's JWT, or an input of [INPUTS]; a token cache keyed by agent, resource, and grant; a SCIM connector that registers agents, binds their identities, and associates clients for delegated access; for agents it hosts, applying the IdP's disablement in its own authorization, and optionally Shared Signals. Registrations at each RAS, their client registration associations, and client use for self-acting access are configured out of band | [Shared platform clients](ARCHITECTURE.md#shared-platform-clients); [AGENT-MANAGEMENT]; [Platform-hosted agents](#platform-hosted-agents) |
 
 The [Federation Model][model] and [Profiles and Common
 Rules][common-rules] hold the definitions and rules every role shares.
@@ -197,8 +198,8 @@ configuration object types are prescribed.
   Prerequisites][flow-configuration]). No companion profile provisions
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
-  Client Identifier URL provides one identifier at both servers by
-  construction.
+  Client Identifier URL provides one identifier at both servers when
+  both servers use the document.
 
 **At the RAS:**
 
@@ -662,9 +663,9 @@ A deployment that uses oversight adds this configuration to the
 
 | Party | Configuration |
 |---|---|
-| IdP | The mode in issuance policy, configured at the IdP directly, since the SCIM management profile has no attribute for it; the approvers each policy designates, and the authentication strength each requires; an approval channel, such as [CIBA] with a `binding_message` that describes the request; a maximum pending lifetime for each policy; Deferred Token Response in polling mode, with deferral codes bound to the client and its DPoP key; for supervised issuance, the overseers and the channel that gives them each grant's issuer, `jti`, request context, and issuance time |
-| RAS, for deferred redemption | The mode in RAS policy, and the approvers it designates; `deferred_token_response_supported` in its metadata; an approval channel, such as an access request service under [ARAP], with one access request for each pending redemption and the approval kept unchanged; a maximum pending lifetime and an absolute authorization expiration that starts when the grant is accepted; no deferral for a resource configured for mutual-TLS access tokens; the accepted grant, or its digest, kept for recovery; the resulting authorization never eligible for continuation |
-| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant and grant type, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
+| IdP | The mode in issuance policy, configured at the IdP directly, since the SCIM management profile has no attribute for it; the approvers each policy designates, and the authentication strength each requires; an approval channel, such as [CIBA] with a `binding_message` that describes the request, or a page at an `interaction_uri` where the approver authenticates at that strength, never through a session in a browser the agent operates ([Approval][ov-approval]); a maximum pending lifetime for each policy; Deferred Token Response in polling mode, with deferral codes bound to the client and its DPoP key; for supervised issuance, the overseers and the channel that gives them each grant's issuer, `jti`, request context, and issuance time |
+| RAS, for deferred redemption | The mode in RAS policy, and the approvers it designates; `deferred_token_response_supported` in its metadata; an approval channel, such as an access request service under [ARAP], with one access request for each pending redemption and the approval kept unchanged, or a page at an `interaction_uri` under the same limit as at the IdP; a maximum pending lifetime and an absolute authorization expiration that starts when the grant is accepted; no deferral for a resource configured for mutual-TLS access tokens; the accepted grant, or its digest, kept for recovery; the resulting authorization never eligible for continuation |
+| Client | `completion_mode=deferred`, with `deferred_interactive` as well when it can present an `interaction_uri` to the user, and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant and grant type, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
 | Gateway | The client behavior above for its continuation exchanges; reporting the wait to the agent through its own interface, such as an MCP task |
 | API or MCP server | Per-action policy and its approvers; holding a call, or refusing it in a way the agent can request; an approval page that authenticates the approver and binds the decision to the call, its arguments, and the token's subject, agent, client, and tenant |
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
@@ -1066,7 +1067,7 @@ and carries no `act` (excerpt):
   "iss": "https://ras.example/",
   "sub": "service-principal-42",
   "aud": "https://api.example/tenants/acme-data/",
-  "client_id": "analysis-api",
+  "client_id": "analysis-agent-client",
   "scope": "files.read"
 }
 ~~~
@@ -1077,7 +1078,7 @@ and carries no `act` (excerpt):
   "action": {"name": "read_file"},
   "resource": {"type": "file", "id": "reports/q3.csv"},
   "context": {
-    "client": "analysis-api",
+    "client": "analysis-agent-client",
     "tenant": "acme-data",
     "constraints": {
       "scope": "files.read",
@@ -1087,9 +1088,12 @@ and carries no `act` (excerpt):
 }
 ~~~
 
-The resource is configured for self-acting access, so the local
-principal stands for the Agent Principal and the policy evaluates the
-agent's own authority. No actor gate applies.
+The client registration `analysis-agent-client` is configured for
+self-acting access at this resource, which is how the API tells this
+population apart from the delegated one with the same audience
+([Profile Applicability][api-applicability]). The local principal
+stands for the Agent Principal, and the policy evaluates the agent's
+own authority. No actor gate applies.
 
 #### Access through gateways
 
@@ -1369,13 +1373,13 @@ adds an Identity Binding to `/Agents/a58` with credential class
 source subject `wimse://dataplatform.example/agents/agt-31`. The
 administrator also adds a Client Association permitting the platform's
 OAuth client to use that binding ([AGENT-MANAGEMENT]). Separately, the
-IdP records Alice's delegation authorization for the agent at that
+IdP records Alice's Delegation Authorization for the agent at that
 resource and scope. The Agent's `owners` do not establish that
 delegation.
 
 For access on Alice's behalf, the platform authenticates its OAuth
 client and presents Alice's ID Token as `subject_token` and its JWT for
-`agt-31` as `actor_token`. After validating delegation authorization for
+`agt-31` as `actor_token`. After validating the Delegation Authorization for
 the requested resource and scope, the IdP issues an ID-JAG identifying
 Alice in `sub` and (`https://idp.example/`, `agent-58`) in `act` under
 the [core profile][core]. The third-party RAS correlates that pair as in
@@ -1392,7 +1396,10 @@ registered at 14:00 carry over unchanged.
 
 At 16:00, the customer deletes the agent. The connector deletes
 `/Agents/a58` at the IdP. The binding and association become unusable,
-and `agent-58` is never assigned to another agent. A third-party
+and `agent-58` is never assigned to another agent. The provider may
+keep them as non-effective references ([AGENT-MANAGEMENT], Deletion),
+so a connector that will reuse the workload identity for another agent
+deletes the association and the binding before the Agent. A third-party
 resource domain provisioned for `agent-58` applies the deletion under
 [Applying Administrative State][lc-application].
 
@@ -1565,8 +1572,8 @@ agent cannot use the token directly.
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [AGENT-MANAGEMENT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06
-[CIMD]: https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/
-[SCIM-AGENT]: https://datatracker.ietf.org/doc/draft-wzdk-scim-agent-resource/
+[CIMD]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02
+[SCIM-AGENT]: https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00
 [RFC7643]: https://www.rfc-editor.org/rfc/rfc7643
 [RFC7644]: https://www.rfc-editor.org/rfc/rfc7644
 [overview]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#overview
@@ -1600,6 +1607,7 @@ agent cannot use the token directly.
 [CONTINUATION]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [OVERSIGHT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
 [ov-modes]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#modes
+[ov-approval]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#approval
 [ov-deferred]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-issuance
 [ov-deferring]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferring
 [ov-resolution]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#resolution
@@ -1657,7 +1665,7 @@ agent cannot use the token directly.
 [AROP]: https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md
 [AUTHZEN-ACTOR]: https://openid.github.io/authzen/authzen-access-request-actor-profile-1_0.html
 [AUTHZEN-ISSUANCE]: https://openid.github.io/authzen/authzen-oauth-token-issuance-1_0.html
-[ACTOR-PROFILE]: https://datatracker.ietf.org/doc/draft-mcguinness-oauth-actor-profile/
+[ACTOR-PROFILE]: https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01
 [MISSION-AUTHZEN]: https://github.com/mcguinness/mission-bound-authorization/blob/main/draft-mcguinness-mission-authzen.md
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted
 [lc-platform-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example

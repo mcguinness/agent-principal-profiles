@@ -211,6 +211,14 @@ needs separate authorization, delegation, attribution, resource
 correlation, or disablement, even if it shares a runtime, client, or
 credential with another agent.
 
+Agents a platform creates for each task are usually executions. Running
+each task as an execution of one Agent Principal needs no registration
+per task. A principal per task costs, for every task, SCIM writes at the
+IdP, a Delegation or Agent Authorization, which no profile manages
+portably, and correlation at each RAS before the first redemption
+unless the RAS enables just-in-time correlation; in return, each task
+can be disabled on its own.
+
 ### Sub-agents and orchestrators
 
 An orchestrator agent often starts sub-agents for parts of a task. The
@@ -250,9 +258,9 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
 ### Credential authority → IdP
 
 * **Configure:** each trusted issuer or trust domain, with its approved
-  keys, algorithms, time limits, and accepted audiences, and the
-  credential class that tells its workload credentials apart from its
-  user or management tokens. Identity Bindings name an exact issuer and
+  keys or key source, algorithms, time limits, and accepted audiences,
+  and the credential class that tells its workload credentials apart
+  from its user or management tokens. Identity Bindings name an exact issuer and
   subject.
 * **Validate:** the IdP selects exactly one configured class for
   presented evidence, validates the evidence under it, and resolves the
@@ -603,6 +611,14 @@ use](IMPLEMENTERS-GUIDE.md#distributed-platforms-and-key-use) and
 [optional
 exchanges](IMPLEMENTERS-GUIDE.md#optional-exchanges-within-the-core).
 
+A platform's agents can authenticate in three ways, at these costs:
+
+| Choice | Benefit | Cost |
+|---|---|---|
+| A client per agent, without a governed principal | Plain OAuth client authentication; each agent's tokens carry its own `client_id` | The client identifier stands for the agent, so a resource domain's restriction keyed on it lapses when the agent moves to another client, and agents behind a shared client or a gateway cannot be told apart |
+| A dedicated client per governed agent | The agent keeps one Agent Principal across clients and platforms; resource domains restrict it by issuer and identifier | Per agent: a client at the IdP, a registration at each RAS with its client registration association, which no companion provisions; and, for delegated access, a user authorization flow for each client, since the user's subject token is issued to that client |
+| A shared platform client presenting platform JWTs | For many agents: one client, one registration, and, for delegated access, one user authorization flow | The IdP trusts the platform as a credential authority; the evidence is bearer unless key-bound; an optional input that an IdP claiming only the mandatory path does not accept ([shared platform clients](#shared-platform-clients)) |
+
 ## Changes, failures, and recovery
 
 Identity and authority have separate owners, checks, and lifetimes, so
@@ -619,7 +635,7 @@ issued runs until its own revocation or expiry.
 | Withdraw a user's delegation, or an Agent Authorization, as a whole | At the IdP, for that authorization; chains rooted under it end | Delegated: RAS authorization, until revoked or its absolute expiration. Self-acting: access tokens and any still-redeemable WAG, until they expire | Restoring it; a new root grant for ended chains |
 | Narrow an authorization by removing targets or authority | New grants and continuation for what was removed are refused; chains continue to other targets | Tokens already issued for the removed targets, until revoked or expired | Restoring the targets or authority |
 | Disable the Agent Principal | At the IdP, for every binding and client; every chain for the agent ends | Once a resource domain applies the change, redemption and refresh are denied there and the agent's sessions are revoked | Re-enabling it permits new decisions; revoked sessions and ended chains stay ended |
-| Revoke one ID-JAG through the optional grant-derived revocation capability | Its redemption, at participating receivers in the target tenant | The authorization derived from it there is revoked; the agent stays enabled | A new grant; the revoked one stays unusable |
+| Revoke one ID-JAG through the optional grant-derived revocation capability | Its redemption, at participating receivers in the Target Tenant | The authorization derived from it there is revoked; the agent stays enabled | A new grant; the revoked one stays unusable |
 | Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource domain lifting it; upstream activation cannot. A provisional suspension caused by a deactivation event can also be cleared by successful reconciliation |
 | Remove a Continuation Association | That client's continuation of the agent's chains; the chains continue through other clients | Tokens already obtained, until revoked or expired; a target's refresh token extends access further | Restoring it |
 

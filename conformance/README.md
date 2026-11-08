@@ -110,7 +110,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N30 | RAS | An unbound grant presented with `jwt-dpop` fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5 | Let the IdP issue, and the RAS accept, unbound grants |
 | N31 | IdP | An ID Token whose `sub` is `null` or the number 123 fails with `invalid_request`, as an invalid subject credential | core: Issuance Errors; RFC 8693 Section 2.2.2 | ID Token with chosen claims |
 | N32 | IdP | A valid ID Token whose `sub` is `carol`, a user the IdP has no record of, fails with `invalid_grant`, as a user resolution failure | core: Subject Resolution; Issuance Errors | ID Token with chosen claims |
-| N33 | IdP | With the agent moved to `beta-gov`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
+| N33 | IdP | With the agent moved to `beta`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
 | N34 | RAS | With just-in-time correlation on, a grant whose `act` names `agent-99`, which the RAS has not seen, fails with `actor_unauthorized` or `invalid_grant`: the created record does not authorize the agent | core: Optional Just-in-Time Correlation; Redemption Errors | Mint a grant; turn on just-in-time correlation |
 | N35 | API | Where the API accepts bearer tokens for the resource, a DPoP-bound access token presented with the `Bearer` scheme fails with HTTP 401 | RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement) | Permit bearer tokens at the API |
 | N36 | IdP | The shared client's exchange without a platform JWT fails with `invalid_request`, not a fallback to the client's own authentication | core: Agent Resolution Input Validation; Issuance Errors | A shared client configured |
@@ -199,8 +199,8 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14, S15, S18, S35 to S37, and the setup
-reads of S25 to S28) therefore requires the code,
+API (N20, S02, S03, S07, S11, S14, S15, S18, S35 to S37, S39, and the
+setup reads of S25 to S28) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
 
@@ -563,7 +563,10 @@ The suite tests nothing outside the path above, including:
   first;
 * RAS refresh tokens other than those from a deferred redemption;
 * mutual TLS, including the refusal to defer for a resource configured
-  for mutual-TLS access tokens; bearer access tokens only as P5 to P7,
+  for mutual-TLS access tokens, and the refresh of a DPoP-bound grant
+  whose access tokens are certificate-bound, which keeps the grant's
+  DPoP binding (Optional RAS Refresh Tokens) and has no worked example
+  in the core; bearer access tokens only as P5 to P7,
   N35, S38 and S39 test them, and DPoP nonces only as P8 to P10 do;
 * continuation, including the CAI's refusal to attest an access token
   from a deferred redemption or one refreshed from it;
@@ -606,17 +609,19 @@ another IdP, RAS or API:
    `untrusted_agent_iss`, an issuer the API does not trust for agents.
    They assume the API's actor gate, and the policy S37 sets, permit the
    user's `agent-42` only under `expect["agent_iss"]`, with no entry for
-   the partner issuer's. P11, P12 and N36 to N38 need `shared_client`, a
+   the partner issuer's. P11, P12 and N36 to N39 need `shared_client`, a
    `suite.SharedClient`: a shared client at the IdP and its RAS
    registration, a platform issuer whose JWTs the suite signs with a key
    the IdP approves, the workload `sub` the IdP binds exactly to an agent,
    and an audience the IdP accepts; the IdP also holds the Client
    Association and the user's Delegation Authorization for that agent
    through the shared client. Without it, those cases are not run.
-2. Implement `suite.Adapter` for the deployment. Every case needs
-   `id_token`; the "Test control" column lists the other capabilities.
-   A case whose capability the deployment cannot provide can be skipped
-   and reported as not run. N25 and N28 use `set` on the IdP
+2. Implement `suite.Adapter` for the deployment. Every case whose grant
+   the IdP issues needs `id_token`; the "Test control" column lists the
+   other capabilities. A case whose capability the deployment cannot
+   provide is skipped by raising `suite.NotRun` from the adapter method
+   it needs; `run_case` then reports it as not run. Any other exception
+   ends the run. N25 and N28 use `set` on the IdP
    (`delegation_scope`, `prohibited_scope`). The D cases use `set` on
    the RAS (`approval_required`, `refresh_permitted`,
    `max_pending_lifetime`, `authorization_lifetime`, `client_profile`),
@@ -686,7 +691,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Client registration association | One RAS registration for each IdP client: `analysis-api` for the dedicated client `analysis-client`, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
 | Platform JWT credential class | A dedicated issuer, `https://platform.example/`, configured with `platform-client`; `ES256`; accepted audience `https://idp.example/`; evidence deadline from `exp`, with no maximum age; `workload-43` bound exactly to `agent-43` | core: Existing Platform JWT (Configuration) |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API; at the RAS, a rule admitting every agent of an issuer for a tenant only under test control | core: Delegated Actor Authorization ("not a protocol object"); RAS and API implementation considerations ("another explicit rule") |
-| Governance Tenants | `agent-42` belongs to `acme-gov` on the IdP's issuer; policy authorizes only (`acme-gov`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized` | core: Issuance Authorization (no code assigned) |
+| Governance Tenants | `agent-42` belongs to `acme` on the IdP's issuer; policy authorizes only (`acme`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized` | core: Issuance Authorization (no code assigned) |
 | Just-in-time correlation | Off unless test control turns it on for the IdP's issuer and `acme-data`; a created record is eligible, and the actor gate still applies | core: Optional Just-in-Time Correlation |
 | Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to that set and away from scopes policy categorically prohibits for the agent there; if nothing remains, a requested scope that is prohibited gives `actor_unauthorized`, and otherwise the result is `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
@@ -702,7 +707,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Refresh after a deferred redemption | Only where test control permits it; bound to the client and the DPoP key, not rotated | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation |
 | Client assertion `aud` | The issuer identifier as a string or a one-element array | core: Dedicated Client Identity (Audience) |
 | ID Token audience | Accepted when the `aud` string or array contains the authenticated client, without checking `azp` | ID-JAG Section 4.3.3 |
-| Clock skew and DPoP proof age | 60 s each; no server nonces | core: Time, Replay, and Key Validation; RFC 9449 |
+| Clock skew and DPoP proof age | 60 s each; nonces only under test control (P8 to P10) | core: Time, Replay, and Key Validation; RFC 9449 |
 | Time claims | `exp` enforced on every JWT; `iat` required on ID Tokens, grants and access tokens; `iat` and `nbf`, where present, rejected beyond the skew | core: Time, Replay, and Key Validation; RFC 7519; RFC 7523 Section 3 |
 | Explicit types | `typ` accepted with or without the `application/` prefix | RFC 7515 Section 4.1.9; RFC 9068 Section 4 |
 | Lifetimes | ID Token 65 min (as the oversight walkthrough uses), grant 300 s, access token 600 s | core: Common Grant Claims |

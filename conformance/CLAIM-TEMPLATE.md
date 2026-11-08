@@ -19,8 +19,31 @@ Copy it, fill in each line, and delete the guidance in italics.
 | Role | IdP / RAS / API / client | core: Conformance Claims |
 | Realization | Delegated (ID-JAG) / self-acting (WAG) / both | core: Conformance Claims |
 | Profile URIs | `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent`, `...:id-jag-agent-federation`, `...:wag-governed-agent`, `...:wag-agent-federation` (list each) | core: Authorization Server and Client Metadata |
-| Supported inputs | Dedicated client with `private_key_jwt` (mandatory for the IdP and client); existing platform JWT; SAML subjects; IdP refresh-token subjects; inputs of the input profiles companion (name each) | core: Conformance Claims; Agent Resolution |
-| Generic shared-client interoperability | Claimed / not claimed. *A claim requires the existing platform JWT input: an IdP accepts it, a client presents it. For an IdP, the suite's P11, P12 and N36 to N38 test the claim when `Config.shared_client` is set.* | core: Conformance Claims; Existing Platform JWT |
+| Agent-resolution inputs | Dedicated client with `private_key_jwt` (mandatory for the IdP and client); existing platform JWT; inputs of the input profiles companion (name each) | core: Conformance Claims; Agent Resolution |
+| User subject tokens, for delegated access | ID Tokens (mandatory for the IdP and client); SAML subjects; IdP refresh-token subjects | core: Conformance Claims; Subject Token Validation |
+| Generic shared-client interoperability | Claimed / not claimed. *A claim requires the existing platform JWT input: an IdP accepts it, a client presents it. For an IdP, the suite's P11, P12 and N36 to N39 test the claim when `Config.shared_client` is set.* | core: Conformance Claims; Existing Platform JWT |
+
+### Cases that test each claim
+
+Passing these cases is evidence for the claim, not the claim itself.
+A claim whose cases were not run says so in Part 5.
+
+| Claim | Cases |
+|---|---|
+| IdP: delegated access, dedicated client, ID Token subjects | P1, N01 to N09, N21, N22, N25, N28, N31 to N33 |
+| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30 |
+| API: delegated access | P3, P4, N17 to N20, N24, N35, S32, S33, S35, S36 |
+| Generic shared-client interoperability (IdP) | P11, P12, N36 to N39 |
+| Self-acting access | S08 and S09, at the API with minted tokens; no issuance or redemption case |
+| Bearer access tokens | P5, P6, N35, S38, S39 |
+| DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
+| Just-in-time correlation | N34 |
+| Opaque access tokens and introspection | S10 to S13, S20, S21, S31, S34, S38 |
+| Policy services | S01 to S19, S26, S27, S29, S30, S37 |
+| The API's error selection order | S14 to S31 |
+| Deferred redemption (RAS) | D01 to D24 |
+| RAS refresh tokens | D13 to D15, D21, D22, within a deferred redemption only |
+| Mutual-TLS access tokens; re-redemption under policy | None |
 
 ## Part 2. Optional capabilities
 

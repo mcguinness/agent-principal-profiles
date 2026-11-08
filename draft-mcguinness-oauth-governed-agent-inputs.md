@@ -147,7 +147,7 @@ capability in addition to those of {{FEDERATION}}:
 
 | Artifact | Mandatory-to-implement (MTI) capability |
 |---|---|
-| JWT-SVID, where supported | IdP validation: `RS256` under {{Section 3.2 of SPIFFE-OAUTH}}, plus `ES256` added by this profile |
+| JWT-SVID, where supported | IdP validation: `RS256` and `ES256`, both required by this profile; {{SPIFFE-OAUTH}} requires no algorithm |
 {: title="Mandatory-to-implement algorithm for JWT-SVIDs"}
 
 # SPIFFE JWT-SVID {#jwt-svid-input}
@@ -160,14 +160,14 @@ section.
 * **Presentation:** Client authentication by `client_assertion` with
   `client_assertion_type`
   `urn:ietf:params:oauth:client-assertion-type:jwt-spiffe`.
-* **Validation:** Before resolving the agent, the IdP MUST apply
+* **Validation:** The server MUST apply
   {{Section 3.2 of SPIFFE-OAUTH}}, including the assertion type and the
   client identification of {{Section 3.1 of SPIFFE-OAUTH}}, and
   {{Section 5 of SPIFFE-OAUTH}} and {{Section 6 of SPIFFE-OAUTH}} for
   trust establishment and key distribution. It MUST also verify the
-  signature, before resolving the agent, with keys authorized for the
-  SPIFFE ID's trust domain. An
-  optional `iss` MUST NOT select another trust domain or key authority.
+  signature with keys authorized for the SPIFFE ID's trust domain. The
+  IdP MUST do both before resolving the agent. An optional `iss` MUST
+  NOT select another trust domain or key authority.
 * **Resolution:** The IdP MUST resolve the exact SPIFFE ID in the
   validated `sub` through an Identity Binding ("Identity Binding" in
   {{FEDERATION}}). The
@@ -257,7 +257,9 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
 * **Proof:** When DPoP is used at issuance, its key MUST match the
   WIT-SVID's `cnf.jwk`. The IdP MUST compare the JWK thumbprints of the
   DPoP key and `cnf.jwk` as used in {{RFC9449}} and MUST reject a
-  mismatch with `invalid_request`.
+  mismatch with `invalid_request`. This narrows
+  {{Section 5.2 of ATTEST}}, under which a DPoP key used alongside the
+  Client Attestation PoP JWT need not match the attestation's `cnf` key.
   This carries the WIT-endorsed key into the grant binding; the Client
   Attestation PoP JWT remains required. Key retention follows
   {{resolution-key-lifecycle}}.
@@ -291,8 +293,10 @@ that decides whether bound grants and tokens remain usable.
 
 ## Resolution-Key Lifecycle {#resolution-key-lifecycle}
 
-When the resolution key is also the grant proof key, replacing it does
-not rebind an outstanding grant, access token, or refresh token. This
+The resolution key is the key whose possession an input proves: the
+`cnf.jwk` of a WIT-SVID or the confirmation key of a Client Attestation,
+or the key of an X.509-SVID certificate. When the resolution key is also
+the grant proof key, replacing it does not rebind an outstanding grant, access token, or refresh token. This
 is the case for WIT-SVID or Client Attestation when DPoP is used.
 Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
@@ -374,8 +378,9 @@ decisions:
    `spiffe://platform.example/accounts/acme/agents/workload-7`, to
    `agent-42` in the namespace of `https://idp.example/`, in Governance
    Tenant `acme`.
-2. **Authorize the client.** The IdP's configured SPIFFE association
-   authenticates the caller as `platform-sso`, and a separate Client
+2. **Authorize the client.** The SPIFFE ID's registration with the
+   client ({{Section 3.1 of SPIFFE-OAUTH}}) authenticates the caller as
+   `platform-sso`, and a separate Client
    Association permits that client to use this binding for delegated
    ID-JAG issuance.
 3. **Authorize delegation.** Alice's ID Token, issued for

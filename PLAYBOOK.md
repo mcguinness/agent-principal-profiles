@@ -285,7 +285,10 @@ actions, the API or MCP server holds the call until an approver decides.
   the agent, the user, the client, the target, and the authority as the
   deferring server resolved them, the IdP for issuance and the RAS for
   redemption, with any text from the agent marked as the agent's. A
-  decision sent by the client or the agent is not accepted.
+  decision sent by the client or the agent is not accepted. Where the
+  channel is a page at an `interaction_uri`, opening it in a browser the
+  agent operates, with the user's existing session, does not approve
+  the request.
 * A poll that proves another key fails with `invalid_dpop_proof`, and a
   poll after the grant or access token was delivered fails with
   `invalid_grant`.
@@ -405,9 +408,9 @@ to retirement.
 | A person approves an agent's request before a sensitive grant issues | Oversight: deferred governed issuance at the IdP, an approval channel, and a client that opts in and waits | [Approval before granting write access](#approval-before-granting-write-access) |
 | A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
 
-Both recipes use the architecture's example and the identifiers of the
-core's [walkthrough][core-walkthrough], so each test can be compared
-with the messages there. The [architecture](ARCHITECTURE.md#access-flows-and-deployment-variants)
+The delegated and self-acting recipes use the architecture's example
+and the identifiers of the core's [walkthrough][core-walkthrough], so
+each test can be compared with the messages there. The [architecture](ARCHITECTURE.md#access-flows-and-deployment-variants)
 explains why each check holds.
 
 ### Recipe: delegated access to a SaaS application
@@ -742,9 +745,9 @@ self-acting continuation; a continuation-aware RAS lists
 an IdP that supports delegated continuation advertises
 `identity_continuation_supported`. The oversight profile defines no
 profile URI or metadata: an IdP claims deferred governed issuance,
-deferred continuation, or supervised issuance for a target; a client
-claims deferred governed issuance; and an API claims per-action
-oversight.
+deferred continuation, or supervised issuance for a target; a RAS claims
+deferred redemption; a client claims deferred governed issuance or
+deferred redemption; and an API claims per-action oversight.
 
 ### Capability worksheet
 

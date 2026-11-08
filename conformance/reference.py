@@ -452,11 +452,11 @@ class IdP(Server):
         # Each Agent Principal has one Governance Tenant. Governance Tenants
         # share this issuer, and the agent identifier is unique across them
         # (core: Canonical Identity and Tenant Boundaries).
-        self.agents = {"agent-42": {"active": True, "governance_tenant": "acme-gov"},
-                       "agent-43": {"active": True, "governance_tenant": "acme-gov"}}
+        self.agents = {"agent-42": {"active": True, "governance_tenant": "acme"},
+                       "agent-43": {"active": True, "governance_tenant": "acme"}}
         # (Governance Tenant, Target Tenant) pairs that policy authorizes for
         # issuance (core: Issuance Authorization).
-        self.tenant_pairs = {("acme-gov", "acme-data")}
+        self.tenant_pairs = {("acme", "acme-data")}
         # b43 binds the platform's workload-43, by exact issuer and sub, to
         # agent-43, which runs behind the shared client.
         self.bindings = {"b12": {"source": ("analysis-client", "analysis-client"),
