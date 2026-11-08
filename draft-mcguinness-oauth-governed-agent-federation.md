@@ -2343,7 +2343,15 @@ client ({{Section 4 of CIMD}} lets a profile restrict it). A client that
 authenticates with an input of {{INPUTS}} names that input's method. A
 document that names `private_key_jwt` makes that method required at
 each server ({{Section 8.2 of CIMD}}) and MUST publish the client's keys
-with `jwks` or `jwks_uri`.
+with `jwks` or `jwks_uri`. A server that accepts Client ID Metadata
+Documents under this profile MUST reject, with `invalid_client`, a
+request from a client whose metadata is such a document and names no
+method, names `none` or a method the server does not accept for that
+client, or names `private_key_jwt` without `jwks` or `jwks_uri`. Because the document
+names one method, a client whose IdP and RAS accept different methods
+cannot use one document at both: it registers separately at the RAS,
+and the client registration association ({{flow-configuration}}) maps
+the two identifiers.
 
 ### Capability Discovery {#capability-discovery}
 
