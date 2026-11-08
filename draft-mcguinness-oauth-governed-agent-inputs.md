@@ -147,7 +147,7 @@ capability in addition to those of {{FEDERATION}}:
 
 | Artifact | Mandatory-to-implement (MTI) capability |
 |---|---|
-| JWT-SVID, where supported | IdP validation: `RS256` under {{Section 3.2 of SPIFFE-OAUTH}}, plus `ES256` added by this profile |
+| JWT-SVID, where supported | IdP validation: `RS256` and `ES256`, both required by this profile; {{SPIFFE-OAUTH}} requires no algorithm |
 {: title="Mandatory-to-implement algorithm for JWT-SVIDs"}
 
 # SPIFFE JWT-SVID {#jwt-svid-input}
