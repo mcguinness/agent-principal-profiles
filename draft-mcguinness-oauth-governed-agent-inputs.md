@@ -257,7 +257,9 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
 * **Proof:** When DPoP is used at issuance, its key MUST match the
   WIT-SVID's `cnf.jwk`. The IdP MUST compare the JWK thumbprints of the
   DPoP key and `cnf.jwk` as used in {{RFC9449}} and MUST reject a
-  mismatch with `invalid_request`.
+  mismatch with `invalid_request`. This narrows
+  {{Section 5.2 of ATTEST}}, under which a DPoP key used alongside the
+  Client Attestation PoP JWT need not match the attestation's `cnf` key.
   This carries the WIT-endorsed key into the grant binding; the Client
   Attestation PoP JWT remains required. Key retention follows
   {{resolution-key-lifecycle}}.
