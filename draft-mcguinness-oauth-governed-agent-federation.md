@@ -2489,9 +2489,10 @@ fit".
   dedicated-issuer credential class and exact issuer-and-`sub`
   bindings; and the deferred redemption of {{OVERSIGHT}} at the RAS.
   It does not implement WAG issuance or redemption, platform JWT
-  selectors or key-bound platform JWTs, the inputs of {{INPUTS}}, mutual
-  TLS, refresh tokens outside a deferred redemption, {{CONTINUATION}},
-  {{AGENT-LIFECYCLE}}, or {{AGENT-MANAGEMENT}}.
+  selectors, the binding of key-bound platform JWTs (it refuses them),
+  the inputs of {{INPUTS}}, mutual TLS, refresh tokens outside a
+  deferred redemption, {{CONTINUATION}}, {{AGENT-LIFECYCLE}}, or
+  {{AGENT-MANAGEMENT}}.
 * **Version compatibility:** the editor's copy of this document and its
   companions.
 * **Licensing:** a Contribution under BCP 78, BCP 79, and the IETF

@@ -65,12 +65,14 @@ stops at the RAS.
 
 ## Finding
 
-The RAS's outcome never depends on the agent's Governance Tenant,
-because neither grant carries it. At a shared issuer, the IdP's
-(Governance Tenant, Target Tenant) authorization is the only control
-that keeps one tenant's agents out of another tenant's resources; a RAS
-that admits agents by issuer, rather than by agent, admits every
-Governance Tenant on that issuer.
+The RAS cannot learn the agent's Governance Tenant from the grant,
+because neither grant carries it. Per-agent admission remains an
+independent control: a RAS that correlates and admits each agent
+explicitly refuses the other tenant's agent (the first two RAS rows).
+With issuer-wide admission, and no governance-partition information
+provisioned to the RAS by other means, the RAS relies on the IdP's
+(Governance Tenant, Target Tenant) authorization to keep one tenant's
+agents out of another tenant's resources.
 
 ## Fix candidates
 

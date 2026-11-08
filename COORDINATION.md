@@ -77,17 +77,18 @@ Coordination is needed on:
   Workload Identity Providers that share one issuer apart by a claim
   registered for each, and recommends dedicated issuers or the ID-JAG
   `tenant` claim. The core lets Governance Tenants share an issuer and
-  carries no Governance Tenant in either grant, so a RAS cannot
-  restrict shared-issuer trust to one governance partition from the
-  grant (`base-differences`). The WAG-01 and WAG-02 assessments missed
-  this. The two-tenant experiment (`experiments/shared-issuer`) shows
-  that the RAS's outcome never depends on the agent's Governance
-  Tenant: the IdP's (Governance Tenant, Target Tenant) authorization is
-  the only control, and a RAS actor-gate rule that admits agents by
-  issuer admits every Governance Tenant on it. Its fix candidates are
-  dedicated issuers, a Governance Tenant claim distinct from ID-JAG's
-  `tenant`, or a security consideration only; none is chosen. Which
-  code the IdP returns for an unauthorized pair is also open
+  carries no Governance Tenant in either grant, so a RAS cannot restrict
+  shared-issuer trust to one governance partition from the grant
+  (`base-differences`). The WAG-01 and WAG-02 assessments missed this.
+  The two-tenant experiment (`experiments/shared-issuer`) shows that the
+  RAS cannot learn the agent's Governance Tenant from the grant.
+  Per-agent admission at the RAS remains an independent control; with
+  issuer-wide admission, and no governance-partition information
+  provisioned to the RAS by other means, the RAS relies on the IdP's
+  (Governance Tenant, Target Tenant) authorization. Its fix candidates
+  are dedicated issuers, a Governance Tenant claim distinct from
+  ID-JAG's `tenant`, or a security consideration only; none is chosen.
+  Which code the IdP returns for an unauthorized pair is also open
   (conformance draft question 9).
 * **Issuer metadata:** WAG defines no metadata for the issuer. The core
   has the IdP advertise the WAG token type in

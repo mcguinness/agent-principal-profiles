@@ -313,7 +313,7 @@ suite](conformance/README.md) and how far they go:
 | The client registration's `grant_types`, permitting token exchange at the IdP ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:token-exchange` | Client metadata or CIMD | Untested |
 | The client's OpenID Connect registration, so ID Tokens name it as audience | IdP | ID Token `aud` `analysis-client` | No | Direct: N05 |
 | Token exchange for ID-JAG, and the resolution mode: the dedicated client's own authentication, with no actor token | Agreed; IdP configures | Authentication-context resolution | Token exchange and ID-JAG support only; the mode is configuration ([Agent Resolution Input Validation][actor-inputs]) | Positive path: P1 |
-| For a shared client, the existing platform JWT input: the platform issuer and credential class, approved keys and algorithms, evidence deadline, accepted audiences, and each exact issuer-and-`sub` binding ([Existing Platform JWT][imported-jwt-input]) | Agreed; IdP configures | `https://platform.example/` as a dedicated issuer; `ES256`; `exp`; `https://idp.example/`; `workload-43` to `agent-43` | No | Positive path: P11. Direct: P12 (evidence deadline), N36 (no mode fallback), N37 (audience), N38 (exact binding) |
+| For a shared client, the existing platform JWT input: the platform issuer and credential class, approved keys and algorithms, evidence deadline, accepted audiences, and each exact issuer-and-`sub` binding ([Existing Platform JWT][imported-jwt-input]) | Agreed; IdP configures | `https://platform.example/` as a dedicated issuer; `ES256`; `exp`; `https://idp.example/`; `workload-43` to `agent-43` | No | Positive path: P11. Direct: P12 (evidence deadline), N36 (no mode fallback), N37 (audience), N38 (exact binding), N39 (an unsupported key binding refused) |
 | The minimum profile for this client and target: bound, with DPoP at issuance | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; DPoP `ES256` | DPoP algorithms only; the minimum is configuration ([Profile Applicability and Downgrade Prevention][discovery]) | Direct: N03 |
 | The targets the client may request: RAS issuer as `audience`, one resource per grant, and scopes | IdP | `https://ras.example/`; `https://api.example/tenants/acme-data/`; `files.read` | No | Direct for one resource: N04. Direct for scope beyond the delegation: N25 (`invalid_scope`) and N28 (a categorical prohibition, `actor_unauthorized`). Positive path: P1 |
 
@@ -339,7 +339,7 @@ suite](conformance/README.md) and how far they go:
 | The client registration's `grant_types`, permitting `jwt-dpop` for key-bound grants and the JWT bearer grant for unbound grants at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-dpop` and `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
 | Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the grant type the client will redeem with, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-dpop` | Yes | Untested: the suite does not retrieve metadata |
 | DPoP at the token endpoint, proven with the grant's key, under the `jwt-dpop` grant type | RAS | `ES256`; the same key K | DPoP algorithms; `jwt-dpop` in `grant_types_supported` | Direct: N11, N12; grant type: N29, N30 |
-| Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2; where a resource permits bearer: P5 and P6, and Direct: P7 (binding to a presented proof) and N35 (a bound token under `Bearer`) |
+| Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2; where a resource permits bearer: P5 and P6, and Direct: P7 (binding to a presented proof), N35 (a bound token under `Bearer`), S38 (an introspection outage) and S39 (challenges in the `Bearer` scheme) |
 
 ### RAS and API
 
@@ -436,7 +436,7 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N38.
+cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
@@ -491,7 +491,7 @@ N30, and N34.
 
 [Error Responses][resource-errors] and [Optional Policy
 Services][policy-services]; cases N17 to N20, N24, N35, S02 to S07,
-S14 to S31, and S35 to S37. [Error Disclosure][security-errors]: S32 to S34.
+S14 to S31, and S35 to S39. [Error Disclosure][security-errors]: S32 to S34.
 
 The API reports the first failure in this order, whatever order it
 evaluates its checks in:
