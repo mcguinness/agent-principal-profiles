@@ -34,13 +34,13 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-11
-  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-00
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
+  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-12
+  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-01
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-01
   RFC8705:
   RFC9449:
-  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-02
-  WIT: I-D.ietf-wimse-workload-creds-02
+  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-03
+  WIT: I-D.ietf-wimse-workload-creds-03
 
 --- abstract
 
@@ -112,6 +112,22 @@ applies to delegated access only ("Self-Acting Issuance: WAG" in
 For Client Attestation, `sub` identifies the OAuth client, and the
 client-to-agent mapping is explicit.
 
+## Trust Bundles from Client Metadata {#client-metadata-bundles}
+
+For the SPIFFE inputs, an IdP configured to do so for a client MAY
+validate SVIDs with a bundle it obtains from the
+`spiffe_bundle_endpoint` of a client's Client ID Metadata Document only
+when the trust domain of the document's `spiffe_id` equals, or is a
+subdomain of, the host of the client's `client_id` URL
+({{Section 8.2 of SPIFFE-OAUTH}}). It then uses the bundle only for
+SVIDs presented to authenticate as that client
+({{Section 6.1 of SPIFFE-OAUTH}}), and a SPIFFE ID validated with it
+resolves an agent only through an Identity Binding configured for that
+client. Otherwise the IdP ignores `spiffe_bundle_endpoint` in Client ID
+Metadata Documents, as {{Section 8.2 of SPIFFE-OAUTH}} requires of a
+deployment that does not accept that trust model, and the document
+establishes no approved trust domain.
+
 ## Grant Lifetime {#lifetime}
 
 Under the grant lifetime rule ("Common Grant Claims, Lifetime, and
@@ -131,7 +147,7 @@ capability in addition to those of {{FEDERATION}}:
 
 | Artifact | Mandatory-to-implement (MTI) capability |
 |---|---|
-| JWT-SVID, where supported | IdP validation: `RS256` under {{Section 3.1 of SPIFFE-OAUTH}}, plus `ES256` added by this profile |
+| JWT-SVID, where supported | IdP validation: `RS256` under {{Section 3.2 of SPIFFE-OAUTH}}, plus `ES256` added by this profile |
 {: title="Mandatory-to-implement algorithm for JWT-SVIDs"}
 
 # SPIFFE JWT-SVID {#jwt-svid-input}
@@ -145,7 +161,8 @@ section.
   `client_assertion_type`
   `urn:ietf:params:oauth:client-assertion-type:jwt-spiffe`.
 * **Validation:** Before resolving the agent, the IdP MUST apply
-  {{Section 3.1 of SPIFFE-OAUTH}}, including the assertion type, and
+  {{Section 3.2 of SPIFFE-OAUTH}}, including the assertion type and the
+  client identification of {{Section 3.1 of SPIFFE-OAUTH}}, and
   {{Section 5 of SPIFFE-OAUTH}} and {{Section 6 of SPIFFE-OAUTH}} for
   trust establishment and key distribution. It MUST also verify the
   signature, before resolving the agent, with keys authorized for the
@@ -227,7 +244,7 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
 
 * **Presentation:** The WIT-SVID in `OAuth-Client-Attestation`, with its
   proof in `OAuth-Client-Attestation-PoP`.
-* **Validation:** The IdP MUST apply {{Section 3.3 of SPIFFE-OAUTH}} and
+* **Validation:** The IdP MUST apply {{Section 3.4 of SPIFFE-OAUTH}} and
   {{WIT}}, including their client-identifier association, trust,
   validity, and proof requirements. It MUST require `typ=wit+jwt`. It
   MUST validate possession of the key in `cnf.jwk` through the Client
@@ -249,10 +266,11 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
 
 * **Presentation:** The client certificate on the mutual-TLS connection
   carrying the token request.
-* **Validation:** The IdP MUST apply {{Section 3.2 of SPIFFE-OAUTH}} and
-  {{RFC8705}} to the certificate and proof established by mutual TLS
-  for this request. This includes their client-identifier association,
-  trust, validity, and proof requirements. A certificate supplied only
+* **Validation:** The IdP MUST apply {{Section 3.3 of SPIFFE-OAUTH}},
+  which profiles {{RFC8705}}, to the certificate and proof established
+  by mutual TLS for this request. This includes its client
+  identification ({{Section 3.1 of SPIFFE-OAUTH}}), trust, validity,
+  and proof requirements. A certificate supplied only
   in a request parameter or an untrusted forwarding header MUST NOT
   establish the workload identity, and the request then fails client
   authentication. TLS termination follows {{Section 6.5 of RFC8705}}.

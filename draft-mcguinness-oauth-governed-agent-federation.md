@@ -34,8 +34,8 @@ normative:
       - name: D. Sneeggen
       - name: S. O'Dell
     date: 2026-09-28
-  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-11
-  INSTANCE: I-D.mcguinness-oauth-client-instance-id-00
+  ATTEST: I-D.ietf-oauth-attestation-based-client-auth-12
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id-01
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile-01
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
@@ -147,7 +147,7 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
-  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-02
+  SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-03
 --- abstract
 
 Resource domains need a stable identity for an enterprise-governed agent
@@ -2336,6 +2336,15 @@ CIMD. Its `grant_types` MUST permit:
   `urn:ietf:params:oauth:grant-type:jwt-dpop` there when the client
   redeems grants containing `cnf`.
 
+When that metadata is a Client ID Metadata Document, its
+`token_endpoint_auth_method` MUST name a client authentication method,
+other than `none`, that each server using the document accepts for the
+client ({{Section 4 of CIMD}} lets a profile restrict it). A client that
+authenticates with an input of {{INPUTS}} names that input's method. A
+document that names `private_key_jwt` makes that method required at
+each server ({{Section 8.2 of CIMD}}) and MUST publish the client's keys
+with `jwks` or `jwks_uri`.
+
 ### Capability Discovery {#capability-discovery}
 
 Before using either grant path:
@@ -3212,8 +3221,8 @@ of this document ({{excluded-compositions}}).
 This informative appendix records how this document differs from its
 base specifications, what it depends on, and the compositions it does
 not define. They were assessed against WAG-02, ID-JAG-06, JWT DPoP
-Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11,
-CIMD-02, and Client Instance Identification-00.
+Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-03, ATTEST-12,
+CIMD-02, and Client Instance Identifiers-01.
 
 ## Differences from Base Specifications {#base-differences}
 

@@ -291,10 +291,10 @@ actions, the API or MCP server holds the call until an approver decides.
   `invalid_grant`.
 * When an agent is disabled while its request is pending and the
   approver then approves, the next poll returns `access_denied` and
-  nothing issues. Polls before the decision still return
-  `authorization_pending`: the deferring server re-checks at
-  resolution, and the profile does not require disablement to cancel a
-  pending request.
+  nothing issues. Polls before the decision still return a pending
+  code, such as `authorization_pending`: the deferring server re-checks
+  at resolution, and the profile does not require disablement to cancel
+  a pending request.
 * Approving narrower authority yields a grant or access token with only
   that authority, and an approval does not carry over to another
   request with the same context.

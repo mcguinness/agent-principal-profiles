@@ -14,19 +14,22 @@ implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 ## Dependencies and Deferred Work
 
 These notes record dependencies and deferred work.
-Assessed revisions: WAG-02, ID-JAG-06, JWT DPoP Grant-02, ICA-02, Actor
-Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
-Identification-00, Client Attester Endorsement-00, DTR-00, RFC
-7523bis-11 (its Section 4), and WISE draft 03.
+Revisions read in full against the family's use: WAG-02, ID-JAG-06,
+and JWT DPoP Grant-02 (2026-11-04); DTR-01, SPIFFE OAuth-03, WIT-03,
+ATTEST-12, CIMD-03, Client Instance Identifiers-01, and Client Attester
+Endorsement-01 (2026-11-07); and, earlier, ICA-02, Actor Profile-01,
+CIMD-02, and WISE draft 03. For RFC 7523bis-11 and AIMS-01, only the
+cited sections were assessed.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
-on 2026-11-06 (AIMS-01, Identity Chaining-17, Entity Profiles-02,
-Oversight Acts-00, SCIM Agent Resource-00). Newer revisions are not yet
-assessed: DTR-01 and SPIFFE OAuth-03 renumber sections the drafts cite,
-CIMD-03 retitles the cited Section 6, ATTEST-12, Client Instance
-Identification-01 and Client Attester Endorsement-01 keep the cited
-headings, and WIT-03 is cited without section numbers.
+on 2026-11-06 (Identity Chaining-17, Entity Profiles-02, Oversight
+Acts-00, SCIM Agent Resource-00). CIMD stays at -02 until its Section 6
+is fixed (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
+checks that every cited section of a pinned RFC or draft still has the
+heading recorded in `tools/cited-sections.json`. Moving a pin means
+reading the cited sections in the new revision and then recording their
+headings (`--fetch`, `--update`).
 
 ### Upstream Dependencies
 
@@ -178,7 +181,7 @@ grant-level sender constraint single-use, and a proof used only for
 client authentication or to bind the issued token is not such a
 constraint. The two rules agree.
 
-#### Client Instance Identification
+#### Client Instance Identifiers
 
 This document composes `INSTANCE` as evidence beside the governed agent:
 an instance identifier selects the Agent Principal only through an
@@ -193,6 +196,28 @@ for the `INSTANCE` draft:
   obtained the grant, not only the one that redeemed it, this document
   would become a consuming profile under Section 7.4 of `INSTANCE` and
   define provenance and association for context in the ID-JAG or WAG.
+
+#### Client Authentication Drafts
+
+Two differences found in assessing the 2026-11-07 revisions:
+
+* Not yet filed: ATTEST-12 makes `iat` REQUIRED in a Client Attestation, and its
+  Section 13 lets a profile deviate only on `typ`, `sub`, and refresh
+  binding. SPIFFE OAuth-03 Section 3.4.1 makes the WIT-SVID such a
+  profile but validates it under WIT-03, which does not require `iat`.
+  A generic ATTEST-12 server therefore rejects a WIT-SVID without `iat`
+  that SPIFFE OAuth-03 accepts. `INPUTS` lists no WIT-SVID claims and
+  takes no side.
+* Filed as oauth-wg/draft-ietf-oauth-client-id-metadata-document#131:
+  CIMD-03 Section 6 rejects a request with `invalid_client` when the
+  `response_types` that a document declares and the server supports do
+  not intersect. Read literally, a server with no authorization
+  endpoint, such as the RAS, rejects every token request from a CIMD
+  client. The drafts therefore hold CIMD at -02. Re-pinning to a fixed
+  revision also moves the core's rule to Section 5 of CIMD-03, which
+  lists methods in `token_endpoint_auth_methods_supported`, treats a
+  document that lists none as `none`, and requires a declared
+  `private_key_jwt` only where the server supports it.
 
 #### Shared Signals: WISE and CAEP
 
@@ -780,12 +805,12 @@ the backquoted names below refer to.
 
 ### Deferred Token Response
 
-The companion profiles `draft-ietf-oauth-deferred-token-response-00`
+The companion profiles `draft-ietf-oauth-deferred-token-response-01`
 for governed token exchange. It narrows DTR in two places. A deferred
 governed request always carries a DPoP proof (`opt-in`), where DTR
-Section 10.1 lets a confidential client using `private_key_jwt` omit
+Section 11.1 lets a confidential client using `private_key_jwt` omit
 one. Every governed check runs before deferral and again at resolution
-(`deferring`, `resolution`), where DTR Section 10.7 re-checks consent
+(`deferring`, `resolution`), where DTR Section 11.7 re-checks consent
 and client authorization only.
 
 DTR says nothing about which identities the token returned after a
@@ -795,24 +820,47 @@ request's Agent Principal, acting relationship, user, and client
 
 The companion also profiles DTR for the redemption of an ID-JAG or a
 WAG at the RAS (`deferred-redemption`), which DTR's introduction and
-Section 8.2 anticipate for ID-JAG. There it narrows DTR further. A
+Section 9.3 anticipate for ID-JAG. There it narrows DTR further. A
 deferred grant is accepted once, so the parallel request without
-`completion_mode` that Section 8.2 suggests fails
+`completion_mode` that Section 9.3 suggests fails
 (`redemption-deferring`). The RAS does not defer where configuration
-selects mutual-TLS access tokens, since Section 10.1 requires the
+selects mutual-TLS access tokens, since Section 11.1 requires the
 issued token to be DPoP-bound to the request's key
 (`redemption-opt-in`). A lost deferred response is recovered with the
 same grant and key (`redemption-recovery`).
 
-Two questions for DTR, not yet filed:
+DTR-01 adds `interaction_uri`, and its Appendix A.6 describes a deferred
+ID-JAG redemption in which the agent sends the user's browser to that
+URI. The companion names it as one approval channel (`approval`), with
+limits. The approver still authenticates to the channel at the strength
+policy requires. Reaching the URI is not that authentication. Neither is
+a session in a browser the agent operates (`security-self`). The
+companion accepts every pending code of DTR Section 6.6 in polls.
+
+Five questions for DTR, not yet filed:
 
 * whether a grant profile's replay rules can forbid the parallel
-  request of Section 8.2, as the companion does; and
-* whether the originating-grant preconditions that Section 10.7
+  request of Section 9.3, as the companion does;
+* whether the originating-grant preconditions that Section 11.7
   re-evaluates include the grant's own expiration when the client does
   not present the grant again. The companion checks the grant's `exp`
   on receipt (`redemption-deferring`) and records the question as an
-  open item.
+  open item;
+* whether an approval that the authorization server starts out of band,
+  such as a CIBA request to the approver, is "external interaction", so
+  that `authorization_pending` is no longer the code for it once the
+  server observes the interaction began;
+* which opt-in rule governs `deferred_interactive`. Section 5.1 implies
+  that a `completion_mode` of `deferred_interactive` alone opts in;
+  Section 5.3 forbids deferral unless `completion_mode` includes
+  `deferred`; and Appendices A.6 to A.8 send only `deferred`. The
+  companion follows Section 5.3, and a client able to present an
+  `interaction_uri` sends both values (`approval`); and
+* which error a deferred response carries. Section 6.4 says
+  `authorization_pending`, then returns `interaction_required` with a
+  deferral code for a response waiting on external interaction, in its
+  own example. The companion accepts both in the deferred response
+  (`deferring`, `redemption-deferring`).
 
 ### AROP
 
@@ -937,7 +985,7 @@ The cluster can be broken with a small behavior change:
 * `INPUTS` becomes an informative reference.
 
 Breaking the cluster alone does not let the core advance ahead of early
-dependencies. The core also references Client Instance Identification
+dependencies. The core also references Client Instance Identifiers
 (`INSTANCE`) normatively, for the client instance rule in
 `identity-binding` and the instance context of `access-token-response`
 and `api-validation`.

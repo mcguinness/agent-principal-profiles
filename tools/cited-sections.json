@@ -11,26 +11,30 @@
     "10": "Security Considerations",
     "11": "IANA Considerations"
   },
-  "I-D.ietf-oauth-attestation-based-client-auth-11": {
+  "I-D.ietf-oauth-attestation-based-client-auth-12": {
     "5.2": "Using DPoP as the Proof of Possession",
-    "10.3": "Refresh token binding"
+    "10.3": "Refresh Token Binding"
   },
   "I-D.ietf-oauth-client-id-metadata-document-02": {
-    "6": "Authorization Server Metadata"
+    "4": "Client ID Metadata Document",
+    "6": "Authorization Server Metadata",
+    "8.2": "Client Authentication"
   },
-  "I-D.ietf-oauth-deferred-token-response-00": {
-    "4.1": "The completion_mode Parameter",
-    "4.2": "Pre-Token Hints",
-    "5.4": "Token Endpoint \u2014 Deferred Response",
-    "5.5.1": "Polling Request Validation",
-    "5.5.2": "Successful Polling Response",
-    "5.6": "Token Endpoint \u2014 Error Responses",
-    "6": "Callback Notification",
-    "7": "Cancellation",
-    "8.2": "Obtaining an Immediate Result Alongside a Deferred Request",
-    "8.3": "Progress Information in Errors",
-    "10.1": "Sender-Constraint Requirements",
-    "10.7": "Consent Staleness at Resolution"
+  "I-D.ietf-oauth-deferred-token-response-01": {
+    "4.2": "Profile Obligations",
+    "5.1": "The completion_mode Parameter",
+    "5.3": "Authorization Server Discretion",
+    "6.4": "Token Endpoint \u2014 Deferred Response",
+    "6.5.1": "Polling Request Validation",
+    "6.5.2": "Successful Polling Response",
+    "6.6": "Token Endpoint \u2014 Error Responses",
+    "7": "Callback Notification",
+    "8": "Cancellation",
+    "9.3": "Obtaining an Immediate Result Alongside a Deferred Request",
+    "9.4": "Progress Information in Errors",
+    "11.1": "Sender-Constraint Requirements",
+    "11.7": "Consent Staleness at Resolution",
+    "A.6": "AI Agent with Browser Access"
   },
   "I-D.ietf-oauth-identity-assertion-authz-grant-06": {
     "3.1": "ID-JAG Claims",
@@ -58,12 +62,15 @@
   "I-D.ietf-oauth-rfc7523bis-11": {
     "4": "Updates to RFC 7523"
   },
-  "I-D.ietf-oauth-spiffe-client-auth-02": {
-    "3.1": "Client Authentication with JWT-SVIDs",
-    "3.2": "Client Authentication using X509-SVID",
-    "3.3": "Client Authentication with WIT-SVIDs",
+  "I-D.ietf-oauth-spiffe-client-auth-03": {
+    "3.1": "Client Identification",
+    "3.2": "Client Authentication with JWT-SVIDs",
+    "3.3": "Client Authentication using X509-SVID",
+    "3.4": "Client Authentication with WIT-SVIDs",
     "5": "SPIFFE Trust Establishment and Client Registration",
-    "6": "SPIFFE Key Distribution and Validation"
+    "6": "SPIFFE Key Distribution and Validation",
+    "6.1": "Bundles from Client Metadata",
+    "8.2": "Trust Bundles from Client ID Metadata Documents"
   },
   "I-D.ietf-wimse-aims-01": {
     "10.8": "Human in the Loop"
@@ -79,12 +86,12 @@
     "9": "Error Responses",
     "10.1": "Authorization Server Metadata"
   },
-  "I-D.mcguinness-oauth-client-attesters-00": {
+  "I-D.mcguinness-oauth-client-attesters-01": {
     "2.1": "Acceptance Policy",
     "2.2": "Registered Endorsements",
     "3": "Client Metadata"
   },
-  "I-D.mcguinness-oauth-client-instance-id-00": {
+  "I-D.mcguinness-oauth-client-instance-id-01": {
     "1.1": "Identity and Scope",
     "4.1": "Receiver Scope",
     "6": "Attester Requirements",

@@ -24,7 +24,7 @@ author:
    organization: Independent
    email: public@karlmcguinness.com
 normative:
-  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-00
+  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-01
   CIMD: I-D.ietf-oauth-client-id-metadata-document-02
   RFC6749:
   RFC7591:

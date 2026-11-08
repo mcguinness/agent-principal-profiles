@@ -953,7 +953,7 @@ class RAS(Server):
         if grant_type == JWT_DPOP and jkt is None and self.on("ras.require_proof"):
             raise OAuthError("invalid_dpop_proof", description="jwt-dpop requires a DPoP proof")
         assertion = _one(form, "assertion")
-        deferred = form.get("completion_mode") == ["deferred"]
+        deferred = "deferred" in self.completion_modes(form)
         # Recovery (oversight: Recovery) matches the byte-identical grant
         # before validating it again, so it works after the grant's exp.
         # Client authentication and the DPoP proof, with their replay
@@ -1090,6 +1090,12 @@ class RAS(Server):
         return True
 
     @staticmethod
+    def completion_modes(form):
+        """completion_mode is a space-delimited list (DTR Section 5.1); the
+        opt-in is a list that includes deferred (oversight: Redemption Opt-In)."""
+        return " ".join(form.get("completion_mode", [])).split()
+
+    @staticmethod
     def request_params(form):
         return tuple(tuple(form.get(name, [])) for name in
                      ("grant_type", "resource", "scope", "authorization_details"))
@@ -1122,6 +1128,12 @@ class RAS(Server):
                    "profile": "bound" if claims.get("cnf") is not None else "governed",
                    "tenant": config["tenant"], "resource": resource, "scope": scope,
                    "abs_exp": abs_exp, "deadline": now + lifetime, "state": "pending"}
+        # A client that opted in with deferred_interactive can present an
+        # interaction_uri (DTR Section 5.1), so the reference waits on that
+        # interaction. It never serves the URI; approval stays out of band.
+        if "deferred_interactive" in self.completion_modes(form):
+            host = self.issuer.split("://", 1)[1].rstrip("/")
+            pending["interaction_uri"] = f"https://{host}/interact/{secrets.token_urlsafe(16)}"
         # The replay record lasts until the later of the request's end and
         # the grant's acceptance window plus skew.
         self.accepted_grants[grant_key] = max(claims["exp"] + SKEW, pending["deadline"])
@@ -1148,9 +1160,17 @@ class RAS(Server):
                               "authorization_details": list(ad)})
 
     def deferred_body(self, pending):
-        return {"error": "authorization_pending", "deferral_code": pending["code"],
-                "expires_in": max(0, int(pending["deadline"] - self.now())),
-                "interval": POLL_INTERVAL}
+        return dict(self.pending_body(pending), deferral_code=pending["code"],
+                    expires_in=max(0, int(pending["deadline"] - self.now())),
+                    interval=POLL_INTERVAL)
+
+    @staticmethod
+    def pending_body(pending):
+        """authorization_pending, or interaction_required with the request's
+        interaction_uri (DTR Sections 6.4 and 6.6)."""
+        if pending.get("interaction_uri"):
+            return {"error": "interaction_required", "interaction_uri": pending["interaction_uri"]}
+        return {"error": "authorization_pending"}
 
     def expire_if_due(self, pending):
         if pending["state"] == "pending" and self.now() >= pending["deadline"]:
@@ -1195,9 +1215,9 @@ class RAS(Server):
         # Approval Binding: a result for another task completes nothing, and
         # the redemption stays pending.
         if result["task"] != pending["task"] and self.on("ras.approval_binding"):
-            raise Deferred({"error": "authorization_pending"})
+            raise Deferred(self.pending_body(pending))
         if result["status"] == "pending":
-            raise Deferred({"error": "authorization_pending"})
+            raise Deferred(self.pending_body(pending))
         if result["status"] != "approved":
             pending["state"] = "denied"
             raise OAuthError("access_denied")
