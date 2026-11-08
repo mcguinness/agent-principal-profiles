@@ -250,9 +250,9 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
 ### Credential authority → IdP
 
 * **Configure:** each trusted issuer or trust domain, with its approved
-  keys, algorithms, time limits, and accepted audiences, and the
-  credential class that tells its workload credentials apart from its
-  user or management tokens. Identity Bindings name an exact issuer and
+  keys or key source, algorithms, time limits, and accepted audiences,
+  and the credential class that tells its workload credentials apart
+  from its user or management tokens. Identity Bindings name an exact issuer and
   subject.
 * **Validate:** the IdP selects exactly one configured class for
   presented evidence, validates the evidence under it, and resolves the
