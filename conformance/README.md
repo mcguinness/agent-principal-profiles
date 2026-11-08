@@ -118,7 +118,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N38 | IdP | A valid platform JWT for `workload-43-shadow`, which only begins with the bound `workload-43`, fails with `invalid_grant` | core: Existing Platform JWT (Resolution); Issuance Errors | A shared client configured |
 | N39 | IdP | A platform JWT whose `cnf.jkt` names another key than the one the request proves fails with `invalid_request`: the reference supports no platform JWT binding, and an unsupported binding never gets bearer treatment | core: Existing Platform JWT (Proof); Issuance Errors | A shared client configured |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
-| D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
+| D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
 | D04 | RAS | With a 24 h maximum pending lifetime and an 8 h absolute expiration, `expires_in` is at most 8 h, and an approval after 9 h finds `expired_token` | oversight: Deferring a Redemption | Require approval; set both lifetimes; approve; advance the clock |
 | D05 | RAS | An agent disabled while pending gets `access_denied` at the poll after approval | oversight: Redemption Resolution | Require approval; disable the agent at the RAS; approve |
@@ -127,7 +127,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | D08 | RAS | For an unbound grant, a repeated request gets the same deferral code and an `expires_in` no greater than the first; the same request with another key fails with `invalid_grant` | oversight: Recovery | Require approval; let both the IdP and the RAS accept unbound grants |
 | D09 | RAS | After approval, a repeated request gets the same deferral code and no token, and the poll then issues | oversight: Recovery | Require approval; approve |
 | D10 | RAS | A second agent's grant through the same client, for the same user, resource and scope, gets its own deferral code and access request; approving the first leaves it pending | oversight: Approval Binding | Require approval; mint a grant; approve |
-| D11 | RAS | When the Access Request Service answers the second request with the first one's approval, the second stays `authorization_pending` | oversight: Approval Binding | Require approval; mint a grant; approve; substitute |
+| D11 | RAS | When the Access Request Service answers the second request with the first one's approval, the second stays pending | oversight: Approval Binding | Require approval; mint a grant; approve; substitute |
 | D12 | RAS | An approval narrowed from `files.read files.write` to `files.read` yields `scope` `files.read` in the response and the token, in any order | oversight: Redemption Resolution | Require approval; mint a grant; approve |
 | D13 | RAS | With an approval expiry 300 s ahead, the access token expires within it, and a refresh after it fails with `invalid_grant` | oversight: Redemption Resolution; Refresh and Continuation | Require approval; permit refresh; approve; advance the clock |
 | D14 | RAS | A refresh after the approval is revoked fails with `invalid_grant` | oversight: Refresh and Continuation | Require approval; permit refresh; approve; revoke; advance the clock |
@@ -373,7 +373,12 @@ Some cases depend on choices made for the reference:
 * D08 uses an unbound grant. For a bound grant, a proof of another key
   already fails Grant Protection, so the recovery match would not be
   what refuses it.
-* D11 asserts `authorization_pending`, as Approval Binding says.
+* D11 asserts a pending response, as Approval Binding says. A poll may
+  get any pending code of DTR-01 Section 6.6 (`authorization_pending`,
+  `interaction_pending`, or `interaction_required` with an
+  `interaction_uri`) or `slow_down`; the reference returns
+  `authorization_pending`. The deferred response itself is always
+  `authorization_pending`, with the `interval` DTR-01 requires.
 
 ## Policy services at the API
 

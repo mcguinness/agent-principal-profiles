@@ -553,8 +553,11 @@ applies.
     refusal: `access_denied` for an ID-JAG, `invalid_target` for a WAG.
     Without such a policy, a request without the opt-in can succeed at
     once.
-  * Polls: `authorization_pending` or `slow_down` while pending; then
-    `access_denied`, `expired_token`, or, for a poll with another key,
+  * Polls: while pending, `authorization_pending`, or under DTR-01
+    `interaction_pending` once the server sees the approval interaction
+    begin, or `interaction_required` with an `interaction_uri`, and
+    `slow_down`; none is terminal. Then `access_denied`,
+    `expired_token`, or, for a poll with another key,
     `invalid_dpop_proof`.
   * `invalid_grant`: at the IdP, a poll after delivery; at the RAS, any
     presentation of an accepted grant other than recovery, and a

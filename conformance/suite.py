@@ -1468,23 +1468,31 @@ def require_approval(ctx, scopes=None):
 
 
 def expect_deferred(resp):
-    """A DTR deferred response: HTTP 400, authorization_pending, deferral_code, expires_in."""
+    """A DTR deferred response (DTR Section 6.4): HTTP 400, authorization_pending,
+    deferral_code, expires_in and interval."""
     body = resp.json()
     check(resp.status == 400 and body.get("error") == "authorization_pending",
           f"expected a deferred response, got {resp}")
     check(isinstance(body.get("deferral_code"), str) and body["deferral_code"],
           "deferral_code")
     check(isinstance(body.get("expires_in"), int) and body["expires_in"] > 0, "expires_in")
-    check("interval" not in body or isinstance(body["interval"], int), "interval")
+    check(isinstance(body.get("interval"), int), "interval (REQUIRED in DTR-01)")
     check("access_token" not in body, "a deferred response carried a token")
     return body
 
 
+PENDING = ("authorization_pending", "interaction_pending", "interaction_required", "slow_down")
+
+
 def expect_pending(resp):
-    """A poll that leaves the request pending: authorization_pending or slow_down."""
+    """A poll that leaves the request pending (DTR Section 6.6): any pending code, or
+    slow_down. interaction_required carries an interaction_uri."""
     body = resp.json()
-    check(resp.status == 400 and body.get("error") in ("authorization_pending", "slow_down"),
-          f"expected authorization_pending, got {resp}")
+    check(resp.status == 400 and body.get("error") in PENDING,
+          f"expected a pending response, got {resp}")
+    if body.get("error") == "interaction_required":
+        check(isinstance(body.get("interaction_uri"), str), "interaction_required without "
+              "interaction_uri")
     check("access_token" not in body, "a pending response carried a token")
 
 

@@ -353,7 +353,7 @@ through these steps, which the subsections define:
 | Event | IdP action | Result |
 |---|---|---|
 | Request with the opt-in | Completes every check except the approver's decision; for a continuation, reserves the assertion ({{deferring}}, {{deferred-continuation}}) | Pending; deferred response |
-| Poll before a decision | Verifies the client and its key | `authorization_pending` or `slow_down` |
+| Poll before a decision | Verifies the client and its key | A pending code of {{Section 6.6 of DTR}}: `authorization_pending`, `interaction_pending`, or `interaction_required` with an `interaction_uri`; or `slow_down` |
 | Approver decides | Records the decision for this request only ({{approval}}) | Pending until the next poll |
 | Poll after approval | Re-checks the request; for a continuation, counts the grant against the limits as it issues ({{resolution}}) | Grant; reservation ISSUED |
 | Poll after denial, or a re-check fails | Issues nothing | `access_denied`; reservation FAILED |
@@ -584,7 +584,7 @@ redemption moves through these steps, which the subsections define:
 |---|---|---|
 | Redemption with the opt-in | Completes every check except the approver's decision, accepts the grant, and opens one approval request ({{redemption-deferring}}) | Pending; deferred response |
 | The same redemption again | Matches the accepted grant ({{redemption-recovery}}) | The same deferral code |
-| Poll before a decision | Verifies the client and its key | `authorization_pending` or `slow_down` |
+| Poll before a decision | Verifies the client and its key | A pending code of {{Section 6.6 of DTR}}: `authorization_pending`, `interaction_pending`, or `interaction_required` with an `interaction_uri`; or `slow_down` |
 | Approver decides | Records the decision for this pending redemption only ({{redemption-approval}}) | Pending until the next poll |
 | Poll after approval | Re-checks the redemption with the approval ({{redemption-resolution}}) | Access token, and any refresh token |
 | Poll after denial, or a re-check fails | Issues nothing | `access_denied` |
@@ -1238,7 +1238,7 @@ Each case changes this variant as stated; all other checks succeed.
 | After a successful token response, the client repeats the redemption | RAS | HTTP 400, `invalid_grant` |
 | Two identical redemptions arrive together | RAS | One pending governed redemption and one approval request; both responses carry its deferral code |
 | While the redemption is pending, `agent-43` redeems its own ID-JAG through the same client, for the same user, resource, and scope | RAS | A separate pending governed redemption and approval request; approving the first issues nothing for it |
-| The access request service returns the first redemption's approval for the second's approval request | RAS | The second stays pending (`authorization_pending`); no token |
+| The access request service returns the first redemption's approval for the second's approval request | RAS | The second stays pending (a pending code of {{Section 6.6 of DTR}}); no token |
 | The approval expires in one hour, a refresh token issues, and the client refreshes after the approval expiry | RAS | The access token expires within the approval expiry; HTTP 400, `invalid_grant` on refresh |
 | The approval is revoked ten minutes into its hour, and the client then refreshes | RAS | HTTP 400, `invalid_grant` |
 | The grant had no `cnf` and the client's minimum was governed agent access; after a refresh token issues, the minimum becomes bound governed agent access, and the client refreshes | RAS | HTTP 400, `invalid_grant` ("Optional RAS Refresh Tokens" in {{FEDERATION}}) |
