@@ -1,0 +1,218 @@
+{
+  "I-D.carleton-workload-authz-grant-02": {
+    "2": "Conventions and Terminology",
+    "3": "Overview",
+    "5": "Workload Authorization Grant",
+    "5.1": "JWT Syntax",
+    "6.1": "Issuer Keys",
+    "6.3": "Multi-Tenancy",
+    "8": "Authorization Server Metadata",
+    "9": "Open Issues",
+    "10": "Security Considerations",
+    "11": "IANA Considerations"
+  },
+  "I-D.ietf-oauth-attestation-based-client-auth-11": {
+    "5.2": "Using DPoP as the Proof of Possession",
+    "10.3": "Refresh token binding"
+  },
+  "I-D.ietf-oauth-client-id-metadata-document-02": {
+    "6": "Authorization Server Metadata"
+  },
+  "I-D.ietf-oauth-deferred-token-response-00": {
+    "4.1": "The completion_mode Parameter",
+    "4.2": "Pre-Token Hints",
+    "5.4": "Token Endpoint \u2014 Deferred Response",
+    "5.5.1": "Polling Request Validation",
+    "5.5.2": "Successful Polling Response",
+    "5.6": "Token Endpoint \u2014 Error Responses",
+    "6": "Callback Notification",
+    "7": "Cancellation",
+    "8.2": "Obtaining an Immediate Result Alongside a Deferred Request",
+    "8.3": "Progress Information in Errors",
+    "10.1": "Sender-Constraint Requirements",
+    "10.7": "Consent Staleness at Resolution"
+  },
+  "I-D.ietf-oauth-identity-assertion-authz-grant-06": {
+    "3.1": "ID-JAG Claims",
+    "3.2": "SAML NameID Subject Identifier",
+    "4.3": "Token Exchange",
+    "4.3.3": "Processing Rules",
+    "4.3.4": "Response",
+    "4.3.4.3": "Error Response",
+    "4.4": "Access Token Request",
+    "4.4.1": "Processing Rules",
+    "4.4.2": "Response",
+    "4.4.3": "Error Response",
+    "4.4.4": "Refresh Token",
+    "4.5": "SAML 2.0 Subject Token Interoperability",
+    "5.1": "Client ID Mapping",
+    "7.1": "IdP Authorization Server Metadata",
+    "7.2": "Resource Authorization Server Metadata",
+    "8": "Client Metadata",
+    "9.10": "Actor Delegation Extensions",
+    "9.11.1.1": "DPoP Key Binding During Token Exchange",
+    "9.11.1.2": "DPoP Key Binding During ID-JAG Exchange",
+    "9.11.1.2.2": "ID-JAG Contains cnf Claim but DPoP Proof is Not Presented",
+    "9.11.2": "mTLS Certificate Binding"
+  },
+  "I-D.ietf-oauth-rfc7523bis-11": {
+    "4": "Updates to RFC 7523"
+  },
+  "I-D.ietf-oauth-spiffe-client-auth-02": {
+    "3.1": "Client Authentication with JWT-SVIDs",
+    "3.2": "Client Authentication using X509-SVID",
+    "3.3": "Client Authentication with WIT-SVIDs",
+    "5": "SPIFFE Trust Establishment and Client Registration",
+    "6": "SPIFFE Key Distribution and Validation"
+  },
+  "I-D.ietf-wimse-aims-01": {
+    "10.8": "Human in the Loop"
+  },
+  "I-D.mcguinness-oauth-actor-profile-01": {
+    "3.4": "Actor Object Structure",
+    "3.6.2.2": "Preserve Inbound Chain",
+    "6.4": "Actor Tokens",
+    "6.4.1.2": "Processing",
+    "6.6.2": "JWT Access Token Output",
+    "8": "Resource Server Processing",
+    "8.2": "JWT Access Token Processing",
+    "9": "Error Responses",
+    "10.1": "Authorization Server Metadata"
+  },
+  "I-D.mcguinness-oauth-client-attesters-00": {
+    "2.1": "Acceptance Policy",
+    "2.2": "Registered Endorsements",
+    "3": "Client Metadata"
+  },
+  "I-D.mcguinness-oauth-client-instance-id-00": {
+    "1.1": "Identity and Scope",
+    "4.1": "Receiver Scope",
+    "6": "Attester Requirements",
+    "6.3": "Suspension and Status",
+    "7": "Conveying Instance Context",
+    "7.3": "Presenter Attribution",
+    "7.5": "Context Consumer Processing",
+    "9": "Security Considerations",
+    "10": "Privacy Considerations"
+  },
+  "I-D.mcguinness-oauth-id-continuation-assertion-02": {
+    "4": "Continuation Handles (identity_continuation_handle)",
+    "5.1.1": "Root Exchange Request",
+    "5.1.2": "Chain Establishment",
+    "5.1.4": "Chain Authorization",
+    "5.2": "Continuation-Aware RAS Processing",
+    "5.3": "Handle Carriers Within the Domain",
+    "5.4": "Assertion Issuance",
+    "5.4.1": "Assertion Issuance Request",
+    "5.4.3": "Request Validation",
+    "5.4.6": "Separate CAI",
+    "5.5.1": "Continuation Request",
+    "5.5.2": "Client Authentication",
+    "5.5.3": "Request Validation",
+    "5.5.4": "Successful Response",
+    "5.5.5": "Onward ID-JAG Construction",
+    "5.5.6": "Error Response and Recovery",
+    "5.5.7": "Replay Reservation and Retry",
+    "5.5.7.1": "Idempotent Retry",
+    "6": "Chain Lifetime and Revocation",
+    "6.1": "Anchors",
+    "6.2": "Ending a Chain",
+    "6.3": "Limits",
+    "7": "Authorization Server Metadata and Trust Configuration",
+    "7.1": "IdP Authorization Server Metadata",
+    "7.2": "Resource Authorization Server Metadata",
+    "7.3": "Issuer Trust Configuration",
+    "8": "Implementation Considerations",
+    "9.1": "Sender Constraint and Proof of Possession",
+    "9.2": "Authorization Enforcement",
+    "9.5": "Topology and Trust",
+    "B.3": "Background Agent Example (Scheduled Continuation)"
+  },
+  "I-D.parecki-oauth-jwt-dpop-grant-02": {
+    "4.1": "Using DPoP-Bound JWT Assertions as Authorization Grants",
+    "5": "JWT Format and Processing Requirements",
+    "5.2": "Use with the JWT Bearer Grant Type"
+  },
+  "RFC6749": {
+    "2.1": "Client Types",
+    "3.3": "Access Token Scope",
+    "5.2": "Error Response"
+  },
+  "RFC6750": {
+    "3": "The WWW-Authenticate Response Header Field",
+    "3.1": "Error Codes"
+  },
+  "RFC6901": {
+    "4": "Evaluation",
+    "5": "JSON String Representation"
+  },
+  "RFC7523": {
+    "3": "JWT Format and Processing Requirements",
+    "5": "Interoperability Considerations"
+  },
+  "RFC7591": {
+    "2": "Client Metadata"
+  },
+  "RFC7592": {
+    "2.3": "Client Delete Request"
+  },
+  "RFC7643": {
+    "10.3.1": "Registration Procedure",
+    "10.3.2": "Schema Registration Template"
+  },
+  "RFC7644": {
+    "2": "Authentication and Authorization",
+    "3.12": "HTTP Status and Error Response Handling",
+    "3.14": "Versioning Resources",
+    "4": "Service Provider Configuration Endpoints"
+  },
+  "RFC7662": {
+    "2.3": "Error Response",
+    "4": "Security Considerations"
+  },
+  "RFC8693": {
+    "2.2.2": "Error Response",
+    "4.1": "\"act\" (Actor) Claim",
+    "7.5": "OAuth Token Introspection Response Registration"
+  },
+  "RFC8705": {
+    "3.2": "Confirmation Method for Token Introspection",
+    "6.5": "TLS Termination"
+  },
+  "RFC8707": {
+    "2": "Resource Parameter",
+    "2.2": "Access Token Request",
+    "3": "Security Considerations"
+  },
+  "RFC8725": {
+    "3.8": "Validate Issuer and Subject",
+    "3.12": "Use Mutually Exclusive Validation Rules for Different Kinds of"
+  },
+  "RFC9110": {
+    "10.2.3": "Retry-After",
+    "13.1.1": "If-Match",
+    "15.5.4": "403 Forbidden",
+    "15.6.4": "503 Service Unavailable"
+  },
+  "RFC9396": {
+    "6": "Token Request",
+    "8": "Token Error Response",
+    "9": "Resource Servers"
+  },
+  "RFC9449": {
+    "4.2": "DPoP Proof JWT Syntax",
+    "5": "DPoP Access Token Request",
+    "6.2": "JWK Thumbprint Confirmation Method in Token Introspection",
+    "7.1": "The DPoP Authentication Scheme",
+    "8": "Authorization Server-Provided Nonce"
+  },
+  "RFC9493": {
+    "3.2.8": "Aliases Identifier Format"
+  },
+  "RFC9700": {
+    "4.14": "Refresh Token Protection"
+  },
+  "RFC9967": {
+    "4": "Events Discovery Schema for Service Provider Configuration"
+  }
+}

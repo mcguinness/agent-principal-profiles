@@ -925,7 +925,7 @@ oversight applies within the access token's authority:
   confirmation the client shows in its own interface is not an approval
   under this document. It becomes one only where the API authenticates
   the person, binds the decision as above, and makes the decision
-  itself, consistent with {{Section 10.7 of AIMS}}.
+  itself, consistent with {{Section 10.8 of AIMS}}.
 
 # Model Context Protocol {#mcp}
 
@@ -1258,7 +1258,7 @@ Each case changes this variant as stated; all other checks succeed.
 | {{CIBA}} | One way to reach a user for a decision; not profiled |
 | {{MCP}} | Informative realization of per-action oversight ({{mcp}}) |
 | {{MISSION-APPROVAL}} | Approves a task, where this document approves a governed request. A Mission approval can be the basis of standing authorization under which requests are human out of the loop |
-| {{AIMS}} | Nearest counterpart for confirmation bound to an authorization grant ({{Section 10.7 of AIMS}}); here the IdP issues the grant after the decision |
+| {{AIMS}} | Nearest counterpart for confirmation bound to an authorization grant ({{Section 10.8 of AIMS}}); here the IdP issues the grant after the decision |
 | {{OVERSIGHT-ACTS}} | Vocabulary for the kinds of human act ({{modes}}) |
 {: title="Relationship to other specifications"}
 
