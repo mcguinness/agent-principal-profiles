@@ -140,6 +140,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | D21 | RAS | After an unbound grant's deferred redemption, raising the client's minimum to the bound profile makes the next refresh fail with `invalid_grant` | oversight: Refresh and Continuation; core: Optional RAS Refresh Tokens (step 3) | Require approval; permit refresh; set the governed profile; approve |
 | D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
 | D23 | RAS | A repeated request that presents the bound grant with `jwt-bearer` fails with `invalid_grant` and carries no deferral code | oversight: Recovery; core: Redemption Request | Require approval |
+| D24 | RAS | With `completion_mode=deferred deferred_interactive`, a redemption is deferred, a repeated request gets the same deferral code and any `interaction_uri` again, and the poll after approval issues | oversight: Redemption Opt-In; Recovery; Approval | Require approval; approve |
 | S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
 | S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
 | S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
@@ -246,7 +247,10 @@ The D cases fail without their check in these ways:
 * it opens one access request for two redemptions (D10), or two
   pending redemptions for one grant (D16).
 
-D09 is a positive case and names no check.
+D09 and D24 are positive cases and name no check. D24 fails when the
+reference's opt-in test is the exact match `completion_mode=deferred`,
+or when the suite accepts only `authorization_pending` in a deferred
+response.
 
 Without these checks, the S cases fail because the API then serves the
 file (HTTP 200):
@@ -376,9 +380,13 @@ Some cases depend on choices made for the reference:
 * D11 asserts a pending response, as Approval Binding says. A poll may
   get any pending code of DTR-01 Section 6.6 (`authorization_pending`,
   `interaction_pending`, or `interaction_required` with an
-  `interaction_uri`) or `slow_down`; the reference returns
-  `authorization_pending`. The deferred response itself is always
-  `authorization_pending`, with the `interval` DTR-01 requires.
+  `interaction_uri`) or `slow_down`. A deferred response carries
+  `authorization_pending`, or `interaction_required` with an
+  `interaction_uri`, as DTR-01 Section 6.4 shows both, and always the
+  `interval` DTR-01 requires. The reference returns
+  `interaction_required` with an `interaction_uri` when the opt-in
+  includes `deferred_interactive` (D24), and `authorization_pending`
+  otherwise. It never serves the URI; approval stays with test control.
 
 ## Policy services at the API
 

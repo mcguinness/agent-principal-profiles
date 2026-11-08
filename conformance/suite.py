@@ -273,7 +273,7 @@ class Client:
         form = {"grant_type": grant_type, "assertion": grant,
                 "resource": resource or self.cfg.resource}
         if deferred:
-            form["completion_mode"] = "deferred"
+            form["completion_mode"] = deferred if isinstance(deferred, str) else "deferred"
         return self.ras_token(form, dpop_key, as_other_client, proof)
 
     def poll(self, deferral_code, dpop_key="k"):
@@ -1468,11 +1468,16 @@ def require_approval(ctx, scopes=None):
 
 
 def expect_deferred(resp):
-    """A DTR deferred response (DTR Section 6.4): HTTP 400, authorization_pending,
-    deferral_code, expires_in and interval."""
+    """A DTR deferred response (DTR Section 6.4): HTTP 400, authorization_pending or
+    interaction_required with an interaction_uri, deferral_code, expires_in and
+    interval."""
     body = resp.json()
-    check(resp.status == 400 and body.get("error") == "authorization_pending",
+    check(resp.status == 400 and body.get("error") in ("authorization_pending",
+                                                         "interaction_required"),
           f"expected a deferred response, got {resp}")
+    if body.get("error") == "interaction_required":
+        check(isinstance(body.get("interaction_uri"), str), "interaction_required without "
+              "interaction_uri")
     check(isinstance(body.get("deferral_code"), str) and body["deferral_code"],
           "deferral_code")
     check(isinstance(body.get("expires_in"), int) and body["expires_in"] > 0, "expires_in")
@@ -1910,6 +1915,24 @@ def d23(ctx):
     resp = ctx.client.redeem(grant, deferred=True, grant_type=JWT_BEARER)
     expect_error(resp, 400, "invalid_grant")
     check("deferral_code" not in resp.json(), "the error carried a deferral code")
+
+
+@case("D24", "RAS", "Defers, recovers and issues for the opt-in deferred deferred_interactive",
+      "oversight: Redemption Opt-In; Recovery; Approval",
+      needs=("set:ras.approval_required", "tasks", "approve"))
+def d24(ctx):
+    require_approval(ctx)
+    grant = ctx.grant()
+    mode = "deferred deferred_interactive"
+    first = expect_deferred(ctx.client.redeem(grant, deferred=mode))
+    again = expect_deferred(ctx.client.redeem(grant, deferred=mode))
+    check(again["deferral_code"] == first["deferral_code"],
+          "recovery returned another deferral code")
+    check(again.get("interaction_uri") == first.get("interaction_uri"),
+          "recovery returned another interaction_uri")
+    expect_pending(ctx.client.poll(first["deferral_code"]))
+    ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
+    expect_token(ctx.client.poll(first["deferral_code"]))
 
 # Policy services at the API ------------------------------------------------
 #

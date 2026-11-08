@@ -837,7 +837,7 @@ policy requires. Reaching the URI is not that authentication. Neither is
 a session in a browser the agent operates (`security-self`). The
 companion accepts every pending code of DTR Section 6.6 in polls.
 
-Four questions for DTR, not yet filed:
+Five questions for DTR, not yet filed:
 
 * whether a grant profile's replay rules can forbid the parallel
   request of Section 9.3, as the companion does;
@@ -849,13 +849,18 @@ Four questions for DTR, not yet filed:
 * whether an approval that the authorization server starts out of band,
   such as a CIBA request to the approver, is "external interaction", so
   that `authorization_pending` is no longer the code for it once the
-  server observes the interaction began; and
+  server observes the interaction began;
 * which opt-in rule governs `deferred_interactive`. Section 5.1 implies
   that a `completion_mode` of `deferred_interactive` alone opts in;
   Section 5.3 forbids deferral unless `completion_mode` includes
   `deferred`; and Appendices A.6 to A.8 send only `deferred`. The
   companion follows Section 5.3, and a client able to present an
-  `interaction_uri` sends both values (`approval`).
+  `interaction_uri` sends both values (`approval`); and
+* which error a deferred response carries. Section 6.4 says
+  `authorization_pending`, then returns `interaction_required` with a
+  deferral code for a response waiting on external interaction, in its
+  own example. The companion accepts both in the deferred response
+  (`deferring`, `redemption-deferring`).
 
 ### AROP
 

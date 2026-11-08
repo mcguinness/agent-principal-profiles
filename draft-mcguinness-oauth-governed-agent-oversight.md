@@ -352,7 +352,7 @@ through these steps, which the subsections define:
 
 | Event | IdP action | Result |
 |---|---|---|
-| Request with the opt-in | Completes every check except the approver's decision; for a continuation, reserves the assertion ({{deferring}}, {{deferred-continuation}}) | Pending; deferred response |
+| Request with the opt-in | Completes every check except the approver's decision; for a continuation, reserves the assertion ({{deferring}}, {{deferred-continuation}}) | Pending; a deferred response of {{Section 6.4 of DTR}}: `authorization_pending`, or `interaction_required` with an `interaction_uri` |
 | Poll before a decision | Verifies the client and its key | A pending code of {{Section 6.6 of DTR}}: `authorization_pending`, `interaction_pending`, or `interaction_required` with an `interaction_uri`; or `slow_down` |
 | Approver decides | Records the decision for this request only ({{approval}}) | Pending until the next poll |
 | Poll after approval | Re-checks the request; for a continuation, counts the grant against the limits as it issues ({{resolution}}) | Grant; reservation ISSUED |
@@ -592,7 +592,7 @@ redemption moves through these steps, which the subsections define:
 
 | Event | RAS action | Result |
 |---|---|---|
-| Redemption with the opt-in | Completes every check except the approver's decision, accepts the grant, and opens one approval request ({{redemption-deferring}}) | Pending; deferred response |
+| Redemption with the opt-in | Completes every check except the approver's decision, accepts the grant, and opens one approval request ({{redemption-deferring}}) | Pending; a deferred response of {{Section 6.4 of DTR}}: `authorization_pending`, or `interaction_required` with an `interaction_uri` |
 | The same redemption again | Matches the accepted grant ({{redemption-recovery}}) | The same deferral code |
 | Poll before a decision | Verifies the client and its key | A pending code of {{Section 6.6 of DTR}}: `authorization_pending`, `interaction_pending`, or `interaction_required` with an `interaction_uri`; or `slow_down` |
 | Approver decides | Records the decision for this pending redemption only ({{redemption-approval}}) | Pending until the next poll |
