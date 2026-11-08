@@ -563,7 +563,10 @@ The suite tests nothing outside the path above, including:
   first;
 * RAS refresh tokens other than those from a deferred redemption;
 * mutual TLS, including the refusal to defer for a resource configured
-  for mutual-TLS access tokens; bearer access tokens only as P5 to P7,
+  for mutual-TLS access tokens, and the refresh of a DPoP-bound grant
+  whose access tokens are certificate-bound, which keeps the grant's
+  DPoP binding (Optional RAS Refresh Tokens) and has no worked example
+  in the core; bearer access tokens only as P5 to P7,
   N35, S38 and S39 test them, and DPoP nonces only as P8 to P10 do;
 * continuation, including the CAI's refusal to attest an access token
   from a deferred redemption or one refreshed from it;
