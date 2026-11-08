@@ -227,7 +227,7 @@ facts and CAEP for sessions and IdP risk:
 * **Platform to IdP:** WISE credential and posture events about
   platform-hosted agents, with an RFC 9493 `aliases` subject carrying
   both the WISE `uri` workload identifier and `iss_sub` for the governed
-  Agent Principal (`platform-signals`). WISE names only the `uri`
+  Agent Principal (`platform-signals` in the lifecycle draft). WISE names only the `uri`
   format; coordination is needed so that an `aliases` subject including
   `iss_sub` is a recognized WISE subject for governed agents.
 * **Credential authority to IdP:** WISE credential and trust events stop
@@ -235,7 +235,7 @@ facts and CAEP for sessions and IdP risk:
   (`time-validation`).
 * **Lifecycle state:** WISE `workload-enabled` carries state. This
   family keeps the notice-then-retrieve asymmetry, so enabled events
-  only trigger retrieval (`scim-events`).
+  only trigger retrieval (`scim-events` in the lifecycle draft).
 * **Agent principal:** CAEP `risk-level-change` requires a `principal`,
   and neither CAEP nor SSF defines one for an agent; stream
   configuration fixes it today. A registered agent principal value in

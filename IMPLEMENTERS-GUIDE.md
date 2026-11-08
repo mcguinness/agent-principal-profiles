@@ -1372,13 +1372,13 @@ adds an Identity Binding to `/Agents/a58` with credential class
 source subject `wimse://dataplatform.example/agents/agt-31`. The
 administrator also adds a Client Association permitting the platform's
 OAuth client to use that binding ([AGENT-MANAGEMENT]). Separately, the
-IdP records Alice's delegation authorization for the agent at that
+IdP records Alice's Delegation Authorization for the agent at that
 resource and scope. The Agent's `owners` do not establish that
 delegation.
 
 For access on Alice's behalf, the platform authenticates its OAuth
 client and presents Alice's ID Token as `subject_token` and its JWT for
-`agt-31` as `actor_token`. After validating delegation authorization for
+`agt-31` as `actor_token`. After validating the Delegation Authorization for
 the requested resource and scope, the IdP issues an ID-JAG identifying
 Alice in `sub` and (`https://idp.example/`, `agent-58`) in `act` under
 the [core profile][core]. The third-party RAS correlates that pair as in

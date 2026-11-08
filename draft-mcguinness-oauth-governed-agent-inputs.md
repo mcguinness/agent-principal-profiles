@@ -293,8 +293,10 @@ that decides whether bound grants and tokens remain usable.
 
 ## Resolution-Key Lifecycle {#resolution-key-lifecycle}
 
-When the resolution key is also the grant proof key, replacing it does
-not rebind an outstanding grant, access token, or refresh token. This
+The resolution key is the key whose possession an input proves: the
+`cnf.jwk` of a WIT-SVID or the confirmation key of a Client Attestation,
+or the key of an X.509-SVID certificate. When the resolution key is also
+the grant proof key, replacing it does not rebind an outstanding grant, access token, or refresh token. This
 is the case for WIT-SVID or Client Attestation when DPoP is used.
 Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
@@ -376,8 +378,9 @@ decisions:
    `spiffe://platform.example/accounts/acme/agents/workload-7`, to
    `agent-42` in the namespace of `https://idp.example/`, in Governance
    Tenant `acme`.
-2. **Authorize the client.** The IdP's configured SPIFFE association
-   authenticates the caller as `platform-sso`, and a separate Client
+2. **Authorize the client.** The SPIFFE ID's registration with the
+   client ({{Section 3.1 of SPIFFE-OAUTH}}) authenticates the caller as
+   `platform-sso`, and a separate Client
    Association permits that client to use this binding for delegated
    ID-JAG issuance.
 3. **Authorize delegation.** Alice's ID Token, issued for
