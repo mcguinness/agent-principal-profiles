@@ -893,7 +893,9 @@ identifier does not authorize a new proof key.
 
 An IdP that accepts {{WISE}} events from a credential authority it
 trusts MUST stop accepting, for agent resolution, the following from
-the time each event takes effect (Section 2.3 of {{WISE}}):
+the time each event takes effect (Section 2.3 of {{WISE}}), within the
+credentials, trust material, and trust domains that its configuration
+trusts that authority for:
 
 * a credential that `credential-revoked` or `credential-compromised`
   identifies;
@@ -901,6 +903,9 @@ the time each event takes effect (Section 2.3 of {{WISE}}):
 * credentials from a trust domain that `trust-domain-federation-revoked`
   names.
 
+An event about anything outside that scope changes no resolution: an
+authority that ends its own federation with a trust domain does not end
+trust that the IdP's configuration places in that domain directly.
 Disabling an Identity Binding or the Agent Principal in response is
 IdP policy ({{status-changes}}): an agent can have other valid bindings.
 
@@ -3260,6 +3265,7 @@ referenced sections define each requirement.
 | Introspection caching | A cached active response is not used beyond `exp` or the disablement freshness limit, narrowing {{Section 4 of RFC7662}} | {{api-validation}} |
 | Denials without a remedy | A challenge without an `error` attribute, a restriction of {{Section 3 of RFC6750}} | {{resource-errors}} |
 | Hidden targets | The error table's responses take precedence over the 404 that {{Section 15.5.4 of RFC9110}} permits | {{security-errors}} |
+| WISE revocation events | Applied only within what configuration trusts the sending authority for, where {{WISE}} has a receiver reject every credential of a named trust domain | {{time-validation}} |
 {: title="Additions and narrowings to the base specifications"}
 
 For self-acting access, this profile composes {{WAG}} as follows

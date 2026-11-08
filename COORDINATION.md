@@ -232,7 +232,11 @@ facts and CAEP for sessions and IdP risk:
   `iss_sub` is a recognized WISE subject for governed agents.
 * **Credential authority to IdP:** WISE credential and trust events stop
   resolution through the affected credentials and trust material
-  (`time-validation`).
+  (`time-validation`), within what configuration trusts the sending
+  authority for. WISE Section 2.6.6 asks a receiver to reject every
+  credential of a trust domain named in `trust-domain-federation-revoked`;
+  the core does not let one authority's event end trust the IdP places
+  in that domain directly.
 * **Lifecycle state:** WISE `workload-enabled` carries state. This
   family keeps the notice-then-retrieve asymmetry, so enabled events
   only trigger retrieval (`scim-events` in the lifecycle draft).
