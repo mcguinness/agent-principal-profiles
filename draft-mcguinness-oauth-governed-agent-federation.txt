@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         6 November 2026
-Expires: 10 May 2027
+Intended status: Standards Track                         8 November 2026
+Expires: 12 May 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 10 May 2027.
+   This Internet-Draft will expire on 12 May 2027.
 
 Copyright Notice
 
@@ -2990,10 +2990,10 @@ Table of Contents
       for a shared client, with a dedicated-issuer credential class and
       exact issuer-and-sub bindings; and the deferred redemption of
       [OVERSIGHT] at the RAS.  It does not implement WAG issuance or
-      redemption, platform JWT selectors or key-bound platform JWTs, the
-      inputs of [INPUTS], mutual TLS, refresh tokens outside a deferred
-      redemption, [CONTINUATION], [AGENT-LIFECYCLE], or
-      [AGENT-MANAGEMENT].
+      redemption, platform JWT selectors, the binding of key-bound
+      platform JWTs (it refuses them), the inputs of [INPUTS], mutual
+      TLS, refresh tokens outside a deferred redemption, [CONTINUATION],
+      [AGENT-LIFECYCLE], or [AGENT-MANAGEMENT].
 
    *  *Version compatibility:* the editor's copy of this document and
       its companions.
