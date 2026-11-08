@@ -1373,24 +1373,40 @@ Document (<a href="#client-metadata-bundles" class="auto internal xref">Section 
         <h3 id="name-trust-bundles-from-client-m">
 <a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-trust-bundles-from-client-m" class="section-name selfRef">Trust Bundles from Client Metadata</a>
         </h3>
-<p id="section-3.2-1">For the SPIFFE inputs, an IdP configured to do so for a client <span class="bcp14">MAY</span>
-validate SVIDs with a bundle it obtains from the
-<code>spiffe_bundle_endpoint</code> of a client's Client ID Metadata Document only
-when the trust domain of the document's <code>spiffe_id</code> equals, or is a
-subdomain of, the host of the client's <code>client_id</code> URL
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>). It then uses the bundle only for
-SVIDs presented to authenticate as that client
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>), and a SPIFFE ID validated with it
-resolves an agent only through an Identity Binding configured for that
-client. An IdP that holds a bundle for that trust domain obtained as
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> describes <span class="bcp14">MUST</span> validate with that bundle
-and <span class="bcp14">MUST</span> ignore the document's <code>spiffe_bundle_endpoint</code>, so a document
-cannot supply keys for a trust domain the IdP already trusts through
-its own configuration. Otherwise the IdP ignores
-<code>spiffe_bundle_endpoint</code> in Client ID Metadata Documents, as
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> requires of a deployment that does not
-accept that trust model, and the document establishes no approved trust
-domain.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-1">For the SPIFFE inputs, the IdP selects the bundle that validates SVIDs
+from a client whose metadata is a Client ID Metadata Document as
+follows:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.2-2">
+<li id="section-3.2-2.1">
+            <p id="section-3.2-2.1.1">An IdP configured with a bundle or bundle endpoint for the trust
+domain of the document's <code>spiffe_id</code>, as
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> describes, <span class="bcp14">MUST</span> validate with that
+bundle and <span class="bcp14">MUST</span> ignore the document's <code>spiffe_bundle_endpoint</code>, so a
+document cannot supply keys for a trust domain the IdP already
+trusts through its own configuration. A bundle obtained from any
+Client ID Metadata Document, this client's or another's, is not so
+configured. This narrows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, which
+recommends that preference.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.2-2.2">
+            <p id="section-3.2-2.2.1">Otherwise, an IdP configured to do so for the client <span class="bcp14">MAY</span> validate
+SVIDs with a bundle it obtains from the document's
+<code>spiffe_bundle_endpoint</code> only when the trust domain of the
+document's <code>spiffe_id</code> equals, or is a subdomain of, the host of the
+client's <code>client_id</code> URL (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>). It then
+uses the bundle only for SVIDs presented to authenticate as that
+client (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>), and a SPIFFE ID validated
+with it resolves an agent only through an Identity Binding
+configured for that client.<a href="#section-3.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.2-2.3">
+            <p id="section-3.2-2.3.1">Otherwise, the IdP ignores the document's <code>spiffe_bundle_endpoint</code>,
+and the document establishes no approved trust domain. An IdP that
+accepts no bundles from documents is a deployment that does not
+accept that trust model, which <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>
+requires to ignore them.<a href="#section-3.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
 </section>
 </div>
 <div id="lifetime">
