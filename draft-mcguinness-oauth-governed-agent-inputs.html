@@ -1361,6 +1361,11 @@ applies to delegated access only ("Self-Acting Issuance: WAG" in
         </table>
 <p id="section-3.1-2">For Client Attestation, <code>sub</code> identifies the OAuth client, and the
 client-to-agent mapping is explicit.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.1-3">An approved trust domain is a SPIFFE trust domain that the IdP's
+configuration trusts for an input, with the source of its bundle: a
+bundle or bundle endpoint configured as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>
+describes, or, for one client only, that client's Client ID Metadata
+Document (<a href="#client-metadata-bundles" class="auto internal xref">Section 3.2</a>).<a href="#section-3.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="client-metadata-bundles">
@@ -1368,19 +1373,40 @@ client-to-agent mapping is explicit.<a href="#section-3.1-2" class="pilcrow">¶<
         <h3 id="name-trust-bundles-from-client-m">
 <a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-trust-bundles-from-client-m" class="section-name selfRef">Trust Bundles from Client Metadata</a>
         </h3>
-<p id="section-3.2-1">For the SPIFFE inputs, an IdP configured to do so for a client <span class="bcp14">MAY</span>
-validate SVIDs with a bundle it obtains from the
-<code>spiffe_bundle_endpoint</code> of a client's Client ID Metadata Document only
-when the trust domain of the document's <code>spiffe_id</code> equals, or is a
-subdomain of, the host of the client's <code>client_id</code> URL
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>). It then uses the bundle only for
-SVIDs presented to authenticate as that client
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>), and a SPIFFE ID validated with it
-resolves an agent only through an Identity Binding configured for that
-client. Otherwise the IdP ignores <code>spiffe_bundle_endpoint</code> in Client ID
-Metadata Documents, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> requires of a
-deployment that does not accept that trust model, and the document
-establishes no approved trust domain.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-1">For the SPIFFE inputs, the IdP selects the bundle that validates SVIDs
+from a client whose metadata is a Client ID Metadata Document as
+follows:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.2-2">
+<li id="section-3.2-2.1">
+            <p id="section-3.2-2.1.1">An IdP configured with a bundle or bundle endpoint for the trust
+domain of the document's <code>spiffe_id</code>, as
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> describes, <span class="bcp14">MUST</span> validate with that
+bundle and <span class="bcp14">MUST</span> ignore the document's <code>spiffe_bundle_endpoint</code>, so a
+document cannot supply keys for a trust domain the IdP already
+trusts through its own configuration. A bundle obtained from any
+Client ID Metadata Document, this client's or another's, is not so
+configured. This narrows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, which
+recommends that preference.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.2-2.2">
+            <p id="section-3.2-2.2.1">Otherwise, an IdP configured to do so for the client <span class="bcp14">MAY</span> validate
+SVIDs with a bundle it obtains from the document's
+<code>spiffe_bundle_endpoint</code> only when the trust domain of the
+document's <code>spiffe_id</code> equals, or is a subdomain of, the host of the
+client's <code>client_id</code> URL (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>). It then
+uses the bundle only for SVIDs presented to authenticate as that
+client (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6.1" class="relref">Section 6.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>), and a SPIFFE ID validated
+with it resolves an agent only through an Identity Binding
+configured for that client.<a href="#section-3.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.2-2.3">
+            <p id="section-3.2-2.3.1">Otherwise, the IdP ignores the document's <code>spiffe_bundle_endpoint</code>,
+and the document establishes no approved trust domain. An IdP that
+accepts no bundles from documents is a deployment that does not
+accept that trust model, which <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-8.2" class="relref">Section 8.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>
+requires to ignore them.<a href="#section-3.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
 </section>
 </div>
 <div id="lifetime">
@@ -1440,7 +1466,7 @@ capability in addition to those of <span>[<a href="#FEDERATION" class="cite xref
           <tbody>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">JWT-SVID, where supported</td>
-              <td class="text-left" rowspan="1" colspan="1">IdP validation: <code>RS256</code> under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.2" class="relref">Section 3.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, plus <code>ES256</code> added by this profile</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP validation: <code>RS256</code> and <code>ES256</code>, both required by this profile; <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> requires no algorithm</td>
             </tr>
           </tbody>
         </table>
@@ -1464,14 +1490,13 @@ section.<a href="#section-4-1" class="pilcrow">¶</a></p>
             <code>urn:ietf:params:oauth:client-assertion-type:jwt-spiffe</code>.<a href="#section-4-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-4-2.2">
-          <p id="section-4-2.2.1"><strong>Validation:</strong> Before resolving the agent, the IdP <span class="bcp14">MUST</span> apply
+          <p id="section-4-2.2.1"><strong>Validation:</strong> The server <span class="bcp14">MUST</span> apply
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.2" class="relref">Section 3.2</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, including the assertion type and the
 client identification of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, and
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-5" class="relref">Section 5</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> for
 trust establishment and key distribution. It <span class="bcp14">MUST</span> also verify the
-signature, before resolving the agent, with keys authorized for the
-SPIFFE ID's trust domain. An
-optional <code>iss</code> <span class="bcp14">MUST NOT</span> select another trust domain or key authority.<a href="#section-4-2.2.1" class="pilcrow">¶</a></p>
+signature with keys authorized for the SPIFFE ID's trust domain. The
+IdP <span class="bcp14">MUST</span> do both before resolving the agent. An optional <code>iss</code> <span class="bcp14">MUST NOT</span> select another trust domain or key authority.<a href="#section-4-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-4-2.3">
           <p id="section-4-2.3.1"><strong>Resolution:</strong> The IdP <span class="bcp14">MUST</span> resolve the exact SPIFFE ID in the
@@ -1597,7 +1622,9 @@ exact SPIFFE ID in the validated <code>sub</code> through an Identity Binding
             <p id="section-6.1-1.4.1"><strong>Proof:</strong> When DPoP is used at issuance, its key <span class="bcp14">MUST</span> match the
 WIT-SVID's <code>cnf.jwk</code>. The IdP <span class="bcp14">MUST</span> compare the JWK thumbprints of the
 DPoP key and <code>cnf.jwk</code> as used in <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and <span class="bcp14">MUST</span> reject a
-mismatch with <code>invalid_request</code>.
+mismatch with <code>invalid_request</code>. This narrows
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-12#section-5.2" class="relref">Section 5.2</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>, under which a DPoP key used alongside the
+Client Attestation PoP JWT need not match the attestation's <code>cnf</code> key.
 This carries the WIT-endorsed key into the grant binding; the Client
 Attestation PoP JWT remains required. Key retention follows
 <a href="#resolution-key-lifecycle" class="auto internal xref">Section 7.1</a>.<a href="#section-6.1-1.4.1" class="pilcrow">¶</a></p>
@@ -1655,8 +1682,10 @@ that decides whether bound grants and tokens remain usable.<a href="#section-7-1
         <h3 id="name-resolution-key-lifecycle">
 <a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-resolution-key-lifecycle" class="section-name selfRef">Resolution-Key Lifecycle</a>
         </h3>
-<p id="section-7.1-1">When the resolution key is also the grant proof key, replacing it does
-not rebind an outstanding grant, access token, or refresh token. This
+<p id="section-7.1-1">The resolution key is the key whose possession an input proves: the
+<code>cnf.jwk</code> of a WIT-SVID or the confirmation key of a Client Attestation,
+or the key of an X.509-SVID certificate. When the resolution key is also
+the grant proof key, replacing it does not rebind an outstanding grant, access token, or refresh token. This
 is the case for WIT-SVID or Client Attestation when DPoP is used.
 Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
@@ -1847,8 +1876,9 @@ an Identity Binding maps its exact SPIFFE ID,
 Tenant <code>acme</code>.<a href="#appendix-A.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-A.1-2.2">
-            <p id="appendix-A.1-2.2.1"><strong>Authorize the client.</strong> The IdP's configured SPIFFE association
-authenticates the caller as <code>platform-sso</code>, and a separate Client
+            <p id="appendix-A.1-2.2.1"><strong>Authorize the client.</strong> The SPIFFE ID's registration with the
+client (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>) authenticates the caller as
+<code>platform-sso</code>, and a separate Client
 Association permits that client to use this binding for delegated
 ID-JAG issuance.<a href="#appendix-A.1-2.2.1" class="pilcrow">¶</a></p>
 </li>

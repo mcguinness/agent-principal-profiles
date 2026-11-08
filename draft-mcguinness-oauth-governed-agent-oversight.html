@@ -1849,10 +1849,16 @@ user; an access request service under <span>[<a href="#ARAP" class="cite xref">A
 the <code>interaction_uri</code> that a deferred or polling response can carry
 (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6.4" class="relref">Section 6.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>), as in the agent example of
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#appendix-A.6" class="relref">Appendix A.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>. The page it identifies shows the governed
-request context, and the approver authenticates there at the strength
-policy requires. Reaching the URI is not that authentication, and
+request context, and the approver authenticates there, after the
+request was created, at the strength policy requires. Reaching the URI is not that authentication, and
 neither is a session in a browser the agent operates, through which
-the agent could approve its own request (<a href="#security-self" class="auto internal xref">Section 10.3</a>). The
+the agent could approve its own request (<a href="#security-self" class="auto internal xref">Section 10.3</a>). Because
+the requesting client receives the URI, the IdP <span class="bcp14">MUST NOT</span> accept a
+decision made through it unless the approver authenticated there after
+the pending request was created; an existing session does not satisfy
+this. Where another server authenticates the approver, the IdP requests
+fresh authentication and checks that the reported authentication time
+is later than the request's creation. The
 channel rarely fits self-acting access, whose approver is seldom the
 client's user. A client that can present the URI to the user includes
 <code>deferred_interactive</code> with <code>deferred</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.1" class="relref">Section 5.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-4.3-6" class="pilcrow">¶</a></p>
@@ -2432,17 +2438,27 @@ which stops new grants and ends or narrows continuation
 (<span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>);<a href="#section-6-2.2.2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6-2.2.2.3">
-              <p id="section-6-2.2.2.3.1">a Local Suspension at the target; or<a href="#section-6-2.2.2.3.1" class="pilcrow">¶</a></p>
+              <p id="section-6-2.2.2.3.1">for a grant that can be continued, the IdP's revocation of its
+chain or of the grant's subtree, which stops new continuations,
+including from descendants accepted at other targets that
+revocation at one target does not reach (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.2" class="relref">Section 6.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>);<a href="#section-6-2.2.2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6-2.2.2.4">
-              <p id="section-6-2.2.2.4.1">disabling the agent, once the target applies it.<a href="#section-6-2.2.2.4.1" class="pilcrow">¶</a></p>
+              <p id="section-6-2.2.2.4.1">a Local Suspension at the target; or<a href="#section-6-2.2.2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6-2.2.2.5">
+              <p id="section-6-2.2.2.5.1">disabling the agent, once the target applies it.<a href="#section-6-2.2.2.5.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 </li>
       </ul>
 <p id="section-6-3">Revoking one WAG is deployment-specific (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>), so
 supervised self-acting issuance rests on the other interventions.<a href="#section-6-3" class="pilcrow">¶</a></p>
-<p id="section-6-4">The intervention bound includes tokens already accepted. An API that
+<p id="section-6-4">The intervention bound includes what an intervention leaves usable:
+grants issued and not yet redeemed, the tokens a later redemption
+obtains, tokens already accepted, and any refresh authorization a RAS
+issued. Revoking a chain, for example, leaves an ID-JAG already issued
+redeemable for its own lifetime (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.2" class="relref">Section 6.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). An API that
 validates access tokens without a check accepts them until they expire,
 and no intervention reverses an operation already performed. A
 deployment that cannot document an intervention bound for a target
@@ -2674,7 +2690,8 @@ decision from an automated one depends on the approval channel, which
 this document does not define; the channel's authentication of the
 approver is what makes the rule enforceable. An <code>interaction_uri</code> opened
 in a browser the agent operates is the plainest case: the page must
-authenticate the approver itself (<a href="#approval" class="auto internal xref">Section 4.3</a>). A deployment that
+authenticate the approver itself, after the request was created, so
+that a session already in that browser cannot decide (<a href="#approval" class="auto internal xref">Section 4.3</a>). A deployment that
 routes decisions to an automated approver is human out of the loop and
 records it as such (<a href="#modes" class="auto internal xref">Section 3</a>).<a href="#section-10.3-1" class="pilcrow">¶</a></p>
 </section>
@@ -3352,6 +3369,16 @@ the originating grant that <span><a href="https://datatracker.ietf.org/doc/html/
 include the grant's own expiration when the client does not present
 the grant again. <a href="#redemption-deferring" class="auto internal xref">Section 5.2</a> reads them as checked on
 receipt.<a href="#appendix-C-1.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-1.6">
+          <p id="appendix-C-1.6.1"><strong>Continuation mode floor.</strong> Whether a continuation's mode may be
+lower than the mode policy requires for the same agent, user,
+target, and authority requested directly. Policy selects the mode at
+each decision point (<a href="#modes" class="auto internal xref">Section 3</a>), so a deployment that keys approval
+on the requesting client does not require it when a gateway
+continues to the same target. A negative test comes before the
+choice between a rule and guidance: approval required for a direct
+request, and the gateway's continuation without the opt-in.<a href="#appendix-C-1.6.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>

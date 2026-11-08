@@ -235,18 +235,23 @@ Table of Contents
    Giving each agent its own OAuth client, as some deployments do, makes
    the agent identifiable to the authorization server that registered
    it, but the client identifier is not that principal.  It names a
-   registration, assigned separately at each authorization server and
-   replaced when the agent moves to another platform or client.  This
-   profile's mandatory path starts from such a dedicated client
-   (Section 9.1) and adds what the client identifier lacks.  The IdP
-   resolves the client to an Agent Principal through an Identity Binding
-   (Section 5.3) and authorizes the client to use that principal through
-   a Client Association (Section 5.3.6).  The grant carries the
-   principal as the actor, separate from the client, and the resource
-   domain decides whether that actor may act for the user
-   (Section 3.6.4).  A shared client reaches the same principal by
-   presenting an existing platform JWT (Section 5.3.3), under a claim of
-   generic shared-client interoperability (Section 9.1).
+   registration, usually assigned separately at each authorization
+   server and replaced when the agent moves to another platform or
+   client.  The difference shows in three cases.  A resource domain that
+   restricts an agent by its client identifier readmits it when the
+   agent moves to another client; agents behind one shared client cannot
+   be told apart; and a gateway that calls further resource domains is
+   one client for every agent behind it.  This profile's mandatory path
+   starts from such a dedicated client (Section 9.1) and adds what the
+   client identifier lacks.  The IdP resolves the client to an Agent
+   Principal through an Identity Binding (Section 5.3) and authorizes
+   the client to use that principal through a Client Association
+   (Section 5.3.6).  The grant carries the principal as the actor,
+   separate from the client, and the resource domain decides whether
+   that actor may act for the user (Section 3.6.4).  A shared client
+   reaches the same principal by presenting an existing platform JWT
+   (Section 5.3.3), under a claim of generic shared-client
+   interoperability (Section 9.1).
 
 1.1.  Protocol Overview
 
@@ -1007,7 +1012,9 @@ Table of Contents
 
    An IdP that accepts [WISE] events from a credential authority it
    trusts MUST stop accepting, for agent resolution, the following from
-   the time each event takes effect (Section 2.3 of [WISE]):
+   the time each event takes effect (Section 2.3 of [WISE]), within the
+   credentials, trust material, and trust domains that its configuration
+   trusts that authority for:
 
    *  a credential that credential-revoked or credential-compromised
       identifies;
@@ -1017,8 +1024,12 @@ Table of Contents
    *  credentials from a trust domain that trust-domain-federation-
       revoked names.
 
-   Disabling an Identity Binding or the Agent Principal in response is
-   IdP policy (Section 12.8): an agent can have other valid bindings.
+   An event about anything outside that scope changes no resolution: an
+   authority that ends its own federation with a trust domain does not
+   end trust that the IdP's configuration places in that domain
+   directly.  Disabling an Identity Binding or the Agent Principal in
+   response is IdP policy (Section 12.8): an agent can have other valid
+   bindings.
 
 4.7.  Token Endpoint Errors
 
@@ -2821,7 +2832,15 @@ Table of Contents
    that authenticates with an input of [INPUTS] names that input's
    method.  A document that names private_key_jwt makes that method
    required at each server (Section 8.2 of [CIMD]) and MUST publish the
-   client's keys with jwks or jwks_uri.
+   client's keys with jwks or jwks_uri.  A server that accepts Client ID
+   Metadata Documents under this profile MUST reject, with
+   invalid_client, a request from a client whose metadata is such a
+   document and names no method, names none or a method the server does
+   not accept for that client, or names private_key_jwt without jwks or
+   jwks_uri.  Because the document names one method, a client whose IdP
+   and RAS accept different methods cannot use one document at both: it
+   registers separately at the RAS, and the client registration
+   association (Section 5.1) maps the two identifiers.
 
 9.2.3.  Capability Discovery
 
@@ -2952,7 +2971,7 @@ Table of Contents
 11.  Implementation Status
 
    Note to the RFC Editor: please remove this section before
-   publication.
+   publication, as well as the reference to RFC 7942.
 
    This section records the status of known implementations of the
    protocol defined by this specification at the time of posting of this
@@ -3000,12 +3019,13 @@ Table of Contents
       exact issuer-and-sub bindings; and the deferred redemption of
       [OVERSIGHT] at the RAS.  It does not implement WAG issuance or
       redemption, platform JWT selectors, the binding of key-bound
-      platform JWTs (it refuses them), the inputs of [INPUTS], mutual
-      TLS, refresh tokens outside a deferred redemption, [CONTINUATION],
-      [AGENT-LIFECYCLE], or [AGENT-MANAGEMENT].
+      platform JWTs (it refuses them), the inputs of [INPUTS], Client ID
+      Metadata Documents, mutual TLS, refresh tokens outside a deferred
+      redemption, [CONTINUATION], [AGENT-LIFECYCLE], or
+      [AGENT-MANAGEMENT].
 
    *  *Version compatibility:* the editor's copy of this document and
-      its companions.
+      its companions; no revision has been submitted.
 
    *  *Licensing:* a Contribution under BCP 78, BCP 79, and the IETF
       Trust Legal Provisions; see the repository's LICENSE.md.
@@ -4205,123 +4225,156 @@ B.1.  Differences from Base Specifications
    This profile fills the gaps of Section 4.1.1 as follows.  The
    referenced sections define each requirement.
 
-   +========================+==========================+==============+
-   | Area                   | Profile requirement      | Defined in   |
-   +========================+==========================+==============+
-   | Actor extension        | Identity Binding         | Section      |
-   |                        | resolves the agent; a    | 5.3.6        |
-   |                        | separate Client          |              |
-   |                        | Association authorizes   |              |
-   |                        | client use               |              |
-   +------------------------+--------------------------+--------------+
-   | Dedicated-client input | Resolved from            | Section      |
-   |                        | authenticated client     | 5.3.2,       |
-   |                        | context; issuer          | Section 4 of |
-   |                        | identifier as sole       | [RFC7523bis] |
-   |                        | assertion audience;      |              |
-   |                        | single-use jti           |              |
-   +------------------------+--------------------------+--------------+
-   | Other authentication-  | Resolved from the        | Section      |
-   | context inputs         | identity validated by    | 5.3.5; the   |
-   |                        | SPIFFE or Client         | inputs are   |
-   |                        | Attestation              | defined in   |
-   |                        | authentication           | [INPUTS]     |
-   +------------------------+--------------------------+--------------+
-   | Actor representation   | One actor: Agent         | Section      |
-   |                        | Principal as act.sub,    | 5.6.4        |
-   |                        | IdP as act.iss; replaces |              |
-   |                        | Actor Profile's          |              |
-   |                        | credential-to-actor      |              |
-   |                        | copying                  |              |
-   +------------------------+--------------------------+--------------+
-   | Request narrowing      | Configured resolution    | Section 5.2, |
-   |                        | mode; one resource; non- | Section      |
-   |                        | empty scope; actor-token | 5.6.1,       |
-   |                        | parameters required in   | Section      |
-   |                        | presented-evidence mode  | 5.3.5        |
-   |                        | and rejected otherwise;  |              |
-   |                        | no incoming actor chain  |              |
-   +------------------------+--------------------------+--------------+
-   | Identity and client    | Users and agents         | Section      |
-   | binding                | resolved separately;     | 5.6.3,       |
-   |                        | downstream client_id     | Section      |
-   |                        | from an authoritative    | 6.4.2,       |
-   |                        | client-registration      | Section 6.3, |
-   |                        | association              | Section 5.1  |
-   +------------------------+--------------------------+--------------+
-   | Grant narrowing        | One resource URI (a      | Section 5.5, |
-   |                        | string; singleton arrays | Section      |
-   |                        | accepted), scope         | 5.6.5,       |
-   |                        | constraints, input-      | Section 6.2, |
-   |                        | specific expiration      | Section 4.4  |
-   |                        | limits; single use       |              |
-   |                        | unless bound; DPoP and   |              |
-   |                        | cnf.jkt in the bound     |              |
-   |                        | profile                  |              |
-   +------------------------+--------------------------+--------------+
-   | Grant binding          | cnf.jkt from a DPoP      | Section 4.4, |
-   |                        | proof, redeemed with     | Section 6.1  |
-   |                        | jwt-dpop; no x5t#S256    |              |
-   |                        | certificate binding      |              |
-   |                        | (Section 9.11.2 of       |              |
-   |                        | [ID-JAG])                |              |
-   +------------------------+--------------------------+--------------+
-   | Redemption client      | Required for every       | Section 6.2  |
-   | authentication         | grant, including a bound |              |
-   |                        | grant; Section 4.4 of    |              |
-   |                        | [ID-JAG] lets a bound    |              |
-   |                        | ID-JAG stand in for it,  |              |
-   |                        | and Section 4.1 of       |              |
-   |                        | [JWT-DPOP-GRANT] makes   |              |
-   |                        | it optional              |              |
-   +------------------------+--------------------------+--------------+
-   | Resource processing    | Actor and tenant context | Section 6.6, |
-   |                        | preserved; user          | Section 7    |
-   |                        | authority and actor gate |              |
-   |                        | enforced with the        |              |
-   |                        | selected token           |              |
-   |                        | protection               |              |
-   +------------------------+--------------------------+--------------+
-   | Refresh narrowing      | Explicit policy, client  | Section 8.2  |
-   |                        | binding, preserved proof |              |
-   |                        | binding and profile,     |              |
-   |                        | finite absolute          |              |
-   |                        | authorization expiration |              |
-   +------------------------+--------------------------+--------------+
-   | Error processing       | invalid_grant, not RFC   | Section 5.8  |
-   |                        | 8693's invalid_request,  |              |
-   |                        | for a valid subject or   |              |
-   |                        | actor credential that    |              |
-   |                        | resolves no user or no   |              |
-   |                        | active binding, agent,   |              |
-   |                        | or tenant;               |              |
-   |                        | actor_unauthorized for a |              |
-   |                        | denied resolved actor,   |              |
-   |                        | where Section 4.3.4.3 of |              |
-   |                        | [ID-JAG] profiles        |              |
-   |                        | access_denied for a      |              |
-   |                        | client or user that is   |              |
-   |                        | not authorized           |              |
-   +------------------------+--------------------------+--------------+
-   | Redemption errors      | invalid_grant for an     | Section 6.9  |
-   |                        | unresolved or disabled   |              |
-   |                        | user or an uncorrelated  |              |
-   |                        | or disabled agent, where |              |
-   |                        | Section 4.4.3 of         |              |
-   |                        | [ID-JAG] profiles        |              |
-   |                        | access_denied for a      |              |
-   |                        | valid ID-JAG that is not |              |
-   |                        | authorized;              |              |
-   |                        | actor_unauthorized for   |              |
-   |                        | an actor-gate refusal    |              |
-   +------------------------+--------------------------+--------------+
-   | Profile discovery      | Governed profiles in     | Section 9.2, |
-   |                        | existing ID-JAG          | Section 4.8  |
-   |                        | metadata; trusted policy |              |
-   |                        | sets the minimum         |              |
-   +------------------------+--------------------------+--------------+
+   +========================+=============================+============+
+   | Area                   | Profile requirement         |Defined in  |
+   +========================+=============================+============+
+   | Actor extension        | Identity Binding resolves   |Section     |
+   |                        | the agent; a separate       |5.3.6       |
+   |                        | Client Association          |            |
+   |                        | authorizes client use       |            |
+   +------------------------+-----------------------------+------------+
+   | Dedicated-client input | Resolved from               |Section     |
+   |                        | authenticated client        |5.3.2,      |
+   |                        | context; issuer identifier  |Section 4 of|
+   |                        | as sole assertion           |[RFC7523bis]|
+   |                        | audience; single-use jti    |            |
+   +------------------------+-----------------------------+------------+
+   | Other authentication-  | Resolved from the identity  |Section     |
+   | context inputs         | validated by SPIFFE or      |5.3.5; the  |
+   |                        | Client Attestation          |inputs are  |
+   |                        | authentication              |defined in  |
+   |                        |                             |[INPUTS]    |
+   +------------------------+-----------------------------+------------+
+   | Actor representation   | One actor: Agent Principal  |Section     |
+   |                        | as act.sub, IdP as          |5.6.4       |
+   |                        | act.iss; replaces Actor     |            |
+   |                        | Profile's credential-to-    |            |
+   |                        | actor copying               |            |
+   +------------------------+-----------------------------+------------+
+   | Request narrowing      | Configured resolution       |Section 5.2,|
+   |                        | mode; one resource; non-    |Section     |
+   |                        | empty scope; actor-token    |5.6.1,      |
+   |                        | parameters required in      |Section     |
+   |                        | presented-evidence mode     |5.3.5       |
+   |                        | and rejected otherwise; no  |            |
+   |                        | incoming actor chain        |            |
+   +------------------------+-----------------------------+------------+
+   | Identity and client    | Users and agents resolved   |Section     |
+   | binding                | separately; downstream      |5.6.3,      |
+   |                        | client_id from an           |Section     |
+   |                        | authoritative client-       |6.4.2,      |
+   |                        | registration association    |Section 6.3,|
+   |                        |                             |Section 5.1 |
+   +------------------------+-----------------------------+------------+
+   | Grant narrowing        | One resource URI (a         |Section 5.5,|
+   |                        | string; singleton arrays    |Section     |
+   |                        | accepted), scope            |5.6.5,      |
+   |                        | constraints, input-         |Section 6.2,|
+   |                        | specific expiration         |Section 4.4 |
+   |                        | limits; single use unless   |            |
+   |                        | bound; DPoP and cnf.jkt in  |            |
+   |                        | the bound profile           |            |
+   +------------------------+-----------------------------+------------+
+   | Grant binding          | cnf.jkt from a DPoP proof,  |Section 4.4,|
+   |                        | redeemed with jwt-dpop; no  |Section 6.1 |
+   |                        | x5t#S256 certificate        |            |
+   |                        | binding (Section 9.11.2 of  |            |
+   |                        | [ID-JAG])                   |            |
+   +------------------------+-----------------------------+------------+
+   | Redemption client      | Required for every grant,   |Section 6.2 |
+   | authentication         | including a bound grant;    |            |
+   |                        | Section 4.4 of [ID-JAG]     |            |
+   |                        | lets a bound ID-JAG stand   |            |
+   |                        | in for it, and Section 4.1  |            |
+   |                        | of [JWT-DPOP-GRANT] makes   |            |
+   |                        | it optional                 |            |
+   +------------------------+-----------------------------+------------+
+   | Resource processing    | Actor and tenant context    |Section 6.6,|
+   |                        | preserved; user authority   |Section 7   |
+   |                        | and actor gate enforced     |            |
+   |                        | with the selected token     |            |
+   |                        | protection                  |            |
+   +------------------------+-----------------------------+------------+
+   | Refresh narrowing      | Explicit policy, client     |Section 8.2 |
+   |                        | binding, preserved proof    |            |
+   |                        | binding and profile,        |            |
+   |                        | finite absolute             |            |
+   |                        | authorization expiration    |            |
+   +------------------------+-----------------------------+------------+
+   | Error processing       | invalid_grant, not RFC      |Section 5.8 |
+   |                        | 8693's invalid_request,     |            |
+   |                        | for a valid subject or      |            |
+   |                        | actor credential that       |            |
+   |                        | resolves no user or no      |            |
+   |                        | active binding, agent, or   |            |
+   |                        | tenant; actor_unauthorized  |            |
+   |                        | for a denied resolved       |            |
+   |                        | actor, where                |            |
+   |                        | Section 4.3.4.3 of          |            |
+   |                        | [ID-JAG] profiles           |            |
+   |                        | access_denied for a client  |            |
+   |                        | or user that is not         |            |
+   |                        | authorized                  |            |
+   +------------------------+-----------------------------+------------+
+   | Redemption errors      | invalid_grant for an        |Section 6.9 |
+   |                        | unresolved or disabled      |            |
+   |                        | user or an uncorrelated or  |            |
+   |                        | disabled agent, where       |            |
+   |                        | Section 4.4.3 of [ID-JAG]   |            |
+   |                        | profiles access_denied for  |            |
+   |                        | a valid ID-JAG that is not  |            |
+   |                        | authorized;                 |            |
+   |                        | actor_unauthorized for an   |            |
+   |                        | actor-gate refusal          |            |
+   +------------------------+-----------------------------+------------+
+   | Profile discovery      | Governed profiles in        |Section 9.2,|
+   |                        | existing ID-JAG metadata;   |Section 4.8 |
+   |                        | trusted policy sets the     |            |
+   |                        | minimum                     |            |
+   +------------------------+-----------------------------+------------+
+   | Client ID Metadata     | A                           |Section     |
+   | Document               | token_endpoint_auth_method  |9.2.2       |
+   |                        | other than none that each   |            |
+   |                        | server using the document   |            |
+   |                        | accepts; jwks or jwks_uri   |            |
+   |                        | with private_key_jwt        |            |
+   +------------------------+-----------------------------+------------+
+   | DPoP at endpoints      | A request carrying a DPoP   |Section 4.4 |
+   | without DPoP           | proof is rejected with      |            |
+   |                        | invalid_request, not        |            |
+   |                        | ignored                     |            |
+   +------------------------+-----------------------------+------------+
+   | Time claims            | iat later than the current  |Section 4.6 |
+   |                        | time plus permitted clock   |            |
+   |                        | skew is rejected            |            |
+   +------------------------+-----------------------------+------------+
+   | Introspection caching  | A cached active response    |Section 7.2 |
+   |                        | is not used beyond exp or   |            |
+   |                        | the disablement freshness   |            |
+   |                        | limit, narrowing Section 4  |            |
+   |                        | of [RFC7662]                |            |
+   +------------------------+-----------------------------+------------+
+   | Denials without a      | A challenge without an      |Section 7.6 |
+   | remedy                 | error attribute, a          |            |
+   |                        | restriction of Section 3    |            |
+   |                        | of [RFC6750]                |            |
+   +------------------------+-----------------------------+------------+
+   | Hidden targets         | The error table's           |Section 12.3|
+   |                        | responses take precedence   |            |
+   |                        | over the 404 that           |            |
+   |                        | Section 15.5.4 of           |            |
+   |                        | [RFC9110] permits           |            |
+   +------------------------+-----------------------------+------------+
+   | WISE revocation events | Applied only within what    |Section 4.6 |
+   |                        | configuration trusts the    |            |
+   |                        | sending authority for,      |            |
+   |                        | where [WISE] has a          |            |
+   |                        | receiver reject every       |            |
+   |                        | credential of a named       |            |
+   |                        | trust domain                |            |
+   +------------------------+-----------------------------+------------+
 
-      Table 25: Additions and narrowings to the base specifications
+       Table 25: Additions and narrowings to the base specifications
 
    For self-acting access, this profile composes [WAG] as follows
    (Section 4.2):
@@ -4426,9 +4479,16 @@ B.2.1.  WAG
       X.509-SVID authentication a self-acting path;
 
    *  telling apart agents of Governance Tenants that share an issuer,
-      which Section 6.3 of [WAG] does with a registered claim; and
+      which Section 6.3 of [WAG] does with a registered claim;
 
-   *  self-acting Client Associations ([AGENT-MANAGEMENT]).
+   *  self-acting Client Associations ([AGENT-MANAGEMENT]); and
+
+   *  a WAG lifecycle composition: [AGENT-LIFECYCLE] defines no WAG wire
+      composition, and revoking one WAG is deployment-specific.
+
+   Until these close, a self-acting claim has no management path for
+   client use or lifecycle composition in this family to be tested
+   against.
 
 B.3.  Excluded Compositions
 
@@ -4437,10 +4497,9 @@ B.3.  Excluded Compositions
    +=====================+=============================================+
    | Composition         | Boundary in this document                   |
    +=====================+=============================================+
-   | Approval before     | Defined for governed issuance,              |
-   | issuance or         | including continuation, and for             |
-   | redemption          | governed redemption at the RAS, in          |
-   |                     | [OVERSIGHT]                                 |
+   | Approval before     | Defined for governed issuance, including    |
+   | issuance or         | continuation, and for governed              |
+   | redemption          | redemption at the RAS, in [OVERSIGHT]       |
    +---------------------+---------------------------------------------+
    | Asynchronous        | At the RAS, defined for deferred            |
    | approval with       | redemption in [OVERSIGHT], without          |
@@ -4449,46 +4508,50 @@ B.3.  Excluded Compositions
    |                     | approval follows Section 12.9,              |
    |                     | Section 3.6.3, and Section 5.4              |
    +---------------------+---------------------------------------------+
-   | Continuation with   | Defined for governed grants,                |
-   | [ICA]               | including through gateways, in              |
-   |                     | [CONTINUATION]; renewal without             |
-   |                     | continuation follows Section 8              |
+   | Continuation with   | Defined for governed grants, including      |
+   | [ICA]               | through gateways, in [CONTINUATION];        |
+   |                     | renewal without continuation follows        |
+   |                     | Section 8                                   |
    +---------------------+---------------------------------------------+
-   | General WIMSE WIT/  | Only the SPIFFE forms in [INPUTS]           |
-   | WIC inputs          | are defined                                 |
+   | General WIMSE WIT/  | Only the SPIFFE forms in [INPUTS] are       |
+   | WIC inputs          | defined                                     |
    +---------------------+---------------------------------------------+
    | Instance context in | The RAS conveys only an instance it         |
    | an ID-JAG or WAG,   | validated (Section 6.6); workload           |
    | or preserved across | evidence resolves the agent, and a          |
    | domains, under      | shared workload identity does not           |
-   | [INSTANCE]          | distinguish replicas                        |
-   |                     | [SPIFFE-CONCEPTS]                           |
+   | [INSTANCE]          | distinguish replicas [SPIFFE-CONCEPTS]      |
    +---------------------+---------------------------------------------+
-   | Mutual-TLS-bound    | Bound grants use DPoP; mutual TLS           |
-   | ID-JAG              | can protect access tokens                   |
-   |                     | (Section 6.7), except after a               |
-   |                     | deferred redemption, which                  |
-   |                     | [OVERSIGHT] requires to be DPoP-            |
+   | Mutual-TLS-bound    | Bound grants use DPoP; mutual TLS can       |
+   | ID-JAG              | protect access tokens (Section 6.7),        |
+   |                     | except after a deferred redemption,         |
+   |                     | which [OVERSIGHT] requires to be DPoP-      |
    |                     | bound                                       |
    +---------------------+---------------------------------------------+
-   | Authorization       | Scope is required; the scope-free           |
-   | details without     | mode of [RFC9396] is not defined            |
+   | Authorization       | Scope is required; the scope-free mode      |
+   | details without     | of [RFC9396] is not defined                 |
    | scope               |                                             |
    +---------------------+---------------------------------------------+
-   | Grant key           | A bound grant is redeemed with              |
-   | transition          | proof of its own key (Section 4.4);         |
-   |                     | no transition to another key is             |
-   |                     | defined                                     |
+   | Grant key           | A bound grant is redeemed with proof of     |
+   | transition          | its own key (Section 4.4); no transition    |
+   |                     | to another key is defined                   |
    +---------------------+---------------------------------------------+
    | Portable            | ID-JAG exp limits redemption only;          |
-   | authorization       | downstream lifetimes follow RAS             |
-   | deadlines           | policy (Section 3.6.3)                      |
+   | authorization       | downstream lifetimes follow RAS policy      |
+   | deadlines           | (Section 3.6.3)                             |
    +---------------------+---------------------------------------------+
-   | User access tokens  | Subjects follow Section 5.6.2;              |
-   | as subjects, as in  | accepting an access token needs             |
-   | deployed on-behalf- | eligibility, audience, resolution,          |
-   | of (OBO) flows such | sender-constraint, and authority            |
-   | as                  | rules coordinated with ID-JAG               |
+   | Public or           | Both grant paths authenticate the client    |
+   | unattested native   | (Section 9.1); a client that uses none      |
+   | agents              | and presents no attestation from a          |
+   |                     | configured attester ([INPUTS]) has no       |
+   |                     | governed grant path, and enrolling a key    |
+   |                     | is out of scope (Section 1.1)               |
+   +---------------------+---------------------------------------------+
+   | User access tokens  | Subjects follow Section 5.6.2; accepting    |
+   | as subjects, as in  | an access token needs eligibility,          |
+   | deployed on-behalf- | audience, resolution, sender-constraint,    |
+   | of (OBO) flows such | and authority rules coordinated with ID-    |
+   | as                  | JAG                                         |
    | [AWS-AGENTCORE-OBO] |                                             |
    +---------------------+---------------------------------------------+
 
