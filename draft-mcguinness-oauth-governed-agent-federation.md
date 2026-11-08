@@ -200,10 +200,15 @@ that fills those gaps.
 Giving each agent its own OAuth client, as some deployments do, makes
 the agent identifiable to the authorization server that registered it,
 but the client identifier is not that principal. It names a
-registration, assigned separately at each authorization server and
-replaced when the agent moves to another platform or client. This
-profile's mandatory path starts from such a dedicated client ({{scope}})
-and adds what the client identifier lacks. The IdP resolves the client
+registration, usually assigned separately at each authorization server
+and replaced when the agent moves to another platform or client. The
+difference shows in three cases. A resource domain that restricts an
+agent by its client identifier readmits it when the agent moves to
+another client; agents behind one shared client cannot be told apart;
+and a gateway that calls further resource domains is one client for
+every agent behind it. This profile's mandatory path starts from such
+a dedicated client ({{scope}}) and adds what the client identifier
+lacks. The IdP resolves the client
 to an Agent Principal through an Identity Binding ({{identity}}) and
 authorizes the client to use that principal through a Client Association
 ({{identity-binding}}). The grant carries the principal as the actor,
@@ -893,7 +898,9 @@ identifier does not authorize a new proof key.
 
 An IdP that accepts {{WISE}} events from a credential authority it
 trusts MUST stop accepting, for agent resolution, the following from
-the time each event takes effect (Section 2.3 of {{WISE}}):
+the time each event takes effect (Section 2.3 of {{WISE}}), within the
+credentials, trust material, and trust domains that its configuration
+trusts that authority for:
 
 * a credential that `credential-revoked` or `credential-compromised`
   identifies;
@@ -901,6 +908,9 @@ the time each event takes effect (Section 2.3 of {{WISE}}):
 * credentials from a trust domain that `trust-domain-federation-revoked`
   names.
 
+An event about anything outside that scope changes no resolution: an
+authority that ends its own federation with a trust domain does not end
+trust that the IdP's configuration places in that domain directly.
 Disabling an Identity Binding or the Agent Principal in response is
 IdP policy ({{status-changes}}): an agent can have other valid bindings.
 
@@ -2343,7 +2353,15 @@ client ({{Section 4 of CIMD}} lets a profile restrict it). A client that
 authenticates with an input of {{INPUTS}} names that input's method. A
 document that names `private_key_jwt` makes that method required at
 each server ({{Section 8.2 of CIMD}}) and MUST publish the client's keys
-with `jwks` or `jwks_uri`.
+with `jwks` or `jwks_uri`. A server that accepts Client ID Metadata
+Documents under this profile MUST reject, with `invalid_client`, a
+request from a client whose metadata is such a document and names no
+method, names `none` or a method the server does not accept for that
+client, or names `private_key_jwt` without `jwks` or `jwks_uri`. Because the document
+names one method, a client whose IdP and RAS accept different methods
+cannot use one document at both: it registers separately at the RAS,
+and the client registration association ({{flow-configuration}}) maps
+the two identifiers.
 
 ### Capability Discovery {#capability-discovery}
 
@@ -3252,6 +3270,7 @@ referenced sections define each requirement.
 | Introspection caching | A cached active response is not used beyond `exp` or the disablement freshness limit, narrowing {{Section 4 of RFC7662}} | {{api-validation}} |
 | Denials without a remedy | A challenge without an `error` attribute, a restriction of {{Section 3 of RFC6750}} | {{resource-errors}} |
 | Hidden targets | The error table's responses take precedence over the 404 that {{Section 15.5.4 of RFC9110}} permits | {{security-errors}} |
+| WISE revocation events | Applied only within what configuration trusts the sending authority for, where {{WISE}} has a receiver reject every credential of a named trust domain | {{time-validation}} |
 {: title="Additions and narrowings to the base specifications"}
 
 For self-acting access, this profile composes {{WAG}} as follows
@@ -3292,8 +3311,13 @@ items are:
   without a subject token ({{wag-request}}), which would also give
   X.509-SVID authentication a self-acting path;
 * telling apart agents of Governance Tenants that share an issuer,
-  which {{Section 6.3 of WAG}} does with a registered claim; and
-* self-acting Client Associations ({{AGENT-MANAGEMENT}}).
+  which {{Section 6.3 of WAG}} does with a registered claim;
+* self-acting Client Associations ({{AGENT-MANAGEMENT}}); and
+* a WAG lifecycle composition: {{AGENT-LIFECYCLE}} defines no WAG wire
+  composition, and revoking one WAG is deployment-specific.
+
+Until these close, a self-acting claim has no management path for client
+use or lifecycle composition in this family to be tested against.
 
 ## Excluded Compositions {#excluded-compositions}
 
@@ -3310,6 +3334,7 @@ This document does not define the following compositions:
 | Authorization details without scope | Scope is required; the scope-free mode of {{RFC9396}} is not defined |
 | Grant key transition | A bound grant is redeemed with proof of its own key ({{grant-protection}}); no transition to another key is defined |
 | Portable authorization deadlines | ID-JAG `exp` limits redemption only; downstream lifetimes follow RAS policy ({{authorization-lifetime}}) |
+| Public or unattested native agents | Both grant paths authenticate the client ({{scope}}); a client that uses `none` and presents no attestation from a configured attester ({{INPUTS}}) has no governed grant path, and enrolling a key is out of scope ({{overview}}) |
 | User access tokens as subjects, as in deployed on-behalf-of (OBO) flows such as {{AWS-AGENTCORE-OBO}} | Subjects follow {{subject-token-validation}}; accepting an access token needs eligibility, audience, resolution, sender-constraint, and authority rules coordinated with ID-JAG |
 {: title="Excluded compositions"}
 

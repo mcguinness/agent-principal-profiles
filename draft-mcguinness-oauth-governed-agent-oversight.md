@@ -472,10 +472,16 @@ user; an access request service under {{ARAP}} is another. A third is
 the `interaction_uri` that a deferred or polling response can carry
 ({{Section 6.4 of DTR}}), as in the agent example of
 {{Appendix A.6 of DTR}}. The page it identifies shows the governed
-request context, and the approver authenticates there at the strength
-policy requires. Reaching the URI is not that authentication, and
+request context, and the approver authenticates there, after the
+request was created, at the strength policy requires. Reaching the URI is not that authentication, and
 neither is a session in a browser the agent operates, through which
-the agent could approve its own request ({{security-self}}). The
+the agent could approve its own request ({{security-self}}). Because
+the requesting client receives the URI, the IdP MUST NOT accept a
+decision made through it unless the approver authenticated there after
+the pending request was created; an existing session does not satisfy
+this. Where another server authenticates the approver, the IdP requests
+fresh authentication and checks that the reported authentication time
+is later than the request's creation. The
 channel rarely fits self-acting access, whose approver is seldom the
 client's user. A client that can present the URI to the user includes
 `deferred_interactive` with `deferred` ({{Section 5.1 of DTR}}).
@@ -898,13 +904,21 @@ supervised issuance for a target only where both hold:
   * withdrawing or narrowing the Delegation or Agent Authorization,
     which stops new grants and ends or narrows continuation
     ({{CONTINUATION}});
+  * for a grant that can be continued, the IdP's revocation of its
+    chain or of the grant's subtree, which stops new continuations,
+    including from descendants accepted at other targets that
+    revocation at one target does not reach ({{Section 6.2 of ICA}});
   * a Local Suspension at the target; or
   * disabling the agent, once the target applies it.
 
 Revoking one WAG is deployment-specific ({{AGENT-LIFECYCLE}}), so
 supervised self-acting issuance rests on the other interventions.
 
-The intervention bound includes tokens already accepted. An API that
+The intervention bound includes what an intervention leaves usable:
+grants issued and not yet redeemed, the tokens a later redemption
+obtains, tokens already accepted, and any refresh authorization a RAS
+issued. Revoking a chain, for example, leaves an ID-JAG already issued
+redeemable for its own lifetime ({{Section 6.2 of ICA}}). An API that
 validates access tokens without a check accepts them until they expire,
 and no intervention reverses an operation already performed. A
 deployment that cannot document an intervention bound for a target
@@ -1037,7 +1051,8 @@ decision from an automated one depends on the approval channel, which
 this document does not define; the channel's authentication of the
 approver is what makes the rule enforceable. An `interaction_uri` opened
 in a browser the agent operates is the plainest case: the page must
-authenticate the approver itself ({{approval}}). A deployment that
+authenticate the approver itself, after the request was created, so
+that a session already in that browser cannot decide ({{approval}}). A deployment that
 routes decisions to an automated approver is human out of the loop and
 records it as such ({{modes}}).
 
@@ -1304,6 +1319,14 @@ Each case changes this variant as stated; all other checks succeed.
    include the grant's own expiration when the client does not present
    the grant again. {{redemption-deferring}} reads them as checked on
    receipt.
+6. **Continuation mode floor.** Whether a continuation's mode may be
+   lower than the mode policy requires for the same agent, user,
+   target, and authority requested directly. Policy selects the mode at
+   each decision point ({{modes}}), so a deployment that keys approval
+   on the requesting client does not require it when a gateway
+   continues to the same target. A negative test comes before the
+   choice between a rule and guidance: approval required for a direct
+   request, and the gateway's continuation without the opt-in.
 
 # Document History
 {:numbered="false"}

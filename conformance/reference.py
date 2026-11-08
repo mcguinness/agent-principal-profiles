@@ -128,6 +128,8 @@ CHECKS = {
     "ras.resource_match": "the resource parameter equals the grant's resource",
     "ras.scope_claim": "the grant's scope claim is a non-empty string",
     "ras.agent_eligibility": "the correlated agent record exists and is active",
+    "ras.restriction_follows_agent": "an agent disabled at the RAS is refused through every "
+                                     "client, not only those the RAS knows it through",
     "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
@@ -819,6 +821,13 @@ class RAS(Server):
         # cases that need two pending redemptions through one client.
         self.agents = {(IDP_ISSUER, "agent-42"): {"local": "service-principal-42", "active": True},
                        (IDP_ISSUER, "agent-43"): {"local": "service-principal-43", "active": True}}
+        # The clients the RAS knows each agent through: the one it was
+        # provisioned with, and each a redemption without deferral has
+        # since issued it a token through.
+        # Only a RAS with ras.restriction_follows_agent switched off
+        # consults this.
+        self.agent_clients = {(IDP_ISSUER, "agent-42"): {"analysis-api"},
+                              (IDP_ISSUER, "agent-43"): {"analysis-api"}}
         self.actor_gate = {("user-108", IDP_ISSUER, "agent-42", "acme-data"),
                            ("user-108", IDP_ISSUER, "agent-43", "acme-data")}
         # An actor-gate rule admitting every agent an issuer asserts, for any
@@ -1026,7 +1035,13 @@ class RAS(Server):
         agent = self.agents.get((act["iss"], act["sub"]))
         if agent is None and (act["iss"], config["tenant"]) in self.jit:
             agent = self.correlate_just_in_time(act, user, config["tenant"])
-        if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
+        ineligible = agent is None or not agent["active"]
+        if agent is not None and not self.on("ras.restriction_follows_agent"):
+            # Non-conforming: the restriction holds only through the clients
+            # the RAS knows the agent through.
+            ineligible = ineligible and \
+                client_id in self.agent_clients.get((act["iss"], act["sub"]), ())
+        if ineligible and self.on("ras.agent_eligibility"):
             raise OAuthError("invalid_grant", description="agent not eligible")
         if not self.gate_permits(user, act["iss"], act["sub"], config["tenant"]) and \
                 self.on("ras.actor_gate"):
@@ -1057,6 +1072,7 @@ class RAS(Server):
             token_claims["cnf"] = {"jkt": jkt}
         token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
+        self.agent_clients.setdefault((act["iss"], act["sub"]), set()).add(client_id)
         return {"access_token": token, "token_type": "DPoP" if bind else "Bearer",
                 "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
 
