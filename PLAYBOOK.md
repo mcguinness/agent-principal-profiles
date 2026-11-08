@@ -285,7 +285,10 @@ actions, the API or MCP server holds the call until an approver decides.
   the agent, the user, the client, the target, and the authority as the
   deferring server resolved them, the IdP for issuance and the RAS for
   redemption, with any text from the agent marked as the agent's. A
-  decision sent by the client or the agent is not accepted.
+  decision sent by the client or the agent is not accepted. Where the
+  channel is a page at an `interaction_uri`, opening it in a browser the
+  agent operates, with the user's existing session, does not approve
+  the request.
 * A poll that proves another key fails with `invalid_dpop_proof`, and a
   poll after the grant or access token was delivered fails with
   `invalid_grant`.
