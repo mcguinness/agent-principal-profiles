@@ -1696,7 +1696,8 @@ through these steps, which the subsections define:<a href="#section-4-1" class="
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Request with the opt-in</td>
             <td class="text-left" rowspan="1" colspan="1">Completes every check except the approver's decision; for a continuation, reserves the assertion (<a href="#deferring" class="auto internal xref">Section 4.2</a>, <a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>)</td>
-            <td class="text-left" rowspan="1" colspan="1">Pending; deferred response</td>
+            <td class="text-left" rowspan="1" colspan="1">Pending; a deferred response of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6.4" class="relref">Section 6.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: <code>authorization_pending</code>, or <code>interaction_required</code> with an <code>interaction_uri</code>
+</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Poll before a decision</td>
@@ -2017,7 +2018,8 @@ redemption moves through these steps, which the subsections define:<a href="#sec
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Redemption with the opt-in</td>
             <td class="text-left" rowspan="1" colspan="1">Completes every check except the approver's decision, accepts the grant, and opens one approval request (<a href="#redemption-deferring" class="auto internal xref">Section 5.2</a>)</td>
-            <td class="text-left" rowspan="1" colspan="1">Pending; deferred response</td>
+            <td class="text-left" rowspan="1" colspan="1">Pending; a deferred response of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6.4" class="relref">Section 6.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: <code>authorization_pending</code>, or <code>interaction_required</code> with an <code>interaction_uri</code>
+</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">The same redemption again</td>

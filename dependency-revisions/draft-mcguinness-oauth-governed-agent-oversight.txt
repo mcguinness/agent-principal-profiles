@@ -391,12 +391,12 @@ Table of Contents
     +============+========================+==========================+
     | Event      | IdP action             | Result                   |
     +============+========================+==========================+
-    | Request    | Completes every check  | Pending; deferred        |
-    | with the   | except the approver's  | response                 |
-    | opt-in     | decision; for a        |                          |
-    |            | continuation, reserves |                          |
-    |            | the assertion          |                          |
-    |            | (Section 4.2,          |                          |
+    | Request    | Completes every check  | Pending; a deferred      |
+    | with the   | except the approver's  | response of Section 6.4  |
+    | opt-in     | decision; for a        | of [DTR]:                |
+    |            | continuation, reserves | authorization_pending,   |
+    |            | the assertion          | or interaction_required  |
+    |            | (Section 4.2,          | with an interaction_uri  |
     |            | Section 4.5)           |                          |
     +------------+------------------------+--------------------------+
     | Poll       | Verifies the client    | A pending code of        |
@@ -679,12 +679,12 @@ Table of Contents
      +============+=======================+==========================+
      | Event      | RAS action            | Result                   |
      +============+=======================+==========================+
-     | Redemption | Completes every check | Pending; deferred        |
-     | with the   | except the approver's | response                 |
-     | opt-in     | decision, accepts the |                          |
-     |            | grant, and opens one  |                          |
-     |            | approval request      |                          |
-     |            | (Section 5.2)         |                          |
+     | Redemption | Completes every check | Pending; a deferred      |
+     | with the   | except the approver's | response of Section 6.4  |
+     | opt-in     | decision, accepts the | of [DTR]:                |
+     |            | grant, and opens one  | authorization_pending,   |
+     |            | approval request      | or interaction_required  |
+     |            | (Section 5.2)         | with an interaction_uri  |
      +------------+-----------------------+--------------------------+
      | The same   | Matches the accepted  | The same deferral code   |
      | redemption | grant (Section 5.4)   |                          |

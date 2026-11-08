@@ -504,7 +504,7 @@ Table of Contents
     | Authority            | Managed values                           |
     +======================+==========================================+
     | CIMD document        | OAuth metadata, including authentication |
-    | publisher            | methods, keys, and redirect URIs         |
+    | publisher            | method, keys, and redirect URIs          |
     +----------------------+------------------------------------------+
     | Authorization-server | Local admission, active, externalId, and |
     | administrator        | authorized administrative extensions     |
@@ -528,7 +528,7 @@ Table of Contents
    not the remote document or its cache entry.
 
    CIMD capability uses client_id_metadata_document_supported under
-   Section 8 of [CIMD].  This profile defines no additional OAuth
+   Section 6 of [CIMD].  This profile defines no additional OAuth
    discovery parameter and does not require the SCIM service to host
    CIMD documents.
 
@@ -830,9 +830,9 @@ Table of Contents
 
    [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
               Document", Work in Progress, Internet-Draft, draft-ietf-
-              oauth-client-id-metadata-document-03, 2 November 2026,
+              oauth-client-id-metadata-document-02, 6 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              client-id-metadata-document-03>.
+              client-id-metadata-document-02>.
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
