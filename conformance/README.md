@@ -606,7 +606,7 @@ another IdP, RAS or API:
    `untrusted_agent_iss`, an issuer the API does not trust for agents.
    They assume the API's actor gate, and the policy S37 sets, permit the
    user's `agent-42` only under `expect["agent_iss"]`, with no entry for
-   the partner issuer's. P11, P12 and N36 to N38 need `shared_client`, a
+   the partner issuer's. P11, P12 and N36 to N39 need `shared_client`, a
    `suite.SharedClient`: a shared client at the IdP and its RAS
    registration, a platform issuer whose JWTs the suite signs with a key
    the IdP approves, the workload `sub` the IdP binds exactly to an agent,

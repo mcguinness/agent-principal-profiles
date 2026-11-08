@@ -48,7 +48,7 @@ class Endpoint:
 
 @dataclass
 class SharedClient:
-    """Generic shared-client interoperability (P11, P12, N36 to N38).
+    """Generic shared-client interoperability (P11, P12, N36 to N39).
 
     The suite plays the platform: it signs platform JWTs with platform_key,
     which the IdP accepts from platform_issuer when idp_client_id presents
@@ -122,7 +122,7 @@ class Config:
     partner_agent_iss: str = "https://partner-idp.example/"
     untrusted_agent_iss: str = "https://untrusted-idp.example/"
     # A shared client presenting platform JWTs; None leaves P11, P12 and
-    # N36 to N38 not run.
+    # N36 to N39 not run.
     shared_client: object = None
 
 

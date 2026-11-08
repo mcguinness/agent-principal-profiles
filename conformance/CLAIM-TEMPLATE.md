@@ -20,7 +20,7 @@ Copy it, fill in each line, and delete the guidance in italics.
 | Realization | Delegated (ID-JAG) / self-acting (WAG) / both | core: Conformance Claims |
 | Profile URIs | `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent`, `...:id-jag-agent-federation`, `...:wag-governed-agent`, `...:wag-agent-federation` (list each) | core: Authorization Server and Client Metadata |
 | Supported inputs | Dedicated client with `private_key_jwt` (mandatory for the IdP and client); existing platform JWT; SAML subjects; IdP refresh-token subjects; inputs of the input profiles companion (name each) | core: Conformance Claims; Agent Resolution |
-| Generic shared-client interoperability | Claimed / not claimed. *A claim requires the existing platform JWT input: an IdP accepts it, a client presents it. For an IdP, the suite's P11, P12 and N36 to N38 test the claim when `Config.shared_client` is set.* | core: Conformance Claims; Existing Platform JWT |
+| Generic shared-client interoperability | Claimed / not claimed. *A claim requires the existing platform JWT input: an IdP accepts it, a client presents it. For an IdP, the suite's P11, P12 and N36 to N39 test the claim when `Config.shared_client` is set.* | core: Conformance Claims; Existing Platform JWT |
 
 ## Part 2. Optional capabilities
 

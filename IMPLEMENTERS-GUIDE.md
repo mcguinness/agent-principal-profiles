@@ -73,7 +73,7 @@ request:
   names the agent's workload (presented-evidence resolution). An
   implementation that claims generic shared-client interoperability
   supports this input. The conformance suite tests an IdP's acceptance
-  of it (P11, P12, and N36 to N38), and the [claim
+  of it (P11, P12, and N36 to N39), and the [claim
   template](conformance/CLAIM-TEMPLATE.md) records the claim.
 
 The IdP validates the input, maps it to an Agent Principal through an
