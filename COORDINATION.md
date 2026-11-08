@@ -18,13 +18,14 @@ Revisions read in full against the family's use: WAG-02, ID-JAG-06,
 and JWT DPoP Grant-02 (2026-11-04); DTR-01, SPIFFE OAuth-03, WIT-03,
 ATTEST-12, CIMD-03, Client Instance Identifiers-01, and Client Attester
 Endorsement-01 (2026-11-07); and, earlier, ICA-02, Actor Profile-01,
-and WISE draft 03. For RFC 7523bis-11 and AIMS-01, only the cited
-sections were assessed.
+CIMD-02, and WISE draft 03. For RFC 7523bis-11 and AIMS-01, only the
+cited sections were assessed.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
 on 2026-11-06 (Identity Chaining-17, Entity Profiles-02, Oversight
-Acts-00, SCIM Agent Resource-00). In CI, `tools/check_citations.py`
+Acts-00, SCIM Agent Resource-00). CIMD stays at -02 until its Section 6
+is fixed (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
 checks that every cited section of a pinned RFC or draft still has the
 heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
@@ -198,21 +199,25 @@ for the `INSTANCE` draft:
 
 #### Client Authentication Drafts
 
-Two differences found in assessing the 2026-11-07 revisions, not yet
-filed:
+Two differences found in assessing the 2026-11-07 revisions:
 
-* ATTEST-12 makes `iat` REQUIRED in a Client Attestation, and its
+* Not yet filed: ATTEST-12 makes `iat` REQUIRED in a Client Attestation, and its
   Section 13 lets a profile deviate only on `typ`, `sub`, and refresh
   binding. SPIFFE OAuth-03 Section 3.4.1 makes the WIT-SVID such a
   profile but validates it under WIT-03, which does not require `iat`.
   A generic ATTEST-12 server therefore rejects a WIT-SVID without `iat`
   that SPIFFE OAuth-03 accepts. `INPUTS` lists no WIT-SVID claims and
   takes no side.
-* CIMD-03 Section 6 rejects a request with `invalid_client` when the
+* Filed as oauth-wg/draft-ietf-oauth-client-id-metadata-document#131:
+  CIMD-03 Section 6 rejects a request with `invalid_client` when the
   `response_types` that a document declares and the server supports do
-  not intersect. Read literally, that rejects token requests at a server
-  with no authorization endpoint, such as the RAS. The intersection
-  should apply only to authorization requests.
+  not intersect. Read literally, a server with no authorization
+  endpoint, such as the RAS, rejects every token request from a CIMD
+  client. The drafts therefore hold CIMD at -02. Re-pinning to a fixed
+  revision also moves the core's rule to Section 5 of CIMD-03, which
+  lists methods in `token_endpoint_auth_methods_supported`, treats a
+  document that lists none as `none`, and requires a declared
+  `private_key_jwt` only where the server supports it.
 
 #### Shared Signals: WISE and CAEP
 
