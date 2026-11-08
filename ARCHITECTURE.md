@@ -211,6 +211,14 @@ needs separate authorization, delegation, attribution, resource
 correlation, or disablement, even if it shares a runtime, client, or
 credential with another agent.
 
+Agents a platform creates for each task are usually executions. Running
+each task as an execution of one Agent Principal needs no registration
+per task. A principal per task costs, for every task, SCIM writes at the
+IdP, a Delegation or Agent Authorization, which no profile manages
+portably, and correlation at each RAS before the first redemption
+unless the RAS enables just-in-time correlation; in return, each task
+can be disabled on its own.
+
 ### Sub-agents and orchestrators
 
 An orchestrator agent often starts sub-agents for parts of a task. The

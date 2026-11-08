@@ -1396,7 +1396,10 @@ registered at 14:00 carry over unchanged.
 
 At 16:00, the customer deletes the agent. The connector deletes
 `/Agents/a58` at the IdP. The binding and association become unusable,
-and `agent-58` is never assigned to another agent. A third-party
+and `agent-58` is never assigned to another agent. The provider may
+keep them as non-effective references ([AGENT-MANAGEMENT], Deletion),
+so a connector that will reuse the workload identity for another agent
+deletes the association and the binding before the Agent. A third-party
 resource domain provisioned for `agent-58` applies the deletion under
 [Applying Administrative State][lc-application].
 
