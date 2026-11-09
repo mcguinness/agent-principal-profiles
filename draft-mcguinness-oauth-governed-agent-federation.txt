@@ -1870,8 +1870,9 @@ Table of Contents
       single-use jti rule of Section 5.3.2.
 
    *  A client authenticated by X.509-SVID over mutual TLS presents no
-      JWT and has no self-acting issuance under this profile
-      (Appendix B.2.1).
+      JWT and has no self-acting issuance under this profile; a SPIFFE
+      workload that needs self-acting access can authenticate with a
+      JWT-SVID ([INPUTS]).
 
 5.7.2.  Grant Claims
 
@@ -2242,10 +2243,11 @@ Table of Contents
 
    4.  *Correlation:* Resolve the pair (iss, sub) under Section 6.3 to
        one local agent principal in the authorized Target Tenant.  The
-       RAS MUST have that authorized correlation before issuance.  For
-       governed agents, this replaces WAG's acceptance of previously
-       unseen agents (Section 3 of [WAG]).  Section 6.3.1 covers just-
-       in-time correlation where resource policy permits it.
+       RAS MUST have that authorized correlation before issuance.  It is
+       provisioned in advance or, where resource policy permits, created
+       just in time from the WAG (Section 6.3.1), so a RAS can accept a
+       previously unseen agent's first WAG as Section 3 of [WAG]
+       describes; creating the record does not authorize the agent.
 
    5.  *Authority:* Apply the authority checks of Section 6.2 and
        current RAS policy for the agent, client, tenant, and resource.
@@ -4513,8 +4515,13 @@ B.1.  Differences from Base Specifications
    | resource       | Recommended, not   | Exactly one (Section 5.2)   |
    |                | required           |                             |
    +----------------+--------------------+-----------------------------+
-   | Previously     | Accepted on first  | Authorized correlation      |
-   | unseen agents  | assertion          | required (Section 6.3)      |
+   | Previously     | Accepted on first  | Accepted where resource     |
+   | unseen agents  | assertion          | policy permits just-in-     |
+   |                |                    | time correlation, off by    |
+   |                |                    | default; the created        |
+   |                |                    | record is keyed by the      |
+   |                |                    | exact pair and authorizes   |
+   |                |                    | nothing (Section 6.3.1)     |
    +----------------+--------------------+-----------------------------+
    | Shared issuers | A claim registered | tenant, set to the agent's  |
    |                | for each Workload  | Governance Tenant,          |
@@ -4540,11 +4547,10 @@ B.2.  Upstream Dependencies
    | Specification | What this profile needs | Consequence until      |
    |               |                         | resolved               |
    +===============+=========================+========================+
-   | WAG           | Alignment on            | Generic WAG support    |
-   |               | protection, linking,    | does not imply the     |
-   |               | and subject             | governed composition   |
-   |               | presentation            | (Section 4.2)          |
-   |               | (Appendix B.2.1)        |                        |
+   | WAG           | Alignment on protection | Generic WAG support    |
+   |               | (Appendix B.2.1)        | does not imply the     |
+   |               |                         | governed composition   |
+   |               |                         | (Section 4.2)          |
    +---------------+-------------------------+------------------------+
    | ID-JAG and    | One error for a bound   | Either error is        |
    | JWT DPoP      | grant redeemed without  | permitted              |
@@ -4571,26 +4577,17 @@ B.2.1.  WAG
 
    In WAG terms, the IdP is the Workload Identity Provider that issues
    the grant (Section 2 of [WAG]), and Section 5.7 defines that issuance
-   with the token exchange that Section 5 of [WAG] anticipates.  Open
-   items are:
+   with the token exchange that Section 5 of [WAG] anticipates.  That
+   section leaves how an Agent obtains a grant otherwise out of scope,
+   so the issuance details of Section 5.7 need no change to WAG.  The
+   open item with WAG is DPoP binding (Section 4.4).
 
-   *  DPoP binding (Section 4.4);
-
-   *  authorized correlation in place of WAG's acceptance of previously
-      unseen agents (Section 3 of [WAG]);
-
-   *  a token exchange in which the authenticated client is the subject
-      without a subject token (Section 5.7.1), which would also give
-      X.509-SVID authentication a self-acting path;
-
-   *  self-acting Client Associations ([AGENT-MANAGEMENT]); and
-
-   *  a WAG lifecycle composition: [AGENT-LIFECYCLE] defines no WAG wire
-      composition, and revoking one WAG is deployment-specific.
-
-   Until these close, a self-acting claim has no management path for
-   client use or lifecycle composition in this family to be tested
-   against.
+   Two items are open in this family: self-acting Client Associations
+   ([AGENT-MANAGEMENT]), and a WAG lifecycle composition, since
+   [AGENT-LIFECYCLE] defines no WAG wire composition and revoking one
+   WAG is deployment-specific.  Until these close, a self-acting claim
+   has no management path for client use or lifecycle composition in
+   this family to be tested against.
 
 B.3.  Excluded Compositions
 
