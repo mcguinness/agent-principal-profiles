@@ -661,7 +661,12 @@ its time claims are checked when the request is received; the grant's
 `exp` limits redemption, not later access ("Authorization Lifetime" in
 {{FEDERATION}}). This document thus reads the originating-grant
 preconditions that {{Section 11.7 of DTR}} re-evaluates as excluding
-the grant's own expiration ({{open-items}}).
+the grant's own expiration ({{open-items}}). Approval can therefore
+come after the grant's `exp`. The access token then issued has `iat`
+set at resolution, and both RAS lifetime policy ("Authorization
+Lifetime" in {{FEDERATION}}) and the deadlines of
+{{redemption-resolution}} apply to its expiration: the approval expiry,
+any enforcement deadline, and the absolute authorization expiration.
 
 The RAS then accepts the grant. It MUST record the grant's (`iss`,
 `jti`) as accepted, whether or not the grant is bound, and MUST NOT

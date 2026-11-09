@@ -109,17 +109,28 @@ Coordination is needed on:
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
   continuing self-acting access re-issues the grant. Section 5 of WAG-02
   adds that access tokens SHOULD NOT outlive the assertion by a
-  significant period. That restates Section 4.1 of RFC 7521, which
-  applies to both of this document's grants without WAG: RFC 7523
-  (`jwt-bearer`) and JWT DPoP Grant (`jwt-dpop`) both use RFC 7521's
-  request framework. The recommendation is inherited, not a difference;
-  how long counts as significant is RAS policy. Decision pending:
-  whether the core points to it.
+  significant period, citing Section 4.1 of RFC 7521. RFC 7521 states
+  that recommendation as an access token's lifetime relative to the
+  assertion's validity period, and it applies to both grants'
+  redemption: RFC 7523 (`jwt-bearer`) and JWT DPoP Grant (`jwt-dpop`)
+  both use RFC 7521's access token request. `authorization-lifetime`
+  points to it unchanged. Neither document defines "significant". In
+  the oversight profile's deferred redemption, approval can come after
+  the grant's `exp`; the token then issued is subject to RAS lifetime
+  policy and to the approval expiry, any enforcement deadline, and the
+  absolute authorization expiration.
 * **Client registration:** Section 5 of WAG-02 says an authorization
   server MUST NOT require a client registration per Agent. This
-  document's mandatory path resolves the agent from a dedicated client,
-  one Agent Principal per client identity at the IdP. Decision pending:
-  whether that conflicts at the RAS, where the client redeems the WAG.
+  document does not adopt that prohibition. Client registration is
+  required for the redeeming client. Shared clients can redeem grants
+  for multiple agents, and several dedicated clients can map to one
+  registration (`flow-configuration`), but a RAS can still give each
+  agent's client its own. CIMD can avoid pre-registration where the RAS
+  supports onboarding from the client's metadata document; Section 7.2
+  of CIMD-02 also permits pre-registered Client Identifier URLs. The
+  core's composition table states this difference (`base-differences`).
+  The agent record that the RAS requires for each agent is a separate
+  difference (Linking, above).
 * **Subject presentation:** A token exchange in which the authenticated
   client is the subject, by permitting omission of `subject_token` in
   that case or by registering a subject token type for authenticated
