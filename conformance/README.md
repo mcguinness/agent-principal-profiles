@@ -230,12 +230,13 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02, D09 and D24, name the
-reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
-With `--vacuity`, each of these 112 cases runs once for each check it
-names, with that check switched off; eight S cases and N40 name two
-checks, so there are 121 runs, and every run fails. Forty-two N cases fail because
-the server then accepts the request. P2 fails because the access token
+Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02,
+D09 and D24, name the reference checks they exercise (`CHECKS` in
+[reference.py](reference.py)). With `--vacuity`, each of these 121
+cases runs once for each check it names, with that check switched off;
+eight S cases, N40, N47 and N49 name two checks, so there are 132 runs,
+and every run fails. Forty-five N cases fail because the server then
+accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, P8 to P10 because the server then accepts a nonce it never
 provided, P12 and P16 because the grant then outlives the platform JWT
