@@ -2061,6 +2061,33 @@ def d24(ctx):
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
     expect_token(ctx.client.poll(first["deferral_code"]))
 
+
+@case("D25", "RAS", "Denies at the next poll when the RAS stops trusting the grant's tenant "
+      "while pending",
+      "oversight: Redemption Resolution; core: Canonical Identity and Tenant Boundaries",
+      needs=("set:ras.approval_required", "set:ras.tenant_trust", "tasks", "approve"),
+      defeats=("ras.tenant_recheck",))
+def d25(ctx):
+    cfg = multi_tenant(ctx)
+    require_approval(ctx)
+    code = defer(ctx, ctx.grant())["deferral_code"]
+    ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
+    ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
+    expect_error(ctx.client.poll(code), 400, "access_denied")
+
+
+@case("D26", "RAS", "A refresh fails once the RAS stops trusting the grant's tenant",
+      "core: Optional RAS Refresh Tokens (step 2); oversight: Refresh and Continuation",
+      needs=("set:ras.approval_required", "set:ras.refresh_permitted", "set:ras.tenant_trust",
+             "tasks", "approve"),
+      defeats=("ras.tenant_recheck",))
+def d26(ctx):
+    cfg = multi_tenant(ctx)
+    _, body, _ = approved_refresh(ctx, ctx.now() + 3600)
+    expect_token(ctx.client.refresh(body["refresh_token"]))
+    ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
+    expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
+
 # Policy services at the API ------------------------------------------------
 #
 # The core's Optional Policy Services and Error Responses. Test control

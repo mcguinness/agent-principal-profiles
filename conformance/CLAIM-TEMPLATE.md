@@ -41,7 +41,7 @@ A claim whose cases were not run says so in Part 5.
 | Opaque access tokens and introspection | S10 to S13, S20, S21, S31, S34, S38 |
 | Policy services | S01 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | S14 to S31 |
-| Deferred redemption (RAS) | D01 to D24 |
+| Deferred redemption (RAS) | D01 to D26 |
 | RAS refresh tokens | D13 to D15, D21, D22, within a deferred redemption only |
 | Mutual-TLS access tokens; re-redemption under policy | None |
 

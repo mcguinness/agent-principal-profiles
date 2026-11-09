@@ -132,6 +132,8 @@ CHECKS = {
     "ras.tenant_trust": "a grant from a multi-tenant issuer names a tenant trusted with the "
                         "issuer for the Target Tenant",
     "ras.user_tenant": "an ID-JAG's subject is resolved within its issuer tenant",
+    "ras.tenant_recheck": "resolution and refresh re-check that the RAS still trusts the "
+                          "grant's issuer tenant for the Target Tenant",
     "ras.restriction_follows_agent": "an agent disabled at the RAS is refused through every "
                                      "client, not only those the RAS knows it through",
     "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
@@ -1321,6 +1323,9 @@ class RAS(Server):
                                                                          returned_until)
         if enforcement is not None and enforcement <= now:
             return "enforcement deadline passed", enforcement
+        if not self.tenant_trusted(auth["grant_key"][0], auth["issuer_tenant"], auth["tenant"]) \
+                and self.on("ras.tenant_recheck"):
+            return "issuer tenant no longer trusted", enforcement
         if self.on("ras.resolution_recheck"):
             agent = self.agents.get(auth["agent"])
             if agent is None or not agent["active"]:

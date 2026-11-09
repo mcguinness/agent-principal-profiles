@@ -146,6 +146,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
 | D23 | RAS | A repeated request that presents the bound grant with `jwt-bearer` fails with `invalid_grant` and carries no deferral code | oversight: Recovery; core: Redemption Request | Require approval |
 | D24 | RAS | With `completion_mode=deferred deferred_interactive`, a redemption is deferred, a repeated request gets the same deferral code and any `interaction_uri` again, and the poll after approval issues | oversight: Redemption Opt-In; Recovery; Approval | Require approval; approve |
+| D25 | RAS | A redemption deferred while the RAS trusts `acme` for `acme-data` gets `access_denied` at the poll after approval once that trust is withdrawn | oversight: Redemption Resolution; core: Canonical Identity and Tenant Boundaries | Require approval; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
+| D26 | RAS | After a refresh succeeds, withdrawing the RAS's trust in `acme` for `acme-data` makes the next refresh fail with `invalid_grant` | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation | Require approval; permit refresh tokens; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
 | S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
 | S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
 | S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
@@ -218,9 +220,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7, P12, P13 and D02, name the
 reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
-With `--vacuity`, each of these 104 cases runs once for each check it
+With `--vacuity`, each of these 106 cases runs once for each check it
 names, with that check switched off; eight S cases and N40 name two
-checks, so there are 113 runs, and every run fails. Thirty-eight N cases fail because
+checks, so there are 115 runs, and every run fails. Thirty-eight N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, P12 because the grant then outlives the platform JWT, and P13
@@ -244,7 +246,7 @@ Authorization with `actor_unauthorized` instead.
 The D cases fail without their check in these ways:
 
 * the RAS issues a token it must not: D01, D02 (a second token), D05,
-  D11, D14, D20, D21 and D22 (after the actor gate reopens);
+  D11, D14, D20, D21, D22 (after the actor gate reopens), D25 and D26;
 * it returns or keeps a deferral where an error is required: D03, D06
   (a new deferral after the denial), D08, D18, D19 and D23;
 * it returns another error: D07 (`access_denied`);
@@ -602,7 +604,9 @@ another IdP, RAS or API:
    `other_governance_tenant`, another tenant of the IdP's issuer: N41
    needs `set:idp.agent_governance_tenant`; N42 and N43 need
    `mint_grant`, `other_tenant_sub`, a subject of that tenant, and
-   `set:ras.user_link`; N43 also needs `set:ras.tenant_trust`. D10 and D11 need `second_agent`, another agent the RAS
+   `set:ras.user_link`; N43 also needs `set:ras.tenant_trust`. D25 and
+   D26 also run only where `multi_tenant_issuer` is set, and need
+   `set:ras.tenant_trust`. D10 and D11 need `second_agent`, another agent the RAS
    correlates and lets act for the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
    use it as a scope the IdP can exclude from the delegation or prohibit

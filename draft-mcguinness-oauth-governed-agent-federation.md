@@ -2239,10 +2239,11 @@ multiple values or a different resource with `invalid_target`.
    retained authentication-method binding and any additional sender
    binding under RFC 9449 or RFC 8705. Dropping or replacing a
    sender binding requires a new grant.
-2. **Authorization context:** Preserve the user, qualified actor, Target
-   Tenant, resource, and authorization ceiling, including
-   `authorization_details`. Apply current local user and actor policy
-   and {{Section 6 of RFC9396}}.
+2. **Authorization context:** Preserve the user, qualified actor, the
+   grant's `tenant` at a multi-tenant issuer, Target Tenant, resource,
+   and authorization ceiling, including `authorization_details`. Apply
+   current trust in the issuer and that tenant ({{canonical-identity}}),
+   current local user and actor policy, and {{Section 6 of RFC9396}}.
 3. **Profile:** Enforce current minimum-profile policy against the
    profile under which the grant was accepted. Reject with
    `invalid_grant` if it no longer qualifies. Adding a proof does not
