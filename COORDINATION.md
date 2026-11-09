@@ -35,7 +35,7 @@ headings (`--fetch`, `--update`).
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Alignment on protection, linking, and subject presentation (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
+| WAG | Alignment on protection and subject presentation (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
 | ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof (below) | Both errors are permitted |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
@@ -68,13 +68,35 @@ issuer are restated (`wag-claims`, `wag-redemption`,
 `redemption-common`, `time-validation`). WAG's access-token lifetime
 SHOULD restates Section 4.1 of RFC 7521, which reaches the core's grants
 without WAG, through RFC 7523 and JWT DPoP Grant (Renewal, below). The
-rest are recorded departures (client authentication, per-agent
-registration, unseen agents, `resource` required) or an open item
-(shared issuers). The core uses the token type, media type and grant
+rest are recorded differences that need no change to WAG (below):
+client authentication, per-agent registration, unseen agents accepted
+only where policy permits, `resource` required, and `tenant` as the
+shared-issuer claim. The core uses the token type, media type and grant
 profile values that Section 11 of WAG registers; if WAG does not
 publish, those values are unregistered.
 
 Coordination is needed on:
+
+* **Issuer metadata:** WAG defines no metadata for the issuer. The core
+  has the IdP advertise the WAG token type in
+  `identity_chaining_requested_token_types_supported`
+  (Section 7.1 of ID-JAG), a use that neither WAG nor ID-JAG defines
+  (`server-metadata`).
+* **Protection:** WAG-02 is a bearer grant; Section 9 of WAG lists proof
+  of possession as open. This document proposes DPoP binding at issuance and redemption
+  under `grant-protection`.
+* **Subject presentation:** A token exchange in which the authenticated
+  client is the subject, by permitting omission of `subject_token` in
+  that case or by registering a subject token type for authenticated
+  client context. That would simplify the presentation this document
+  defines, in which JWT-authenticated clients repeat their
+  authentication JWT as the subject token (`wag-request`), and would
+  give X.509-SVID authentication a self-acting path.
+* **Management:** `AGENT-MANAGEMENT` administers Client Associations
+  for delegated issuance only; self-acting permission needs a flow
+  dimension there.
+
+Recorded differences, which need no change to WAG:
 
 * **Shared issuers:** Section 6.3 of WAG, present since -01, tells
   Workload Identity Providers that share one issuer apart by a claim
@@ -88,24 +110,22 @@ Coordination is needed on:
   RAS trusts the issuer one tenant at a time, applying Section 4.4.1 of
   ID-JAG's tenant rule to a WAG too. The two-tenant experiment
   (`experiments/shared-issuer`) records the outcomes: every RAS
-  configuration refuses another tenant's grants. WAG could name
-  `tenant` as the claim for an issuer that several tenants share. An
+  configuration refuses another tenant's grants. WAG need not change,
+  though it could name `tenant` as the claim for an issuer that several
+  tenants share. An
   unauthorized (Governance Tenant, Target Tenant) pair is refused with
   `actor_unauthorized` (delegated) or `invalid_target` (self-acting).
-* **Issuer metadata:** WAG defines no metadata for the issuer. The core
-  has the IdP advertise the WAG token type in
-  `identity_chaining_requested_token_types_supported`
-  (Section 7.1 of ID-JAG), a use that neither WAG nor ID-JAG defines
-  (`server-metadata`).
-* **Protection:** WAG-02 is a bearer grant; Section 9 of WAG lists proof
-  of possession as open. This document proposes DPoP binding at issuance and redemption
-  under `grant-protection`.
 * **Linking:** WAG accepts previously unseen agents on their first
-  assertion (Section 3 of WAG), and Section 10 lets an authorization
-  server cap new agents. Governed agents
-  instead require an authorized local correlation, established in
-  advance or, where resource policy permits, just in time
-  (`wag-redemption`).
+  assertion (Section 3 of WAG), notes that each new agent creates state
+  at the authorization server and that the server can cap new agents
+  (Section 10), and leaves permissions to local policy (Section 6.2).
+  Governed agents need an authorized local correlation before issuance
+  (`wag-redemption`), provisioned in advance or created just in time
+  where resource policy permits (`jit-correlation`). With just-in-time
+  correlation enabled, a RAS accepts an unseen agent's first WAG as WAG
+  describes; the core makes that a policy choice, off by default, keys
+  the record by the exact pair, and keeps creating it separate from
+  authorization.
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
   continuing self-acting access re-issues the grant. Section 5 of WAG-02
   adds that access tokens SHOULD NOT outlive the assertion by a
@@ -131,16 +151,6 @@ Coordination is needed on:
   core's composition table states this difference (`base-differences`).
   The agent record that the RAS requires for each agent is a separate
   difference (Linking, above).
-* **Subject presentation:** A token exchange in which the authenticated
-  client is the subject, by permitting omission of `subject_token` in
-  that case or by registering a subject token type for authenticated
-  client context. That would simplify the presentation this document
-  defines, in which JWT-authenticated clients repeat their
-  authentication JWT as the subject token (`wag-request`), and would
-  give X.509-SVID authentication a self-acting path.
-* **Management:** `AGENT-MANAGEMENT` administers Client Associations
-  for delegated issuance only; self-acting permission needs a flow
-  dimension there.
 
 #### ID-JAG Bound Grants
 

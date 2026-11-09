@@ -1884,9 +1884,11 @@ The RAS:
 4. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
-   issuance. For governed agents, this replaces WAG's acceptance of
-   previously unseen agents ({{Section 3 of WAG}}). {{jit-correlation}}
-   covers just-in-time correlation where resource policy permits it.
+   issuance. It is provisioned in advance or, where resource policy
+   permits, created just in time from the WAG ({{jit-correlation}}), so
+   a RAS can accept a previously unseen agent's first WAG as
+   {{Section 3 of WAG}} describes; creating the record does not
+   authorize the agent.
 5. **Authority:** Apply the authority checks of {{redemption-common}}
    and current RAS policy for the agent, client, tenant, and resource. A
    valid grant sets an authority ceiling; it does not require issuance.
@@ -3347,7 +3349,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile; a bound WAG is redeemed with `jwt-dpop`, where {{Section 5 of WAG}} uses `jwt-bearer` ({{redemption-request}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
-| Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
+| Previously unseen agents | Accepted on first assertion | Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair and authorizes nothing ({{jit-correlation}}) |
 | Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | `tenant`, set to the agent's Governance Tenant, required in a WAG from a multi-tenant issuer; the RAS trusts `iss` and `tenant` together ({{canonical-identity}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}
@@ -3356,7 +3358,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
+| WAG | Alignment on protection and subject presentation ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
 | ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof: `invalid_grant` in {{Section 9.11.1.2.2 of ID-JAG}}, `invalid_dpop_proof` in {{Section 5 of JWT-DPOP-GRANT}} | Either error is permitted ({{grant-protection}}) |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
@@ -3369,8 +3371,6 @@ with the token exchange that {{Section 5 of WAG}} anticipates. Open
 items are:
 
 * DPoP binding ({{grant-protection}});
-* authorized correlation in place of WAG's acceptance of previously
-  unseen agents ({{Section 3 of WAG}});
 * a token exchange in which the authenticated client is the subject
   without a subject token ({{wag-request}}), which would also give
   X.509-SVID authentication a self-acting path;
