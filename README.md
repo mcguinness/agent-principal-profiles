@@ -155,11 +155,11 @@ referenced revision, and `--fetch` alone compares every recorded heading
 with that revision's text. The check finds renumbered, missing and
 unverified sections; it cannot tell that a real section does not
 support the sentence citing it. It reads only citations written as
-`{{Section N of REF}}` of IETF documents: a prose citation such as
-"Section 2.3 of {{WISE}}", and the references the drafts define inline,
-such as the OpenID specifications, are not checked. Nor does it notice
-that a pinned Internet-Draft has been published as an RFC; idnits
-reports that.
+`{{Section N of REF}}` or `{{Appendix N of REF}}` of IETF documents: a
+prose citation such as "Section 2.3 of {{WISE}}", and the references
+the drafts define inline, such as the OpenID specifications, are not
+checked. Nor does it notice that a pinned Internet-Draft has been
+published as an RFC; idnits reports that.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
