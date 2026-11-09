@@ -51,7 +51,8 @@ nothing.
 at the IdP and at the RAS. The IdP derives the grant's `client_id` from
 a configured association between the two, never from the client's
 request. For a client that uses one identifier at both servers, such as
-a Client ID Metadata Document URL, that association is the identity
+a Client ID Metadata Document URL that both servers use and whose
+authentication method both accept, that association is the identity
 mapping.
 
 ### How it works
@@ -606,6 +607,7 @@ them are in the core's [Security Considerations][core-security].
 | Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key |
 | Actor-aware API processing | The actor gate is enforced where access happens | APIs parse `act` and consult the gate on delegated paths |
 | Sender-constrained access tokens by default | Token theft is contained | Resources without DPoP or mutual TLS need explicit configuration for bearer use |
+| Optional SCIM management and lifecycle ([SCIM management][management], [lifecycle][lifecycle]) | Agents, bindings, and delegated client associations registered by the platform; disablement reaches resource domains without a stream to each | Tenant-scoped SCIM authorization and provisioning configuration for each Governance Tenant the platform serves, since a Provisioning Domain lies within one (one connector can hold several); the IdP's SCIM service also exposes the OAuth clients it references; with grant-derived revocation, the IdP keeps the ID-JAG identifiers issued under each relationship, and each participating RAS keeps the revocation key with what it issued; for hosted agents, the platform retrieves status or receives change notices |
 
 Bound grants also need one key holder for issuance and redemption, and
 opaque access tokens add an introspection round trip and a freshness
@@ -696,7 +698,8 @@ disablement.
 **A policy decision service is unavailable.** Unless a failure is
 established and no unfinished check ranks earlier, the API answers HTTP
 503, normally with `Retry-After` ([core, Error
-Responses][core-resource-errors]). A COAZ-MCP enforcement point fails
+Responses][core-resource-errors]). An enforcement point under
+[COAZ-MCP][coaz-mcp], the AuthZEN binding for MCP tool calls, fails
 closed with a JSON-RPC error, and COAZ-MCP names no HTTP status for it.
 The guide proposes an interpretation for an enforcement point that
 controls the HTTP status and decides before the response is committed:
@@ -914,7 +917,7 @@ What each draft needs from the specifications it depends on is in
 | Bound governed agent access | The adoption profile that requires DPoP at grant issuance and redemption | The core |
 | Chain, hop | The IdP's record of grants continued from one root grant; each grant in it is a hop | ICA, as the continuation profile uses it |
 | Client Association | Permission for an OAuth client to use an agent through the selected Identity Binding, in one acting relationship and credential class | The core |
-| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id`, which several clients can share, and which can name a separate registration for a client's self-acting grants; not a Client Association | The core ("Issuance Prerequisites") |
+| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS. The registration supplies the grant's `client_id`; several clients can share one, and a client's self-acting grants can name a separate one. Not a Client Association | The core ("Issuance Prerequisites") |
 | Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop, that its authorization is active, and that the continuing client is associated with it | Identity Continuation Assertion (ICA) |
 | Continuation Association | Permission for a client to continue an agent's governed chains in one acting relationship | Continuation |
 | `continuation_via` | The onward grant's claim listing the continuing clients on the path | Continuation |
@@ -950,3 +953,5 @@ What each draft needs from the specifications it depends on is in
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
 [lifecycle-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
+[management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
+[lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html

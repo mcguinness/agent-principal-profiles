@@ -149,7 +149,7 @@ explicitly permits bearer tokens.
 | IdP | Input validation and Identity Binding; Client Association; Delegation or Agent Authorization; ID-JAG or WAG issuance; the client registration association that supplies the grant's `client_id` | [Grant Issuance at the IdP][issuance] |
 | RAS | Grant validation and replay protection; Agent Principal correlation; user resolution and the actor gate for delegated grants; access-token issuance and protection | [Grant Redemption at the RAS][redemption] |
 | API | Access-token validation; tenant checks; user authority and the actor gate for delegated tokens; the agent's own authority for self-acting tokens | [Access at the Resource Server][api-processing] |
-| Agent platform | Its agents' clients, with one of: a dedicated client per agent, or a shared client presenting the platform's JWT, or an input of [INPUTS]; a token cache keyed by agent, resource, and grant; a SCIM connector that registers agents, binds their identities, and associates clients for delegated access; for agents it hosts, applying the IdP's disablement in its own authorization, and optionally Shared Signals. Registrations at each RAS, their client registration associations, and client use for self-acting access are configured out of band | [Shared platform clients](ARCHITECTURE.md#shared-platform-clients); [AGENT-MANAGEMENT]; [Platform-hosted agents](#platform-hosted-agents) |
+| Agent platform | Its agents' clients, with one of: a dedicated client per agent, or a shared client presenting the platform's JWT, or an input of [INPUTS]; a token cache keyed by the context of [Client Token Reuse][client-token-reuse] (agent and user, tenants, client registrations and target RAS, resource, authority and profile, and proof binding); a SCIM connector that registers agents, binds their identities, and associates clients for delegated access; for agents it hosts, applying the IdP's disablement in its own authorization, and optionally Shared Signals. Registrations at each RAS, their client registration associations, and client use for self-acting access are configured out of band | [Shared platform clients](ARCHITECTURE.md#shared-platform-clients); [AGENT-MANAGEMENT]; [Platform-hosted agents](#platform-hosted-agents) |
 
 The [Federation Model][model] and [Profiles and Common
 Rules][common-rules] hold the definitions and rules every role shares.
@@ -199,7 +199,11 @@ configuration object types are prescribed.
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
   Client Identifier URL provides one identifier at both servers when
-  both servers use the document. Several clients can map to one
+  both servers use the document and accept the authentication method it
+  names. Otherwise the client registers separately at the RAS, and a
+  server rejects requests under a document naming a method it does not
+  accept with `invalid_client` ([Client Metadata][client-metadata]).
+  Several clients can map to one
   registration, such as the dedicated clients of one platform's agents;
   the RAS then cannot tell them apart, and only a bound grant stays with
   the key that obtained it. One client can also map to a separate
@@ -332,7 +336,7 @@ suite](conformance/README.md) and how far they go:
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
-| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api`, and its self-acting grants to `analysis-agent-client` | No | Direct: N13. A shared registration: P13. A separate self-acting registration: P14 |
+| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api`; in the reference, its self-acting grants to `analysis-agent-client` | No | Direct: N13. A shared registration: P13. A separate self-acting registration: P14 |
 | The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
 | Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 for a disabled agent and N27 for an uncorrelated one, both `invalid_grant` |
 | What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |
@@ -353,7 +357,7 @@ suite](conformance/README.md) and how far they go:
 |---|---|---|---|---|
 | RAS issuer and access-token signing keys | RAS | `https://ras.example/`; JWT access tokens validated offline | Yes (`jwks_uri`) | Positive path: P3, P4 |
 | Which IdP namespaces the RAS may assert in `act` ([Access at the Resource Server][api-processing]) | API trust configuration | Agents of `https://idp.example/` | No | Direct: S36, where the reference also trusts a partner issuer: an untrusted issuer gets `invalid_token`, and the partner's agent with the same `sub` is another agent |
-| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18. Positive path for a separate self-acting registration, with minted tokens: S08 |
+| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18. Positive path for a separate self-acting registration: P15, and with minted tokens, S08 |
 | Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
 | Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope, against the reference's policy service: S07 (`insufficient_scope`) |
 | How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 and S36 at the API, N16 at the RAS |
@@ -366,7 +370,7 @@ one also exchanges or agrees on its item:
 
 | Item | Between | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|---|
-|  Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | Client and RAS | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22. Otherwise untested: P2 notes a refresh token but does not fail  |
+|  Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | Client and RAS | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22, D26. Otherwise untested: P2 notes a refresh token but does not fail  |
 |  Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS and API | RAS | Not used | Introspection endpoint | Direct against the reference, without caching: S12 for an inactive token, S13 for a delegated response without `act`, S20 for an endpoint that fails or answers without a boolean `active` (503, not `invalid_token`), and S21 for a proof failure established during that outage. Positive path: S10, S11  |
 |  Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | RAS and API | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, S37, and for the error selection order, S14 to S19 and S26 to S30. Positive path: S01, S08, S10  |
 
@@ -378,7 +382,7 @@ names neither choice:
 
 | Choice | What the drafts allow | The example and the reference |
 |---|---|---|
-| Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | Separate configuration per client and audience |
+| Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | The example: one registration and audience for both, so the RAS and API need a bilateral contract (the playbook's self-acting recipe uses an introspection member). The reference: a separate registration, `analysis-agent-client`, for `analysis-client`'s self-acting grants |
 | Carrying the tenant | The tenant-specific resource as audience, a configured tenant claim, or authoritative token context | The resource as audience |
 | Re-redeeming a bound grant | Once, or again under explicit policy with a fresh proof | Once |
 | Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; nonces only under test control (P8 to P10) |
@@ -1246,6 +1250,7 @@ inform decisions:
 |---|---|---|
 | SCIM provisioning and feed events to a resource domain | Trigger retrieval of current state; never activate an agent | [Lifecycle][lc-scim-events] |
 | CAEP `session-revoked` naming an ID-JAG | Revokes what that grant authorized at participating receivers | [Lifecycle][lc-grant-revocation], optional |
+| WISE `credential-revoked`, `credential-compromised`, `trust-anchor-revoked` and `trust-domain-federation-revoked` from a credential authority the IdP trusts, such as a platform that signs its agents' workload JWTs | Stop agent resolution through the credentials, trust material and trust domains they name, within what configuration trusts that authority for; Identity Bindings and the Agent Principal stay enabled unless IdP policy disables them | [Time, Replay, and Key Validation][time-validation] |
 | WISE credential and posture events from a platform to the IdP | Inform IdP policy and monitoring; change no administrative state | [Lifecycle][lc-platform-signals] |
 | CAEP `risk-level-change` from the IdP to a platform | Applied under the platform's own policy; not a disablement | [Lifecycle][lc-platform-signals] |
 
@@ -1612,6 +1617,8 @@ agent cannot use the token directly.
 [metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#metadata
 [capability-discovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#capability-discovery
 [client-metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-metadata
+[time-validation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#time-validation
+[client-token-reuse]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-token-reuse
 [idp-subject-resolution]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#idp-subject-resolution
 [ras-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#ras-refresh
 [status-changes]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#status-changes

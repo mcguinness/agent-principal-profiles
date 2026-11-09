@@ -42,7 +42,7 @@ operating steps and tests.
 
 | Party | Identifiers | Notes |
 |---|---|---|
-| Governing IdP | `https://idp.example/`, Governance Tenant `acme` | Issues the grants |
+| Governing IdP | `https://idp.example/`, Governance Tenant `acme` | Issues the grants. Its issuer is single-tenant, so the grants carry no `tenant`; at a multi-tenant issuer, both grants would also carry `tenant` with the value `acme` (core: Canonical Identity and Tenant Boundaries) |
 | Agent Principal | (`https://idp.example/`, `agent-42`) | The identity that grants carry |
 | Agent's client | `analysis-client` at the IdP; `analysis-api` at `https://ras.example/` | A dedicated client using `private_key_jwt`; DPoP key K |
 | User | Alice: `alice-ras` in grants for `https://ras.example/`; `user-108` at the API | Signs in to the client through the IdP |
@@ -1289,7 +1289,7 @@ agent, or disable the agent everywhere.
 
 The IdP's Transmitter tells the RAS that authorization derived from
 `grant-1` is revoked, while `agent-42` stays enabled ([lifecycle,
-Revoke Authorization Derived from an ID-JAG][life-signals]):
+Revoke Authorization Derived from an ID-JAG][life-revoke-grant]):
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-lifecycle.md -->
 ```json
@@ -1397,7 +1397,7 @@ obtains a new root grant ([continuation, Gateway
 Requirements][cont-gateway]).
 
 The disablement reaches the RAS in one of two ways ([lifecycle, Disable
-and Re-enable][life-example]). The provisioning connector can apply it
+and Re-enable][life-disable]). The provisioning connector can apply it
 directly (new):
 
 ```http
@@ -1415,7 +1415,7 @@ If-Match: W/"a2"
 
 Or the IdP's provisioning source, where the agent is
 `/Agents/source-42`, sends a change notice that carries no state
-([lifecycle, Provisioning Change Notice][life-signals]):
+([lifecycle, Provisioning Change Notice][life-change-notice]):
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-lifecycle.md -->
 ```json
@@ -1644,7 +1644,7 @@ Client][scim-dedicated]):
 
 The IdP returns `201 Created` with the binding's `id`. The connector
 then enables the Agent ([SCIM management, Enable the
-Agent][scim-onboarding]):
+Agent][scim-enable]):
 
 <!-- verbatim: draft-mcguinness-scim-agent-federation.md -->
 ```http
@@ -1668,7 +1668,7 @@ The IdP returns `204 No Content` with ETag `W/"a2"`.
 The IdP's provisioning connector, whose authenticated context binds
 `https://idp.example/` to Target Tenant `acme-data`, creates the agent
 at the RAS's SCIM service with `POST /scim/v2/Agents` and this body
-([lifecycle, Correlate and Provision][life-example]):
+([lifecycle, Correlate and Provision][life-correlate]):
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-lifecycle.md -->
 ```json
@@ -1713,7 +1713,7 @@ agent stays inactive at the RAS until the connector activates it.
 
 At 12:01 UTC on September 17, the connector activates the agent at the
 RAS, using the ETag it read ([lifecycle, Activate and
-Exchange][life-example]):
+Exchange][life-activate]):
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-lifecycle.md -->
 ```http
@@ -1796,8 +1796,12 @@ invent one:
 [cont-window]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#governed-chain-authorization
 [cont-restrictions]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#restrictions
 [cont-impl-idp]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#implementation-idp
-[life-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#example
-[life-signals]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#signal-examples
+[life-correlate]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#correlate-and-provision
+[life-activate]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#activate-and-exchange
+[life-disable]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#disable-and-re-enable
+[life-change-notice]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#provisioning-change-notice
+[life-revoke-grant]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#revoke-authorization-derived-from-an-id-jag
+[scim-enable]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html#enable-the-agent
 [life-platform]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
 [scim-onboarding]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html#example
 [scim-dedicated]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html#dedicated-example

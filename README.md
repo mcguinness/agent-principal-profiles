@@ -16,8 +16,9 @@ platform, makes every agent behind it look the same: attribution is lost
 and revocation is all or nothing.
 
 The family covers federation, agent resolution inputs, identity
-continuation, human oversight, lifecycle, and SCIM management of agents
-and OAuth clients, for agents acting for users and for themselves.
+continuation, human oversight, lifecycle, and System for Cross-domain
+Identity Management (SCIM) management of agents and OAuth clients, for
+agents acting for users and for themselves.
 
 ## How it works
 
@@ -68,10 +69,10 @@ flowchart LR
 
 | Connection | What happens | Defined in |
 |---|---|---|
-| Token exchange (OAuth) | The platform's OAuth client presents the agent's identity: its own client authentication when it serves one agent, the platform's JWT for the agent when it is shared, or a SPIFFE SVID or Client Attestation. The IdP trusts only issuers and key sources configured in advance, and resolves the identity to the Agent Principal through an enabled Identity Binding | [Core][core]; [input profiles][inputs] for SVIDs and Client Attestation |
-| Registration (SCIM, platform to IdP) | The platform's SCIM connector registers each agent at the IdP. For an agent that obtains grants, it also binds the agent's identity to it and, for delegated access, associates the OAuth clients that may use it; client use for self-acting access is configured at the IdP. Each is a separate permission the IdP grants the connector | [SCIM management][management]; [SCIM OAuth client management][oauth-client] for the clients themselves |
+| Token exchange (OAuth) | The platform's OAuth client presents the agent's identity: its own client authentication when it serves one agent, the platform's JWT for the agent when it is shared, or a SPIFFE Verifiable Identity Document (SVID) or Client Attestation. The IdP trusts only issuers and key sources configured in advance, and resolves the identity to the Agent Principal through an enabled Identity Binding | [Core][core]; [input profiles][inputs] for SVIDs and Client Attestation |
+| Registration (SCIM, platform to IdP) | The platform's SCIM connector registers each agent at the IdP. For an agent that obtains grants, the connector also binds the agent's identity to the agent and, for delegated access, associates the OAuth clients that may use the agent; client use for self-acting access is configured at the IdP. Each is a separate permission the IdP grants the connector | [SCIM management][management]; [SCIM OAuth client management][oauth-client] for the clients themselves |
 | Provisioning (SCIM, from the IdP) | Agents and their status are provisioned to each resource domain, and a platform obtains the status of the agents it hosts, pushed or retrieved on a change notice. Each applies a disablement to the authorization it issued | [Lifecycle][lifecycle] |
-| Signals (SSF, optional) | Resource domains receive SCIM change notices and CAEP session revocation. A platform can send WISE credential and posture events and CAEP session revocation about the agents it hosts, and receive SCIM change notices and CAEP risk changes. No event activates an agent: a SCIM change notice triggers retrieval of the current state | [Lifecycle][lifecycle] |
+| Signals (SSF, optional) | Resource domains receive SCIM change notices and Continuous Access Evaluation Profile (CAEP) session revocation. A platform can send credential and posture events of the OpenID WISE profile and CAEP session revocation about the agents it hosts, and receive SCIM change notices and CAEP risk changes. No event activates an agent: a SCIM change notice triggers retrieval of the current state | [Lifecycle][lifecycle] |
 
 Companion profiles also add gateways that call further resource domains,
 and human oversight, without changing this path; the architecture
@@ -108,10 +109,10 @@ reference each other normatively and are published together.
 | Evaluating the approach | The [architecture overview](ARCHITECTURE.md) | The [first transaction](EXAMPLES.md#first-delegated-transaction) of the end-to-end examples |
 | An enterprise identity team | The [playbook for identity teams](PLAYBOOK.md): owners, exit checks, recipes, and runbooks | The architecture overview |
 | Building an IdP, RAS, API, or client | The [implementer's guide](IMPLEMENTERS-GUIDE.md): what each role builds and configures, and the errors it returns | The core, and the [end-to-end examples](EXAMPLES.md) for the messages |
-| Adding an optional capability | The guide's chapter for it: continuation for gateways and scheduled work, human oversight for approval at the IdP, the RAS, or an action, AuthZEN for policy services | The companion profile that defines it |
+| Adding an optional capability | The guide's chapter for it: continuation, for gateways and scheduled work; human oversight, for approval at the IdP, the RAS, or an action; AuthZEN, for policy services | The companion profile that defines it |
 | Building an agent platform | The guide, then [SCIM management][management] to register agents | [Lifecycle][lifecycle] for agents the platform hosts |
 | Building a SCIM service for OAuth clients | [SCIM OAuth client management][oauth-client] | |
-| Testing an implementation | The [conformance suite](conformance/README.md): cases for the delegated path, deferred redemption at the RAS, and an API's policy service, each listing the control of the implementation it needs, with a test-only reference IdP, RAS, and API | |
+| Testing an implementation | The [conformance suite](conformance/README.md): cases for the delegated path, self-acting issuance and redemption, the shared-client input, deferred redemption at the RAS, and an API's policy service, each listing the control of the implementation it needs, with a test-only reference IdP, RAS, and API | |
 | Tracking dependencies | The [coordination notes](COORDINATION.md): what the drafts need from the specifications they depend on | |
 
 ## Contributing
@@ -138,6 +139,8 @@ Continuous integration also runs:
 * the conformance suite with its vacuity check, in full and RAS-only
   modes (`conformance/run.py --vacuity`, with and without `--ras-only`;
   setup in [conformance/README.md](conformance/README.md));
+* the [shared-issuer experiment](experiments/shared-issuer/README.md),
+  which fails if an outcome differs from the one it records;
 * `tools/check_examples.py`, which checks the messages EXAMPLES.md copies
   from the drafts; and
 * `tools/check_citations.py`, which fails when an Internet-Draft
@@ -151,7 +154,12 @@ prints: it records the heading of each newly cited section at the
 referenced revision, and `--fetch` alone compares every recorded heading
 with that revision's text. The check finds renumbered, missing and
 unverified sections; it cannot tell that a real section does not
-support the sentence citing it.
+support the sentence citing it. It reads only citations written as
+`{{Section N of REF}}` or `{{Appendix N of REF}}` of IETF documents: a
+prose citation such as "Section 2.3 of {{WISE}}", and the references
+the drafts define inline, such as the OpenID specifications, are not
+checked. Nor does it notice that a pinned Internet-Draft has been
+published as an RFC; idnits reports that.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html

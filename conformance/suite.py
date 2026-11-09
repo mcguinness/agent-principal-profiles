@@ -1,4 +1,4 @@
-"""Black-box conformance cases for the mandatory delegated path (EXAMPLES, first transaction).
+"""Black-box conformance cases, from the mandatory delegated path (EXAMPLES, first transaction).
 
 The suite plays the client role over HTTP against an IdP, a RAS and an API.
 Each case names the role it checks, the draft text it comes from, and any

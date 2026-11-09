@@ -1,4 +1,4 @@
-# Conformance suite: the mandatory delegated path
+# Conformance suite
 
 This directory holds executable positive and negative tests for one
 interoperable path through the core profile, and a reference
@@ -13,8 +13,11 @@ transaction](../EXAMPLES.md#first-delegated-transaction) traces it:
 * bound governed agent access, with DPoP at the IdP and the RAS;
 * a DPoP-bound JWT access token, validated at the API.
 
-It also holds tests of the oversight companion's deferred redemption at
-the reference RAS ([Deferred redemption at the
+Beyond that path, it tests self-acting issuance and redemption (P14,
+P15, N44 to N49, N51, N52), the existing platform JWT input for a
+shared client (P11 to P13, N36 to N39), and just-in-time correlation
+(N34, N47 to N49). It also holds tests of the oversight companion's
+deferred redemption at the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
 Policy Services, error selection order, self-acting access and
 introspection at the reference API ([Policy services at the
@@ -60,7 +63,10 @@ origin values in tokens, client assertions and DPoP proofs, while the
 servers listen on localhost. A reader can lay the output beside
 the [first delegated
 transaction](../EXAMPLES.md#first-delegated-transaction) in
-[EXAMPLES.md](../EXAMPLES.md).
+[EXAMPLES.md](../EXAMPLES.md). The reference runs
+`https://idp.example/` as a multi-tenant issuer, so its grants also
+carry `tenant` with the value `acme`, which the examples'
+single-tenant issuer omits.
 
 ## Cases
 
@@ -575,10 +581,11 @@ The suite tests nothing outside the path above, including:
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
   presentation; and the inputs of the inputs draft;
-* WAG issuance and redemption beyond P14, P15 and N44 to N49: presented
-  evidence, the byte-identical subject token, the Agent Authorization's
-  scope ceiling, deferred WAG redemption, and the other WAG rows of
-  Redemption Errors; S08 and S09 use minted self-acting tokens;
+* WAG issuance and redemption beyond P14, P15, N44 to N49, N51 and
+  N52: presented evidence, the byte-identical subject token, the Agent
+  Authorization's scope ceiling, deferred WAG redemption, and the other
+  WAG rows of Redemption Errors; S08 and S09 use minted self-acting
+  tokens;
 * introspection beyond the API's processing in S10 to S13: the RAS's
   own introspection responses, caching and freshness limits,
   `authorization_details`, certificate-bound tokens, and opaque tokens
@@ -600,6 +607,9 @@ The suite tests nothing outside the path above, including:
   S34 test only Error Disclosure's recommendation to validate the token
   first;
 * RAS refresh tokens other than those from a deferred redemption;
+* Client ID Metadata Documents, including the rejection of a document
+  whose authentication method a server does not accept (core: Client
+  Metadata);
 * mutual TLS, including the refusal to defer for a resource configured
   for mutual-TLS access tokens, and the refresh of a DPoP-bound grant
   whose access tokens are certificate-bound, which keeps the grant's
@@ -750,9 +760,9 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Choice | The reference's choice | Drafts' text |
 |---|---|---|
 | How the API tells the governed delegated population apart | Trusted configuration keyed by the access token's `client_id` and audience | core: Profile Applicability ("no in-band discriminator") |
-| How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; the RAS mints its tokens through test control | core: Profile Applicability (separate client registrations) |
+| How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; P15 redeems a WAG the IdP issues for it, and S08 and S09 mint its tokens through test control | core: Profile Applicability (separate client registrations) |
 | Where the tenant is carried | The tenant-specific resource URI, as the access token's audience | core: Access Token Issuance and Response (the default) |
-| Client registration association | One RAS registration for each IdP client: `analysis-api` for the dedicated client `analysis-client`, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
+| Client registration association | One RAS registration for each IdP client and acting relationship: `analysis-api` for the dedicated client `analysis-client`'s delegated grants and `analysis-agent-client` for its self-acting grants, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
 | Platform JWT credential class | A dedicated issuer, `https://platform.example/`, configured with `platform-client`; `ES256`; accepted audience `https://idp.example/`; evidence deadline from `exp`, with no maximum age; `workload-43` bound exactly to `agent-43` | core: Existing Platform JWT (Configuration) |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API; at the RAS, a rule admitting every agent of an issuer for a tenant only under test control | core: Delegated Actor Authorization ("not a protocol object"); RAS and API implementation considerations ("another explicit rule") |
 | Governance Tenants | The IdP's issuer is multi-tenant, with tenants `acme` and `beta`; Alice and both agents are in `acme`, and every grant names `acme` in `tenant`. Policy authorizes only (`acme`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized`. The RAS trusts the issuer's tenant `acme` for `acme-data`, and keys user links by issuer, issuer tenant, Target Tenant and subject | core: Canonical Identity and Tenant Boundaries; Issuance Authorization; Issuance Errors |
@@ -827,7 +837,8 @@ that settled it.
    map to one registration, and states the consequences: the RAS cannot
    tell those clients apart, a restriction of an agent still follows
    the agent, and only a bound grant stays with the key that obtained
-   it. The reference keeps a registration per IdP client; P13 maps
-   `platform-client` to `analysis-api` through test control.
+   it. The reference keeps a registration per IdP client and acting
+   relationship; P13 maps `platform-client` to `analysis-api` through
+   test control.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope
