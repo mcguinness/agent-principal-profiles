@@ -553,6 +553,7 @@ exclusion does not prevent the independently supported uses listed here.
 | Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence` of `INPUTS`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection`, except after a deferred redemption, which the oversight companion requires to be DPoP-bound |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
+| Public or unattested native agents | Both grant paths authenticate the client (`scope`); a client that uses `none` and presents no attestation from a configured attester (`INPUTS`) has no governed grant path, and enrolling a key is out of scope (`overview`) |
 
 ### Operational Dependencies
 
@@ -738,6 +739,13 @@ rule that stays local to the profile:
   both chain types, placing each governed check in one of ICA's
   validation rules (`continuation-errors`). It does not use the core's
   `actor_unauthorized` or `invalid_grant` for continuation failures.
+* **Temporary refusals:** The companion answers HTTP 503 when the IdP
+  cannot confirm shared state that a continuation depends on, such as
+  an agent session or a replay reservation, and does not treat an
+  agent session as ended on that basis (`continuation-errors`). ICA
+  could adopt the same response, and define an OAuth error code for
+  policy that blocks a chain only temporarily (open item 6 of the
+  companion).
 * **Root `actor_token`:** Section 5.1.1 of ICA leaves `actor_token`
   processing on the root exchange out of scope. The governed root uses
   the core's presented-evidence mode (`delegated-root`).
@@ -787,6 +795,14 @@ Associations (`continuation-association`) need a resource or an
 association dimension there before SCIM can administer them, and a
 Delegation or Agent Authorization needs a way to record its permission
 to continue (`chain-establishment`).
+
+### Open items local to the companion
+
+Two of the companion's open items need nothing from another
+specification: whether the IdP advertises support for self-acting
+continuation in metadata (open item 2), and whether the companion
+recommends default idle and absolute limits for agent sessions and
+conveys a session's expiration to the gateway (open item 3).
 
 ### Mission
 
@@ -991,7 +1007,10 @@ The companion's open items (`open-items`) are AROP at the IdP and
 continuation from a deferred redemption, an attribute for the
 oversight mode in the SCIM management profile, a Shared Signals event
 for supervised-issuance notices, duplicate pending requests at the
-IdP, and DTR's originating-grant preconditions.
+IdP, DTR's originating-grant preconditions, and whether a
+continuation's oversight mode may be lower than the mode policy
+requires for the same request made directly (the continuation mode
+floor, which awaits a negative test).
 
 ## Family Structure
 
