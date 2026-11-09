@@ -25,7 +25,8 @@ import suite  # noqa: E402
 
 def reference_config(ras_only=False):
     keys = {cid: jws.new_rsa_key() for cid in ("analysis-client", "analysis-api", "other-api",
-                                               "platform-client", "platform-api")}
+                                               "platform-client", "platform-api",
+                                               "analysis-agent-client")}
     signer = jws.new_rsa_key() if ras_only else None
     platform = jws.new_ec_key()   # the suite signs platform JWTs as the platform
     transports, servers = reference.start(
@@ -43,6 +44,7 @@ def reference_config(ras_only=False):
         idp_client_id="analysis-client", idp_client_key=keys["analysis-client"],
         ras_client_id="analysis-api", ras_client_key=keys["analysis-api"],
         other_ras_client_id="other-api", other_ras_client_key=keys["other-api"],
+        self_acting_client_key=keys["analysis-agent-client"],
         user="alice", scope="files.read", multi_tenant_issuer=True,
         expect={"agent_iss": reference.IDP_ISSUER, "agent": "agent-42",
                 "grant_sub": "alice-ras", "token_sub": "user-108"},

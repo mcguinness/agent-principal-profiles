@@ -2568,8 +2568,10 @@ fit".
   optional policy services at the API; introspection of opaque tokens;
   the existing platform JWT input for a shared client, with a
   dedicated-issuer credential class and exact issuer-and-`sub`
-  bindings; and the deferred redemption of {{OVERSIGHT}} at the RAS.
-  It does not implement WAG issuance or redemption, platform JWT
+  bindings; WAG issuance from client authentication and WAG redemption,
+  with a separate self-acting registration; and the deferred redemption
+  of {{OVERSIGHT}} at the RAS, for an ID-JAG. It does not implement
+  presented-evidence WAG issuance, deferred WAG redemption, platform JWT
   selectors, the binding of key-bound platform JWTs (it refuses them),
   the inputs of {{INPUTS}}, Client ID Metadata Documents, mutual TLS,
   refresh tokens outside a deferred redemption, {{CONTINUATION}},

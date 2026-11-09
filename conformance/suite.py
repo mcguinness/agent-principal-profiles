@@ -34,6 +34,7 @@ JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 JWT_DPOP = "urn:ietf:params:oauth:grant-type:jwt-dpop"
 DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
+WAG_TYPE = "urn:ietf:params:oauth:token-type:wag"
 ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 JWT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt"
@@ -114,6 +115,10 @@ class Config:
     tenant: str = "acme-data"
     other_tenant: str = "beta-data"
     self_acting_client_id: str = "analysis-agent-client"
+    # The private key of that registration, for redeeming the WAGs the IdP
+    # issues to the IdP client for self-acting access (P14, P15, N44 to
+    # N46). Without it, those cases are not run.
+    self_acting_client_key: object = None
     self_acting_sub: str = "service-principal-42"
     # Requests the API cannot identify (S32 to S35): a path under the API
     # that names no route, and a well-formed read of a file that does not
@@ -221,6 +226,27 @@ class Client:
                         form, headers)
         return self.send(cfg.idp.token_endpoint, build, retry=assertion is None)
 
+    def wag_exchange(self, dpop_key="k", subject_token=None):
+        """A self-acting token exchange: the client's assertion repeated as the subject
+        token (core: Issuance Request, authentication-context resolution)."""
+        cfg = self.cfg
+
+        def build():
+            assertion = jws.client_assertion(cfg.idp_client_key, cfg.idp_client_id,
+                                             cfg.idp.issuer, now=self.now())
+            form = {"grant_type": TOKEN_EXCHANGE, "requested_token_type": WAG_TYPE,
+                    "client_id": cfg.idp_client_id, "client_assertion_type": ASSERTION_TYPE,
+                    "client_assertion": assertion,
+                    "subject_token": subject_token or assertion,
+                    "subject_token_type": JWT_TOKEN_TYPE,
+                    "audience": cfg.ras.issuer, "resource": cfg.resource, "scope": cfg.scope}
+            headers = {}
+            if dpop_key:
+                headers["DPoP"] = self.proof(dpop_key, "POST", cfg.idp.token_endpoint)
+            return http("POST", cfg.idp.transport + urlsplit(cfg.idp.token_endpoint).path,
+                        form, headers)
+        return self.send(cfg.idp.token_endpoint, build)
+
     def shared_exchange(self, id_token, actor_token=None, actor_token_type=JWT_TOKEN_TYPE,
                         dpop_key="k"):
         """A token exchange by the shared client, with the platform JWT as actor_token."""
@@ -243,7 +269,8 @@ class Client:
                         form, headers)
         return self.send(cfg.idp.token_endpoint, build)
 
-    def ras_token(self, form, dpop_key="k", as_other_client=False, proof=None):
+    def ras_token(self, form, dpop_key="k", as_other_client=False, proof=None,
+                  as_self_acting=False):
         """A token request to the RAS with fresh client authentication and DPoP proof.
 
         proof, where given, is sent as the DPoP header instead of a fresh one.
@@ -251,6 +278,8 @@ class Client:
         cfg = self.cfg
         client_id = cfg.other_ras_client_id if as_other_client else cfg.ras_client_id
         key = cfg.other_ras_client_key if as_other_client else cfg.ras_client_key
+        if as_self_acting:
+            client_id, key = cfg.self_acting_client_id, cfg.self_acting_client_key
 
         def build():
             body = dict(form, client_id=client_id, client_assertion_type=ASSERTION_TYPE,
@@ -267,7 +296,7 @@ class Client:
         return self.send(cfg.ras.token_endpoint, build, retry=not proof)
 
     def redeem(self, grant, dpop_key="k", resource=None, as_other_client=False,
-               deferred=False, proof=None, grant_type=None):
+               deferred=False, proof=None, grant_type=None, as_self_acting=False):
         """Redeem a grant: with jwt-dpop if it carries cnf, otherwise with
         jwt-bearer (core: Redemption Request), unless grant_type is given."""
         if grant_type is None:
@@ -280,7 +309,7 @@ class Client:
                 "resource": resource or self.cfg.resource}
         if deferred:
             form["completion_mode"] = deferred if isinstance(deferred, str) else "deferred"
-        return self.ras_token(form, dpop_key, as_other_client, proof)
+        return self.ras_token(form, dpop_key, as_other_client, proof, as_self_acting)
 
     def poll(self, deferral_code, dpop_key="k"):
         return self.ras_token({"grant_type": DEFERRED_GRANT, "deferral_code": deferral_code},
@@ -332,7 +361,10 @@ class Adapter:
                                    dpop_nonce (require DPoP nonces) at
                                    any role, and:
                                      idp: binding_enabled, agent_active,
-                                          client_association, delegation,
+                                          client_association,
+                                          self_acting_association (the
+                                          Client Association for
+                                          self-acting issuance), delegation,
                                           client_profile ("bound" or "governed"),
                                           delegation_scope (the scopes the
                                           user's Delegation Authorization for
@@ -396,6 +428,7 @@ class Adapter:
                                           else; "authorize_first": after
                                           authorization)
     mint_grant(claims)             an ID-JAG the IdP signs with these claims
+    mint_wag(claims)               a WAG the IdP signs with these claims
     mint_access_token(claims, typ="at+jwt")
                                    an access token the RAS signs with these
                                    claims and this typ
@@ -572,6 +605,14 @@ class SigningAdapter:
         payload.update(claims)
         return jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid}, payload, self.key)
 
+    def mint_wag(self, claims):
+        """A WAG for the IdP's issuer: iat now, 300 s, a fresh jti, and these claims."""
+        now = int(time.time()) + self.clock
+        payload = {"iss": self.issuer, "aud": self.audience, "iat": now, "exp": now + 300,
+                   "jti": uuid.uuid4().hex}
+        payload.update(claims)
+        return jws.sign({"typ": "oauth-wag+jwt", "kid": self.kid}, payload, self.key)
+
     def advance_clock(self, seconds):
         self.inner.advance_clock(seconds)
         self.clock += seconds
@@ -620,6 +661,9 @@ class ReferenceAdapter(Adapter):
 
     def mint_grant(self, claims):
         return self._call("idp", "mint_grant", {"claims": claims})["grant"]
+
+    def mint_wag(self, claims):
+        return self._call("idp", "mint_grant", {"claims": claims, "wag": True})["grant"]
 
     def mint_access_token(self, claims, typ="at+jwt"):
         return self._call("ras", "mint_access_token",
@@ -1582,6 +1626,127 @@ def n43(ctx):
         grant_claims(ctx, tenant=other, sub=cfg.other_tenant_sub))))
     expect_error(ctx.client.redeem(ctx.adapter.mint_grant(grant_claims(ctx, tenant=other))),
                  400, "invalid_grant")
+
+
+# Self-acting access ------------------------------------------------------------
+#
+# The dedicated client obtains a WAG for its agent and redeems it at the RAS
+# under the registration its self-acting grants name.
+
+def self_acting(ctx):
+    if ctx.cfg.self_acting_client_key is None:
+        raise NotRun("no key for the self-acting registration (Config.self_acting_client_key)")
+    return ctx.cfg
+
+
+def wag_claims(ctx, **overrides):
+    """Claims of a valid WAG for the agent and its self-acting registration, bound to K."""
+    cfg = ctx.cfg
+    claims = {"sub": cfg.expect["agent"], "client_id": cfg.self_acting_client_id,
+              "resource": cfg.resource, "scope": cfg.scope,
+              "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))}}
+    if cfg.multi_tenant_issuer:
+        claims["tenant"] = cfg.governance_tenant
+    claims.update(overrides)
+    return claims
+
+
+def wag(ctx):
+    """A WAG for the agent: from the IdP, or signed by the suite in RAS-only mode."""
+    if getattr(ctx.adapter, "signs_grants", False):
+        return ctx.adapter.mint_wag(wag_claims(ctx))
+    resp = ctx.client.wag_exchange()
+    check(resp.status == 200, f"self-acting exchange failed: {resp}")
+    return resp.json()["access_token"]
+
+
+@case("P14", "IdP", "Issues a DPoP-bound WAG naming the agent as subject, for the client's "
+      "self-acting registration",
+      "core: Self-Acting Issuance: WAG; Grant Claims; Issuance Prerequisites",
+      needs=("self_acting",))
+def p14(ctx):
+    # The WAG names the registration the client registration association
+    # gives the client's self-acting grants: self_acting_client_id, which
+    # is ras_client_id where a deployment keeps one registration.
+    cfg = self_acting(ctx)
+    resp = ctx.client.wag_exchange()
+    check(resp.status == 200, f"exchange failed: {resp}")
+    body = resp.json()
+    check(body.get("issued_token_type") == WAG_TYPE, "issued_token_type")
+    check(body.get("token_type") == "N_A", "token_type")
+    header, grant, _, _ = jws.decode(body["access_token"])
+    check(typ_is(header, "oauth-wag+jwt"), "typ")
+    check(grant.get("iss") == cfg.idp.issuer, "iss")
+    check(single(grant.get("aud")) == cfg.ras.issuer, "aud")
+    check(grant.get("sub") == cfg.expect["agent"], f"sub {grant.get('sub')!r} is not the agent")
+    check("act" not in grant, "a WAG contains no act")
+    check(grant.get("client_id") == cfg.self_acting_client_id,
+          f"client_id {grant.get('client_id')!r}, expected {cfg.self_acting_client_id}")
+    check(single(grant.get("resource")) == cfg.resource, "resource")
+    check(grant.get("scope") == cfg.scope, "scope")
+    if cfg.multi_tenant_issuer:
+        check(grant.get("tenant") == cfg.governance_tenant,
+              f"tenant {grant.get('tenant')!r} is not the agent's {cfg.governance_tenant}")
+    check(jkt(grant) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
+          "cnf.jkt is the grant proof key")
+    lifetime = grant["exp"] - grant["iat"]
+    check(lifetime <= cfg.max_grant_lifetime,
+          f"grant lifetime {lifetime} s exceeds the configured limit {cfg.max_grant_lifetime} s")
+
+
+@case("P15", "RAS", "Redeems a WAG for an access token naming the local agent principal, with no "
+      "act and no refresh token, which the API serves",
+      "core: Self-Acting Redemption: WAG; Self-Acting Access",
+      needs=("self_acting",))
+def p15(ctx):
+    cfg = self_acting(ctx)
+    body, claims = expect_token(ctx.client.redeem(wag(ctx), as_self_acting=True))
+    check(claims.get("sub") == cfg.self_acting_sub,
+          f"sub {claims.get('sub')!r} is not the local agent principal {cfg.self_acting_sub}")
+    check("act" not in claims, f"a self-acting token carries act: {claims.get('act')}")
+    check(claims.get("client_id") == cfg.self_acting_client_id,
+          f"client_id {claims.get('client_id')!r}")
+    check("refresh_token" not in body, "a WAG redemption returned a refresh token")
+    resp = ctx.client.get(cfg.read_path, body["access_token"])
+    check(resp.status == 200, f"the API refused the self-acting token: {resp}")
+
+
+@case("N44", "IdP", "Refuses with unauthorized_client a self-acting exchange no Client Association "
+      "permits",
+      "core: Self-Acting Issuance: WAG; Issuance Errors",
+      needs=("self_acting", "set:idp.self_acting_association"),
+      defeats=("idp.self_acting_association",))
+def n44(ctx):
+    self_acting(ctx)
+    ctx.adapter.set("idp", "self_acting_association", False)
+    expect_error(ctx.client.wag_exchange(), 400, "unauthorized_client")
+
+
+@case("N45", "IdP", "Refuses with invalid_target a self-acting exchange for an agent whose "
+      "Governance Tenant is not authorized for the Target Tenant",
+      "core: Issuance Authorization; Issuance Errors (self-acting)",
+      needs=("self_acting", "set:idp.tenant_pair"), defeats=("idp.tenant_pair",))
+def n45(ctx):
+    cfg = self_acting(ctx)
+    ctx.adapter.set("idp", "tenant_pair", [cfg.governance_tenant, cfg.tenant, False])
+    expect_error(ctx.client.wag_exchange(), 400, "invalid_target")
+
+
+@case("N46", "RAS", "Rejects with invalid_grant a WAG from a multi-tenant issuer without a tenant "
+      "the RAS trusts for the Target Tenant",
+      "core: Canonical Identity and Tenant Boundaries; Self-Acting Redemption: WAG",
+      needs=("self_acting", "mint_wag"), defeats=("ras.tenant_trust",))
+def n46(ctx):
+    self_acting(ctx)
+    cfg = multi_tenant(ctx)
+    for label, tenant in (("another tenant", cfg.other_governance_tenant), ("no tenant", None)):
+        claims = wag_claims(ctx, tenant=tenant)
+        if tenant is None:
+            del claims["tenant"]
+        resp = ctx.client.redeem(ctx.adapter.mint_wag(claims), as_self_acting=True)
+        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+              f"{label}: expected HTTP 400 invalid_grant, got {resp}")
+        check("access_token" not in resp.json(), "an error response carried a token")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

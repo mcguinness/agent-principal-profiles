@@ -332,7 +332,7 @@ suite](conformance/README.md) and how far they go:
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
-| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13. A shared registration: P13 |
+| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api`, and its self-acting grants to `analysis-agent-client` | No | Direct: N13. A shared registration: P13. A separate self-acting registration: P14 |
 | The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
 | Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 for a disabled agent and N27 for an uncorrelated one, both `invalid_grant` |
 | What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |
@@ -442,8 +442,8 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, N28, N31 to N33, N36 to N39, and
-N41.
+cases N01 to N09, N21, N22, N25, N28, N31 to N33, N36 to N39, N41,
+N44, and N45.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
@@ -470,7 +470,7 @@ N41.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, N34, N40, N42, and N43.
+N30, N34, N40, N42, N43, and N46.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or

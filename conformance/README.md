@@ -79,6 +79,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P11 | IdP | The shared client `platform-client` presents a platform JWT for `workload-43` as `actor_token`; the grant names `agent-43` in `act` and the shared client's RAS registration, `platform-api`, as `client_id` | core: Conformance Claims (generic shared-client interoperability); Existing Platform JWT | A shared client configured |
 | P12 | IdP | With a platform JWT that expires in 90 s, the grant expires no later than that evidence deadline | core: Existing Platform JWT (Validation); Common Grant Claims | A shared client configured |
 | P13 | IdP | With `platform-client` mapped to the dedicated client's registration `analysis-api`, grants for `agent-42` and `agent-43` both name `analysis-api` and redeem with its credential; after `agent-42` is disabled at the RAS, its grant fails with `invalid_grant` and `agent-43`'s is still redeemed | core: Issuance Prerequisites (Downstream client); Agent Principal Correlation | A shared client configured; set the client registration association; disable the agent at the RAS |
+| P14 | IdP | `analysis-client`'s self-acting exchange, its assertion repeated as the subject token, returns a WAG with `typ` `oauth-wag+jwt` naming `agent-42` as `sub`, with no `act`, the self-acting registration `analysis-agent-client` as `client_id`, `tenant` `acme`, and the grant key in `cnf.jkt` | core: Self-Acting Issuance: WAG; Grant Claims; Issuance Prerequisites | The self-acting registration's key |
+| P15 | RAS | Redeemed under `analysis-agent-client`, the WAG yields an access token naming `service-principal-42` as `sub`, with no `act` and no refresh token, and the API serves the read | core: Self-Acting Redemption: WAG; Self-Acting Access | The self-acting registration's key |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -122,6 +124,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N41 | IdP | At a multi-tenant issuer, with `agent-42` moved to `beta` and (`beta`, `acme-data`) authorized, Alice's exchange fails with `actor_unauthorized`, since the agent is not in the user's tenant | core: Canonical Identity and Tenant Boundaries; Issuance Errors | Set the agent's Governance Tenant and a tenant pair; a multi-tenant issuer |
 | N42 | RAS | A grant from the multi-tenant issuer naming `beta`, which the RAS does not trust for `acme-data`, fails with `invalid_grant` even for a `beta` subject linked to the user, and so does a grant naming no tenant | ID-JAG Section 4.4.1; core: Canonical Identity and Tenant Boundaries | Mint a grant; link a user; a multi-tenant issuer |
 | N43 | RAS | With the RAS also trusting `beta` for `acme-data` and linking `beta`'s `bob-ras` to `user-108`, a `beta` grant for `bob-ras` redeems, and a `beta` grant for `alice-ras`, `acme`'s subject, fails with `invalid_grant`: a subject is resolved within its issuer tenant | ID-JAG Section 6.3; core: User Resolution and Linking | Set the RAS's tenant trust; link a user; a multi-tenant issuer |
+| N44 | IdP | Without the Client Association for self-acting issuance, the self-acting exchange fails with `unauthorized_client` | core: Self-Acting Issuance: WAG; Issuance Errors | Remove the self-acting Client Association |
+| N45 | IdP | With policy no longer authorizing (`acme`, `acme-data`), the self-acting exchange fails with `invalid_target` | core: Issuance Authorization; Issuance Errors | Set a tenant pair |
+| N46 | RAS | A WAG from the multi-tenant issuer naming `beta`, which the RAS does not trust for `acme-data`, or naming no tenant, fails with `invalid_grant` | core: Canonical Identity and Tenant Boundaries; Self-Acting Redemption: WAG | Mint a WAG; a multi-tenant issuer |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -220,9 +225,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7, P12, P13 and D02, name the
 reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
-With `--vacuity`, each of these 106 cases runs once for each check it
+With `--vacuity`, each of these 109 cases runs once for each check it
 names, with that check switched off; eight S cases and N40 name two
-checks, so there are 115 runs, and every run fails. Thirty-eight N cases fail because
+checks, so there are 118 runs, and every run fails. Forty-one N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, P12 because the grant then outlives the platform JWT, and P13
@@ -486,8 +491,10 @@ API passes every query parameter to the policy service unchanged, in
 registration, `analysis-agent-client`, as the self-acting population for
 the `acme-data` resource, as Profile Applicability permits. Its tokens
 name the local agent principal `service-principal-42` as `sub` and carry
-no `act`. The RAS mints them through test control; the reference has no
-WAG issuance or redemption.
+no `act`. The IdP's client registration association names that
+registration for `analysis-client`'s WAGs, and the RAS redeems a WAG
+under it for such a token (P14, P15); the S cases mint them through
+test control. The reference does not defer a WAG.
 
 **Introspection.** The RAS answers RFC 7662 introspection at
 `/introspect` to a caller that authenticates with HTTP Basic, and
@@ -547,10 +554,10 @@ The suite tests nothing outside the path above, including:
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
   presentation; and the inputs of the inputs draft;
-* WAG issuance and redemption, including deferred WAG redemption, the
-  removal of a pending WAG redemption's correlation, and the WAG rows of
-  Redemption Errors; self-acting access at the API is covered only with
-  minted tokens (S08 and S09);
+* WAG issuance and redemption beyond P14, P15 and N44 to N46: presented
+  evidence, the byte-identical subject token, the Agent Authorization's
+  scope ceiling, deferred WAG redemption, and the other WAG rows of
+  Redemption Errors; S08 and S09 use minted self-acting tokens;
 * introspection beyond the API's processing in S10 to S13: the RAS's
   own introspection responses, caching and freshness limits,
   `authorization_details`, certificate-bound tokens, and opaque tokens
@@ -606,7 +613,12 @@ another IdP, RAS or API:
    `mint_grant`, `other_tenant_sub`, a subject of that tenant, and
    `set:ras.user_link`; N43 also needs `set:ras.tenant_trust`. D25 and
    D26 also run only where `multi_tenant_issuer` is set, and need
-   `set:ras.tenant_trust`. D10 and D11 need `second_agent`, another agent the RAS
+   `set:ras.tenant_trust`. P14, P15 and N44 to N46 need
+   `self_acting_client_key`, the key of the RAS registration the IdP
+   names in the client's WAGs (`self_acting_client_id`, which is
+   `ras_client_id` where a deployment keeps one registration); N44 also
+   needs `set:idp.self_acting_association`, N45 `set:idp.tenant_pair`,
+   and N46 `mint_wag` and `multi_tenant_issuer`. D10 and D11 need `second_agent`, another agent the RAS
    correlates and lets act for the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
    use it as a scope the IdP can exclude from the delegation or prohibit
@@ -773,7 +785,7 @@ that settled it.
    Section 6.6.2 of Actor Profile requires it when local policy
    prohibits the relationship, and `invalid_target` in self-acting
    issuance, with the other refusals of an agent for a target. N33
-   asserts the first; the reference has no self-acting issuance.
+   asserts the first and N45 the second.
 10. **Whether two IdP clients may share one RAS registration.**
    Resolved. Issuance Prerequisites now permits several IdP clients to
    map to one registration, and states the consequences: the RAS cannot

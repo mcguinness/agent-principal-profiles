@@ -34,7 +34,7 @@ A claim whose cases were not run says so in Part 5.
 | RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43 |
 | API: delegated access | P3, P4, N17 to N20, N24, N35, S32, S33, S35, S36 |
 | Generic shared-client interoperability (IdP) | P11, P12, N36 to N39 |
-| Self-acting access | S08 and S09, at the API with minted tokens; no issuance or redemption case |
+| Self-acting access | P14, N44, N45 (IdP); P15, N46 (RAS); S08 and S09 (API, with minted tokens) |
 | Bearer access tokens | P5, P6, N35, S38, S39 |
 | DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
 | Just-in-time correlation | N34 |

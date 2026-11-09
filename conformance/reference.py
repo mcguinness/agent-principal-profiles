@@ -12,7 +12,14 @@ an ID-JAG: when its policy requires approval for a scope, a redemption
 that opts in with completion_mode=deferred and a DPoP proof is held for an
 approver's decision (DTR), and completed from a test-controlled Access
 Request Service. Only that path issues refresh tokens, and only when
-test control permits them. No WAG, no CAI, and no mutual TLS.
+test control permits them. No CAI, and no mutual TLS.
+
+Self-acting access is implemented for the dedicated client: the IdP
+issues a WAG in authentication-context resolution, with the client's
+assertion repeated as the subject token, under a self-acting Client
+Association and an Agent Authorization, naming the client's separate
+self-acting registration at the RAS; the RAS redeems it for an access
+token that names the local agent principal. It does not defer a WAG.
 
 For the core's Optional Policy Services, the API can hand its
 authorization decision to a test-controlled policy service, in place of
@@ -65,6 +72,7 @@ JWT_DPOP = "urn:ietf:params:oauth:grant-type:jwt-dpop"
 DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
 REFRESH_GRANT = "refresh_token"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
+WAG_TYPE = "urn:ietf:params:oauth:token-type:wag"
 ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 JWT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt"
@@ -115,6 +123,7 @@ CHECKS = {
     "idp.evidence_deadline": "the grant expires no later than the platform JWT's evidence "
                              "deadline",
     "idp.client_association": "Client Association permits delegated use of the binding",
+    "idp.self_acting_association": "Client Association permits self-acting use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
     "idp.categorical_prohibition": "policy's categorical prohibition of the agent for a requested "
                                    "scope is enforced",
@@ -132,6 +141,8 @@ CHECKS = {
     "ras.tenant_trust": "a grant from a multi-tenant issuer names a tenant trusted with the "
                         "issuer for the Target Tenant",
     "ras.user_tenant": "an ID-JAG's subject is resolved within its issuer tenant",
+    "ras.wag_policy": "current RAS policy permits a WAG's agent its requested scope in the "
+                      "Target Tenant",
     "ras.tenant_recheck": "resolution and refresh re-check that the RAS still trusts the "
                           "grant's issuer tenant for the Target Tenant",
     "ras.restriction_follows_agent": "an agent disabled at the RAS is refused through every "
@@ -474,16 +485,25 @@ class IdP(Server):
                          "b43": {"source": (PLATFORM_ISSUER, "workload-43"),
                                  "agent": "agent-43", "enabled": True}}
         self.client_associations = {("analysis-client", "b12", "delegated"),
+                                    ("analysis-client", "b12", "self-acting"),
                                     ("platform-client", "b43", "delegated")}
+        # Agent Authorization: the agent's own access, (agent, resource) ->
+        # the scopes it may be issued for itself.
+        self.agent_authorizations = {("agent-42", RESOURCE): {"files.read"}}
         # A Delegation Authorization's scope set is its scope ceiling.
         self.delegations = {("agent-42", "alice", "analysis-client", RESOURCE): {"files.read"},
                             ("agent-43", "alice", "platform-client", RESOURCE): {"files.read"}}
         # Policy's categorical prohibitions: (agent, resource) -> scopes the
         # agent may never be issued there, whatever a delegation permits.
         self.prohibitions = {}
+        # The client registration association. analysis-client's self-acting
+        # grants name a separate registration, which is how the API tells the
+        # two token populations apart (core: Issuance Prerequisites).
         self.targets = {RAS_ISSUER: {"resources": {RESOURCE: "acme-data"},
                                      "registrations": {"analysis-client": "analysis-api",
-                                                       "platform-client": "platform-api"}}}
+                                                       "platform-client": "platform-api"},
+                                     "self_acting_registrations": {
+                                         "analysis-client": SELF_ACTING_CLIENT}}}
 
     def control_op(self, op, body):
         if op == "id_token":
@@ -498,8 +518,8 @@ class IdP(Server):
             claims = {"iss": self.issuer, "aud": RAS_ISSUER, "iat": now,
                       "exp": now + GRANT_LIFETIME, "jti": uuid.uuid4().hex}
             claims.update(body["claims"])
-            return {"grant": jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid},
-                                      claims, self.key)}
+            typ = "oauth-wag+jwt" if body.get("wag") else "oauth-id-jag+jwt"
+            return {"grant": jws.sign({"typ": typ, "kid": self.kid}, claims, self.key)}
         if op == "set":
             what, value = body["what"], body["value"]
             if what == "binding_enabled":
@@ -507,6 +527,9 @@ class IdP(Server):
             elif what == "client_association":
                 fn = self.client_associations.add if value else self.client_associations.discard
                 fn(("analysis-client", "b12", "delegated"))
+            elif what == "self_acting_association":
+                fn = self.client_associations.add if value else self.client_associations.discard
+                fn(("analysis-client", "b12", "self-acting"))
             elif what == "delegation":
                 key = ("agent-42", "alice", "analysis-client", RESOURCE)
                 if value:
@@ -551,6 +574,8 @@ class IdP(Server):
         if jkt is None and self.clients[client_id]["profile"] == "bound" and \
                 self.on("idp.require_dpop"):
             raise OAuthError("invalid_request", description="DPoP proof required")
+        if form.get("requested_token_type") == [WAG_TYPE]:
+            return _respond(start_response, 200, self.issue_wag(form, client_id, jkt))
         # Request parameters (core, Token Exchange Request; ID-JAG Request).
         if form.get("requested_token_type") != [ID_JAG_TYPE]:
             raise OAuthError("invalid_request")
@@ -642,6 +667,61 @@ class IdP(Server):
         return _respond(start_response, 200, {
             "access_token": grant, "issued_token_type": ID_JAG_TYPE,
             "token_type": "N_A", "expires_in": exp - now, "scope": claims["scope"]})
+
+    def issue_wag(self, form, client_id, jkt):
+        """Self-Acting Issuance: WAG, in authentication-context resolution (core)."""
+        # Issuance Request: no actor token, and the client's own assertion
+        # repeated byte for byte as the subject token.
+        if self.clients[client_id]["mode"] != "authentication":
+            raise OAuthError("invalid_request",
+                             description="the reference issues WAGs only from client authentication")
+        if "actor_token" in form or "actor_token_type" in form:
+            raise OAuthError("invalid_request", description="actor token in a self-acting exchange")
+        if form.get("subject_token_type") != [JWT_TOKEN_TYPE] or \
+                form.get("subject_token") != form.get("client_assertion"):
+            raise OAuthError("invalid_request",
+                             description="subject token is not the client's assertion")
+        audience = _one(form, "audience")
+        resources = form.get("resource", [])
+        if len(resources) != 1:
+            raise OAuthError("invalid_request" if not resources else "invalid_target")
+        resource, scope = resources[0], _one(form, "scope")
+        binding_id, agent = self.resolve_agent(client_id)
+        target = self.targets.get(audience)
+        if target is None or resource not in target["resources"]:
+            raise OAuthError("invalid_target")
+        downstream_client = target["self_acting_registrations"].get(
+            client_id, target["registrations"].get(client_id))
+        if downstream_client is None:
+            raise OAuthError("invalid_target")
+        # The Client Association for self-acting issuance, then Issuance
+        # Authorization: the tenant pair and the Agent Authorization (core:
+        # Self-Acting Issuance; Issuance Errors).
+        if (client_id, binding_id, "self-acting") not in self.client_associations and \
+                self.on("idp.self_acting_association"):
+            raise OAuthError("unauthorized_client",
+                             description="no Client Association permits self-acting issuance")
+        tenant = self.agents[agent]["governance_tenant"]
+        if (tenant, target["resources"][resource]) not in self.tenant_pairs and \
+                self.on("idp.tenant_pair"):
+            raise OAuthError("invalid_target",
+                             description="Governance Tenant not authorized for the Target Tenant")
+        authorization = self.agent_authorizations.get((agent, resource))
+        if authorization is None:
+            raise OAuthError("invalid_target", description="agent not authorized for the resource")
+        granted = [s for s in scope.split() if s in authorization]
+        if not granted:
+            raise OAuthError("invalid_scope")
+        now = int(self.now())
+        claims = {"iss": self.issuer, "sub": agent, "aud": audience, "iat": now,
+                  "exp": now + GRANT_LIFETIME, "jti": uuid.uuid4().hex,
+                  "client_id": downstream_client, "resource": resource,
+                  "scope": " ".join(granted), "tenant": tenant}
+        if jkt is not None:
+            claims["cnf"] = {"jkt": jkt}
+        wag = jws.sign({"typ": "oauth-wag+jwt", "kid": self.kid}, claims, self.key)
+        return {"access_token": wag, "issued_token_type": WAG_TYPE, "token_type": "N_A",
+                "expires_in": GRANT_LIFETIME, "scope": claims["scope"]}
 
     def validate_id_token(self, token, client_id):
         # An invalid subject credential, including one whose sub is not a
@@ -855,6 +935,13 @@ class RAS(Server):
         # consults this.
         self.agent_clients = {(IDP_ISSUER, "agent-42"): {"analysis-api"},
                               (IDP_ISSUER, "agent-43"): {"analysis-api"}}
+        # Self-acting policy: (issuer, agent) and Target Tenant -> the scopes
+        # RAS policy permits the agent's own access (core: Self-Acting
+        # Redemption: WAG, step 5). Unlike user_links, the key carries no
+        # issuer tenant: an agent identifier is unique across its issuer
+        # (core: Canonical Identity and Tenant Boundaries), while a user
+        # subject is unique only within its tenant.
+        self.self_acting = {((IDP_ISSUER, "agent-42"), "acme-data"): {"files.read"}}
         self.actor_gate = {("user-108", IDP_ISSUER, "agent-42", "acme-data"),
                            ("user-108", IDP_ISSUER, "agent-43", "acme-data")}
         # An actor-gate rule admitting every agent an issuer asserts, for any
@@ -1011,10 +1098,17 @@ class RAS(Server):
                 raise Deferred(self.deferred_body(pending))
             if self.on("ras.grant_consumed"):
                 raise OAuthError("invalid_grant", description="grant consumed by a deferred redemption")
-        claims = self.validate_grant(assertion)
+        claims, wag = self.validate_grant(assertion)
         if claims.get("client_id") != client_id and self.on("ras.client_id"):
             raise OAuthError("invalid_grant", description="client_id mismatch")
-        act = self.validate_act(claims)
+        if wag:
+            # A WAG names the agent as its subject and contains no act (core:
+            # Self-Acting Redemption: WAG, step 1).
+            if "act" in claims or not isinstance(claims.get("sub"), str) or not claims["sub"]:
+                raise OAuthError("invalid_grant", description="WAG subject or act")
+            act = None
+        else:
+            act = self.validate_act(claims)
         # Proof and client (core, Grant Protection; Common Grant Validation step 1).
         cnf = claims.get("cnf")
         if cnf is None and self.clients[client_id]["profile"] == "bound" and \
@@ -1072,6 +1166,8 @@ class RAS(Server):
         if not self.tenant_trusted(claims["iss"], issuer_tenant, config["tenant"]) and \
                 self.on("ras.tenant_trust"):
             raise OAuthError("invalid_grant", description="tenant not trusted for the Target Tenant")
+        if wag:
+            return self.redeem_wag(claims, client_id, jkt, config, resource, scope, grant_key, now)
         # Local authorization: user, agent correlation, actor gate.
         user = self.resolve_user(claims["iss"], issuer_tenant, config["tenant"], claims["sub"])
         if user is None:
@@ -1117,6 +1213,38 @@ class RAS(Server):
         token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
         self.agent_clients.setdefault((act["iss"], act["sub"]), set()).add(client_id)
+        return {"access_token": token, "token_type": "DPoP" if bind else "Bearer",
+                "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
+
+    def redeem_wag(self, claims, client_id, jkt, config, resource, scope, grant_key, now):
+        """Self-Acting Redemption: WAG, steps 4 to 6 (core): the correlated
+        agent's own access, with the local agent principal as sub, no act and
+        no refresh token. The reference neither defers a WAG nor correlates
+        one just in time."""
+        agent_key = (claims["iss"], claims["sub"])
+        agent = self.agents.get(agent_key)
+        if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
+            raise OAuthError("invalid_grant", description="agent not eligible")
+        permitted = self.self_acting.get((agent_key, config["tenant"]), set())
+        if not set(scope.split()) <= permitted and self.on("ras.wag_policy"):
+            raise OAuthError("invalid_target", description="RAS policy refuses the WAG")
+        # A RAS that does not defer refuses with its refusal error, which for
+        # a WAG is invalid_target (core: Redemption Errors; oversight:
+        # Redemption Opt-In). This RAS's policy defers no WAG.
+        if set(scope.split()) & self.approval_required:
+            raise OAuthError("invalid_target", description="RAS policy requires approval")
+        if config["protection"] == "dpop" and jkt is None:
+            raise OAuthError("invalid_request", description="DPoP-bound access token required")
+        bind = jkt is not None and (config["protection"] == "dpop" or
+                                    self.on("ras.bind_when_proven"))
+        token_claims = {"iss": self.issuer, "sub": agent["local"] if agent else claims["sub"],
+                        "aud": resource, "iat": int(now),
+                        "exp": int(now) + ACCESS_TOKEN_LIFETIME, "jti": uuid.uuid4().hex,
+                        "client_id": client_id, "scope": scope}
+        if bind:
+            token_claims["cnf"] = {"jkt": jkt}
+        token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
+        self.accepted_grants[grant_key] = claims["exp"] + SKEW
         return {"access_token": token, "token_type": "DPoP" if bind else "Bearer",
                 "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
 
@@ -1431,10 +1559,12 @@ class RAS(Server):
         return record
 
     def validate_grant(self, assertion):
-        """ID-JAG validation (ID-JAG Section 4.4.1, RFC 7523 Section 3)."""
+        """ID-JAG or WAG validation (ID-JAG Section 4.4.1, WAG Section 6.1, RFC 7523
+        Section 3); returns the claims and whether the grant is a WAG."""
         try:
             header, unverified, _, _ = jws.decode(assertion)
-            if not _typ_is(header, "oauth-id-jag+jwt"):
+            wag = _typ_is(header, "oauth-wag+jwt")
+            if not wag and not _typ_is(header, "oauth-id-jag+jwt"):
                 raise ValueError("typ")
             key = self.trusted_idps.get(unverified.get("iss"))
             if key is None:
@@ -1446,7 +1576,7 @@ class RAS(Server):
                 not _time_valid(claims, require_iat=True, check_future=self.on("ras.grant_time"),
                                 now=self.now()):
             raise OAuthError("invalid_grant")
-        return claims
+        return claims, wag
 
     def validate_act(self, claims):
         act = claims.get("act")
@@ -2084,7 +2214,8 @@ def start(client_keys, grant_signer=None, platform_key=None):
     # The API's introspection credential at the RAS, generated at start.
     secret = secrets.token_urlsafe(32)
     ras = RAS({cid: client_keys[cid].public_key()
-               for cid in ("analysis-api", "other-api", "platform-api") if cid in client_keys},
+               for cid in ("analysis-api", "other-api", "platform-api", SELF_ACTING_CLIENT)
+               if cid in client_keys},
               grant_signer or idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
     api = API(ras.key.public_key())
     servers = {name: serve(app) for name, app in (("idp", idp), ("ras", ras), ("api", api))}
