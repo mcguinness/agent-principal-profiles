@@ -1038,7 +1038,9 @@ self-acting grants than for delegated grants, so that the client
 registration tells the two token populations apart
 ({{api-applicability}}). The association then names a registration for
 each acting relationship, and a grant's `client_id` is the registration
-for its own.
+for its own. The client still holds both acting relationships at the
+IdP; {{security-authorized-misuse}} describes the separation that
+limits an agent refused for a user.
 
 ## Token Exchange Request {#issuance-request}
 
@@ -2756,9 +2758,13 @@ request to a refusal elsewhere, and a self-acting token carries no user
 whose permissions the API could apply. A client that holds both kinds
 of Client Association can therefore serve a user with the agent's own
 authority. A rule on clients would bind only clients that follow it.
-The control is separation: a client that acts for users holds no
-self-acting Client Association, and self-acting work uses another
-client registration.
+The control is separation at the IdP: a client that acts for users
+holds no self-acting Client Association, and self-acting work uses
+another IdP client with its own Client Association. A separate RAS
+registration for one IdP client's self-acting grants
+({{flow-configuration}}) tells the token populations apart but leaves
+both acting relationships with that client, so it is not this
+separation.
 
 It does not distinguish an induced request from an intended one,
 inspect content, or constrain how authority is used within its scope.
@@ -3168,7 +3174,10 @@ unbound grants.
 ### Self-Acting Variant {#wag-example}
 
 This non-normative variant issues a WAG to the same dedicated client
-under {{wag-issuance}}. The client authenticates with a fresh assertion,
+under {{wag-issuance}}, which then holds both kinds of Client
+Association; a deployment that wants the separation of
+{{security-authorized-misuse}} issues self-acting grants to another IdP
+client. The client authenticates with a fresh assertion,
 `analysis-auth-3`, and repeats the same compact JWT as the subject token
 as {{wag-request}} defines:
 
