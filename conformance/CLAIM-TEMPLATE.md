@@ -30,8 +30,8 @@ A claim whose cases were not run says so in Part 5.
 
 | Claim | Cases |
 |---|---|
-| IdP: delegated access, dedicated client, ID Token subjects | P1, N01 to N09, N21, N22, N25, N28, N31 to N33 |
-| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40 |
+| IdP: delegated access, dedicated client, ID Token subjects | P1, P13 (with a second IdP client), N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
+| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43 |
 | API: delegated access | P3, P4, N17 to N20, N24, N35, S32, S33, S35, S36 |
 | Generic shared-client interoperability (IdP) | P11, P12, N36 to N39 |
 | Self-acting access | S08 and S09, at the API with minted tokens; no issuance or redemption case |
@@ -41,7 +41,7 @@ A claim whose cases were not run says so in Part 5.
 | Opaque access tokens and introspection | S10 to S13, S20, S21, S31, S34, S38 |
 | Policy services | S01 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | S14 to S31 |
-| Deferred redemption (RAS) | D01 to D24 |
+| Deferred redemption (RAS) | D01 to D26 |
 | RAS refresh tokens | D13 to D15, D21, D22, within a deferred redemption only |
 | Mutual-TLS access tokens; re-redemption under policy | None |
 

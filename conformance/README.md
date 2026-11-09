@@ -66,7 +66,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 
 | Case | Role | Checks that | Source | Test control |
 |---|---|---|---|---|
-| P1 | IdP | The ID-JAG names the user in the RAS namespace, the agent in `act`, the RAS registration as `client_id`, and the grant key in `cnf.jkt`, lives no longer than the configured limit (`max_grant_lifetime`, 300 s by default) or the ID Token, and is noted if it exceeds the recommended 300 s | core: Actor Resolution and Construction; Grant Issuance; Common Grant Claims | None |
+| P1 | IdP | The ID-JAG names the user in the RAS namespace, the agent in `act`, the RAS registration as `client_id`, the grant key in `cnf.jkt`, and, at a multi-tenant issuer, the user's tenant in `tenant`, lives no longer than the configured limit (`max_grant_lifetime`, 300 s by default) or the ID Token, and is noted if it exceeds the recommended 300 s | core: Actor Resolution and Construction; Grant Issuance; Common Grant Claims | None |
 | P2 | RAS | The access token is DPoP-bound to the same key, names the local user, and carries `act` unchanged; a refresh token is noted, not failed | core: Actor Preservation; Access Token Issuance and Response | None |
 | P3 | API | A read with the access token and a fresh proof succeeds | core: Token Validation; Delegated Access | None |
 | P4 | API | An access token typed `application/at+jwt`, with a one-element `aud` array, is accepted | RFC 9068 Sections 2.1 and 4; core: Token Validation | Mint an access token |
@@ -78,6 +78,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P10 | API | With the API requiring DPoP nonces, the read gets HTTP 401 with `use_dpop_nonce`, and the retry with the nonce is served | RFC 9449 Section 9; core: Token Validation | Require nonces at the API |
 | P11 | IdP | The shared client `platform-client` presents a platform JWT for `workload-43` as `actor_token`; the grant names `agent-43` in `act` and the shared client's RAS registration, `platform-api`, as `client_id` | core: Conformance Claims (generic shared-client interoperability); Existing Platform JWT | A shared client configured |
 | P12 | IdP | With a platform JWT that expires in 90 s, the grant expires no later than that evidence deadline | core: Existing Platform JWT (Validation); Common Grant Claims | A shared client configured |
+| P13 | IdP | With `platform-client` mapped to the dedicated client's registration `analysis-api`, grants for `agent-42` and `agent-43` both name `analysis-api` and redeem with its credential; after `agent-42` is disabled at the RAS, its grant fails with `invalid_grant` and `agent-43`'s is still redeemed | core: Issuance Prerequisites (Downstream client); Agent Principal Correlation | A shared client configured; set the client registration association; disable the agent at the RAS |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -110,7 +111,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N30 | RAS | An unbound grant presented with `jwt-dpop` fails with `invalid_grant` | core: Redemption Request; JWT DPoP Grant Section 5 | Let the IdP issue, and the RAS accept, unbound grants |
 | N31 | IdP | An ID Token whose `sub` is `null` or the number 123 fails with `invalid_request`, as an invalid subject credential | core: Issuance Errors; RFC 8693 Section 2.2.2 | ID Token with chosen claims |
 | N32 | IdP | A valid ID Token whose `sub` is `carol`, a user the IdP has no record of, fails with `invalid_grant`, as a user resolution failure | core: Subject Resolution; Issuance Errors | ID Token with chosen claims |
-| N33 | IdP | With the agent moved to `beta`, a Governance Tenant on the same issuer that policy does not authorize for `acme-data`, the exchange fails with an error and no grant; any error code passes (draft question 9) | core: Issuance Authorization; Canonical Identity and Tenant Boundaries | Set the agent's Governance Tenant |
+| N33 | IdP | With policy no longer authorizing the agent's Governance Tenant `acme` for the Target Tenant `acme-data`, the exchange fails with `actor_unauthorized` | core: Issuance Authorization; Issuance Errors | Set a tenant pair |
 | N34 | RAS | With just-in-time correlation on, a grant whose `act` names `agent-99`, which the RAS has not seen, fails with `actor_unauthorized` or `invalid_grant`: the created record does not authorize the agent | core: Optional Just-in-Time Correlation; Redemption Errors | Mint a grant; turn on just-in-time correlation |
 | N35 | API | Where the API accepts bearer tokens for the resource, a DPoP-bound access token presented with the `Bearer` scheme fails with HTTP 401 | RFC 9449 Section 7.2; core: Access-Token Protection (Enforcement) | Permit bearer tokens at the API |
 | N36 | IdP | The shared client's exchange without a platform JWT fails with `invalid_request`, not a fallback to the client's own authentication | core: Agent Resolution Input Validation; Issuance Errors | A shared client configured |
@@ -118,6 +119,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N38 | IdP | A valid platform JWT for `workload-43-shadow`, which only begins with the bound `workload-43`, fails with `invalid_grant` | core: Existing Platform JWT (Resolution); Issuance Errors | A shared client configured |
 | N39 | IdP | A platform JWT whose `cnf.jkt` names another key than the one the request proves fails with `invalid_request`: the reference supports no platform JWT binding, and an unsupported binding never gets bearer treatment | core: Existing Platform JWT (Proof); Issuance Errors | A shared client configured |
 | N40 | RAS | With `agent-42` disabled at the RAS, its first grant through the second RAS client fails with `invalid_grant`, and after it is re-enabled the next such grant succeeds: the restriction follows the agent, not the clients the RAS already knows it through | core: Introduction; Agent Principal Correlation; Applied Disablement and Revocation | Disable and re-enable the agent at the RAS; mint a grant; needs a second RAS client, and a reset that clears which clients the agent arrived through |
+| N41 | IdP | At a multi-tenant issuer, with `agent-42` moved to `beta` and (`beta`, `acme-data`) authorized, Alice's exchange fails with `actor_unauthorized`, since the agent is not in the user's tenant | core: Canonical Identity and Tenant Boundaries; Issuance Errors | Set the agent's Governance Tenant and a tenant pair; a multi-tenant issuer |
+| N42 | RAS | A grant from the multi-tenant issuer naming `beta`, which the RAS does not trust for `acme-data`, fails with `invalid_grant` even for a `beta` subject linked to the user, and so does a grant naming no tenant | ID-JAG Section 4.4.1; core: Canonical Identity and Tenant Boundaries | Mint a grant; link a user; a multi-tenant issuer |
+| N43 | RAS | With the RAS also trusting `beta` for `acme-data` and linking `beta`'s `bob-ras` to `user-108`, a `beta` grant for `bob-ras` redeems, and a `beta` grant for `alice-ras`, `acme`'s subject, fails with `invalid_grant`: a subject is resolved within its issuer tenant | ID-JAG Section 6.3; core: User Resolution and Linking | Set the RAS's tenant trust; link a user; a multi-tenant issuer |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -142,6 +146,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
 | D23 | RAS | A repeated request that presents the bound grant with `jwt-bearer` fails with `invalid_grant` and carries no deferral code | oversight: Recovery; core: Redemption Request | Require approval |
 | D24 | RAS | With `completion_mode=deferred deferred_interactive`, a redemption is deferred, a repeated request gets the same deferral code and any `interaction_uri` again, and the poll after approval issues | oversight: Redemption Opt-In; Recovery; Approval | Require approval; approve |
+| D25 | RAS | A redemption deferred while the RAS trusts `acme` for `acme-data` gets `access_denied` at the poll after approval once that trust is withdrawn | oversight: Redemption Resolution; core: Canonical Identity and Tenant Boundaries | Require approval; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
+| D26 | RAS | After a refresh succeeds, withdrawing the RAS's trust in `acme` for `acme-data` makes the next refresh fail with `invalid_grant` | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation | Require approval; permit refresh tokens; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
 | S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
 | S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
 | S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
@@ -212,14 +218,15 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2, P7, P12 and D02, name the reference
-checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 100 cases runs once for each check it names,
-with that check switched off; eight S cases and N40 name two checks, so
-there are 109 runs, and every run fails. Thirty-five N cases fail because
+Every negative case but N32, and P2, P7, P12, P13 and D02, name the
+reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
+With `--vacuity`, each of these 106 cases runs once for each check it
+names, with that check switched off; eight S cases and N40 name two
+checks, so there are 115 runs, and every run fails. Thirty-eight N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
-token, and P12 because the grant then outlives the platform JWT. N36
+token, P12 because the grant then outlives the platform JWT, and P13
+because the disabled agent's grant is then redeemed. N36
 fails because the IdP then falls back to the shared client's own
 authentication, which resolves no agent (`invalid_grant`). N11 fails because the RAS's
 access-token protection check then
@@ -239,7 +246,7 @@ Authorization with `actor_unauthorized` instead.
 The D cases fail without their check in these ways:
 
 * the RAS issues a token it must not: D01, D02 (a second token), D05,
-  D11, D14, D20, D21 and D22 (after the actor gate reopens);
+  D11, D14, D20, D21, D22 (after the actor gate reopens), D25 and D26;
 * it returns or keeps a deferral where an error is required: D03, D06
   (a new deferral after the denial), D08, D18, D19 and D23;
 * it returns another error: D07 (`access_denied`);
@@ -591,9 +598,15 @@ another IdP, RAS or API:
    N17 needs a second tenant in which the user and the agent also have
    rights. N27 needs `uncorrelated_agent`, an agent the RAS has no
    correlation for; N34 uses it too, with just-in-time correlation
-   turned on (`set:ras.jit`). N33 needs `other_governance_tenant`, a
-   Governance Tenant on the IdP's issuer that policy does not authorize
-   for `tenant`, and `set:idp.agent_governance_tenant`. D10 and D11 need `second_agent`, another agent the RAS
+   turned on (`set:ras.jit`). N33 needs `governance_tenant`, the tenant
+   of the user and the agent at the IdP, and `set:idp.tenant_pair`.
+   N41 to N43 run only where `multi_tenant_issuer` is set, and use
+   `other_governance_tenant`, another tenant of the IdP's issuer: N41
+   needs `set:idp.agent_governance_tenant`; N42 and N43 need
+   `mint_grant`, `other_tenant_sub`, a subject of that tenant, and
+   `set:ras.user_link`; N43 also needs `set:ras.tenant_trust`. D25 and
+   D26 also run only where `multi_tenant_issuer` is set, and need
+   `set:ras.tenant_trust`. D10 and D11 need `second_agent`, another agent the RAS
    correlates and lets act for the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
    use it as a scope the IdP can exclude from the delegation or prohibit
@@ -610,7 +623,8 @@ another IdP, RAS or API:
    `untrusted_agent_iss`, an issuer the API does not trust for agents.
    They assume the API's actor gate, and the policy S37 sets, permit the
    user's `agent-42` only under `expect["agent_iss"]`, with no entry for
-   the partner issuer's. P11, P12 and N36 to N39 need `shared_client`, a
+   the partner issuer's. P11 to P13 and N36 to N39 need `shared_client`,
+   P13 as a second IdP client, a
    `suite.SharedClient`: a shared client at the IdP and its RAS
    registration, a platform issuer whose JWTs the suite signs with a key
    the IdP approves, the workload `sub` the IdP binds exactly to an agent,
@@ -669,7 +683,8 @@ signs ID-JAGs itself, for `issuer` and the RAS issuer `audience`, with a
 private key whose public key the RAS trusts for that issuer. The grants
 carry the claims the reference IdP issues (the user's subject in the
 RAS namespace, the RAS registration as `client_id`, `resource`,
-`scope`, `act`, `cnf.jkt` for the client's key, 300 s). IdP cases, and
+`scope`, `act`, `cnf.jkt` for the client's key, `tenant` where
+`multi_tenant_issuer` is set, 300 s). IdP cases, and
 any case that needs an ID Token, are reported as not run; `mint_grant`
 needs no IdP test control. With the reference, `run.py --ras-only` has
 the reference RAS trust a key the suite generates for
@@ -692,7 +707,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Client registration association | One RAS registration for each IdP client: `analysis-api` for the dedicated client `analysis-client`, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
 | Platform JWT credential class | A dedicated issuer, `https://platform.example/`, configured with `platform-client`; `ES256`; accepted audience `https://idp.example/`; evidence deadline from `exp`, with no maximum age; `workload-43` bound exactly to `agent-43` | core: Existing Platform JWT (Configuration) |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API; at the RAS, a rule admitting every agent of an issuer for a tenant only under test control | core: Delegated Actor Authorization ("not a protocol object"); RAS and API implementation considerations ("another explicit rule") |
-| Governance Tenants | `agent-42` belongs to `acme` on the IdP's issuer; policy authorizes only (`acme`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized` | core: Issuance Authorization (no code assigned) |
+| Governance Tenants | The IdP's issuer is multi-tenant, with tenants `acme` and `beta`; Alice and both agents are in `acme`, and every grant names `acme` in `tenant`. Policy authorizes only (`acme`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized`. The RAS trusts the issuer's tenant `acme` for `acme-data`, and keys user links by issuer, issuer tenant, Target Tenant and subject | core: Canonical Identity and Tenant Boundaries; Issuance Authorization; Issuance Errors |
 | Just-in-time correlation | Off unless test control turns it on for the IdP's issuer and `acme-data`; a created record is eligible, and the actor gate still applies | core: Optional Just-in-Time Correlation |
 | Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to that set and away from scopes policy categorically prohibits for the agent there; if nothing remains, a requested scope that is prohibited gives `actor_unauthorized`, and otherwise the result is `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
@@ -753,23 +768,18 @@ that settled it.
    (S05, S06); a scope the operation needs and the token lacks is HTTP
    403 `insufficient_scope` (S07). S14 to S19 test the order and the 503.
 9. **The IdP's error when the agent's Governance Tenant is not
-   authorized for the Target Tenant.** Open. Issuance Authorization
-   requires authorizing "Governance and Target Tenants" but assigns no
-   code to this refusal: the delegated rule pins `actor_unauthorized`
-   only for a missing Delegation Authorization or a categorical
-   prohibition, and `invalid_target` covers a Target Tenant that cannot
-   be resolved. The reference returns `actor_unauthorized`; N33 accepts
-   any error without a grant. The [shared-issuer
-   experiment](../experiments/shared-issuer/README.md) records why this
-   refusal is the only control at a shared issuer.
-10. **Whether two IdP clients may share one RAS registration.** Open.
-   Issuance Prerequisites derives the grant's `client_id` from "an
-   authoritative association between the authenticated IdP client and
-   that client's registration at the target RAS". Read with the
-   possessive, each IdP client has its own registration, and the
-   reference gives the shared client `platform-client` its own,
-   `platform-api`. The text does not say whether several IdP clients may
-   map to one registration, which would collapse their clients at the
-   RAS.
+   authorized for the Target Tenant.** Resolved. The core's Issuance
+   Errors assigns `actor_unauthorized` in delegated issuance, since
+   Section 6.6.2 of Actor Profile requires it when local policy
+   prohibits the relationship, and `invalid_target` in self-acting
+   issuance, with the other refusals of an agent for a target. N33
+   asserts the first; the reference has no self-acting issuance.
+10. **Whether two IdP clients may share one RAS registration.**
+   Resolved. Issuance Prerequisites now permits several IdP clients to
+   map to one registration, and states the consequences: the RAS cannot
+   tell those clients apart, a restriction of an agent still follows
+   the agent, and only a bound grant stays with the key that obtained
+   it. The reference keeps a registration per IdP client; P13 maps
+   `platform-client` to `analysis-api` through test control.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

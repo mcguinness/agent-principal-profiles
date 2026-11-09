@@ -483,7 +483,8 @@ Grant proof key:
 
 Governance Tenant:
 : The IdP's administrative scope within which an Agent Principal and its
-  relationships are managed. It is not part of the Agent Principal's
+  relationships are managed: a tenant of the IdP's issuer in the sense of
+  {{Section 6.1 of ID-JAG}}. It is not part of the Agent Principal's
   identity, which the IdP issuer qualifies ({{canonical-identity}}).
 
 Target Tenant:
@@ -611,6 +612,29 @@ issuance, the Target Tenant for the requested RAS and resource. The RAS
 MUST interpret an agent identifier in its asserted issuer context and
 MUST NOT key agent authorization on a bare `sub`. Tenant resolution
 failures use the errors in {{errors}} and {{issuance-errors}}.
+
+A single-tenant issuer has one Governance Tenant, which the issuer
+identifies. A multi-tenant issuer identifies each of its tenants by
+`tenant` together with the issuer ({{Section 6.1 of ID-JAG}}). At a
+multi-tenant issuer:
+
+* The IdP MUST NOT issue an ID-JAG for an agent whose Governance Tenant
+  is not the user's tenant, which the ID-JAG's `tenant` claim names
+  ({{Section 6.4 of ID-JAG}}). That claim therefore also names the
+  agent's Governance Tenant.
+* The IdP MUST include `tenant`, set to the agent's Governance Tenant,
+  in every WAG ({{wag-claims}}), the claim that {{Section 6.3 of WAG}}
+  recommends for an issuer that several tenants share.
+* The RAS MUST reject a WAG with `invalid_grant` unless `tenant` is
+  present and the RAS trusts `iss` and `tenant` together for the Target
+  Tenant, as {{Section 4.4.1 of ID-JAG}} requires for an ID-JAG.
+
+A RAS's trust in a multi-tenant issuer to assert agents, including
+just-in-time correlation ({{jit-correlation}}) and an actor-gate rule
+that admits every agent an issuer asserts, is therefore trust in one of
+that issuer's tenants. The Agent Principal identifier remains unique
+across the issuer, and `tenant` does not become part of the agent's
+identity.
 
 ## Governance Boundary and Execution Independence {#governance-boundary}
 
@@ -992,6 +1016,15 @@ a Client Association. If the client uses one identifier at both servers,
 such as a Client ID Metadata Document (CIMD) Client Identifier URL
 {{CIMD}}, the association is the identity mapping. A client-supplied downstream client identifier MUST NOT
 select or override that association.
+
+Several IdP clients MAY map to one registration at a RAS, such as the
+dedicated clients of one platform's agents, or one client registered at
+several IdPs. The RAS then cannot tell those clients apart: its client
+policy, its audit, and any restriction keyed on `client_id` apply to all
+of them, while a restriction of an agent follows the agent
+({{agent-correlation}}). Every holder of that registration's credentials
+can redeem a grant that names it, so only a grant bound under
+{{grant-protection}} stays with the key that obtained it.
 
 ## Token Exchange Request {#issuance-request}
 
@@ -1483,7 +1516,8 @@ additionally satisfy:
 |---|---|
 | `sub` | Same user as the validated subject credential, expressed in the IdP's subject namespace for the RAS |
 | `act` | Agent Principal actor constructed under {{actor-construction}} |
-{: title="ID-JAG subject and actor claims"}
+| `tenant` | At a multi-tenant issuer, the user's tenant ({{Section 6.1 of ID-JAG}}), which is also the agent's Governance Tenant ({{canonical-identity}}) |
+{: title="ID-JAG subject, actor, and tenant claims"}
 
 **Unambiguous context:** The IdP MUST NOT issue a grant if it cannot
 determine an unambiguous user, actor, downstream client, or tenant
@@ -1586,7 +1620,8 @@ with the claim set of that section: the common claims of
 | `iss` | The IdP issuer identifier |
 | `sub` | The Agent Principal identifier from the Identity Binding |
 | `aud` | The target RAS issuer identifier |
-{: title="WAG issuer, subject, and audience claims"}
+| `tenant` | At a multi-tenant issuer, the agent's Governance Tenant ({{canonical-identity}}) |
+{: title="WAG issuer, subject, audience, and tenant claims"}
 
 The WAG MUST NOT contain `act`. A `nickname` claim, if present, is for
 display only; it is not an input to agent correlation or authorization
@@ -1616,6 +1651,8 @@ In addition to {{errors}}, the IdP uses these errors:
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
 | Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 | No applicable Delegation Authorization covers the agent, user, client, and target, or policy categorically prohibits the agent for the requested scope ({{issuance-authorization}}) | `actor_unauthorized` |
+| Policy does not authorize the agent's Governance Tenant for the Target Tenant ({{issuance-authorization}}), a relationship local policy prohibits ({{Section 6.6.2 of ACTOR-PROFILE}}) | `actor_unauthorized` |
+| At a multi-tenant issuer, the agent's Governance Tenant is not the user's tenant ({{canonical-identity}}) | `actor_unauthorized` |
 | An applicable Delegation Authorization's scope ceiling excludes the requested scope | `invalid_scope` |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
@@ -1633,7 +1670,7 @@ Self-acting issuance adds these errors:
 | Actor-token parameters present in a self-acting exchange | `invalid_request` |
 | Subject token is not byte-identical to the authentication credential in authentication-context resolution | `invalid_request` |
 | Resolved Agent Principal, but no Client Association permits self-acting issuance for the binding | `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
-| Agent not authorized for the requested RAS or resource | `invalid_target` |
+| Agent not authorized for the requested RAS or resource, including when policy does not authorize its Governance Tenant for the resource's Target Tenant | `invalid_target` |
 | Agent not authorized for the requested authority | `invalid_scope` |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce ({{issuance-authorization}}) | `invalid_target` |
 {: title="Self-acting issuance errors"}
@@ -1725,7 +1762,9 @@ enforces {{applied-changes}}.
 Where the RAS requires a local agent record and none exists for the
 qualified pair in the authorized Target Tenant, resource policy MAY
 permit the RAS to create one from a validated grant. The policy is
-disabled by default and enabled per governing issuer and Target Tenant.
+disabled by default and enabled per governing issuer, or per issuer and
+`tenant` at a multi-tenant issuer ({{canonical-identity}}), and Target
+Tenant.
 When it applies, the RAS:
 
 * MUST key the created record by that exact pair;
@@ -1755,7 +1794,8 @@ The RAS MUST perform ID-JAG validation and additionally:
 1. **Actor:** Require a single `act` object under Actor Profile's rules,
    with non-empty `iss` and `sub` and no nested `act`. Require `act.iss`
    to equal the ID-JAG issuer and configured trust to authorize
-   assertion of that namespace.
+   assertion of that namespace, in the grant's `tenant` at a
+   multi-tenant issuer ({{canonical-identity}}).
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
 3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
@@ -1775,8 +1815,9 @@ additions. After validating the ID-JAG and its client and proof
 bindings, the RAS MUST:
 
 * Resolve exactly one local user in the authorized Target Tenant,
-  qualifying `sub` by the validated IdP issuer and tenant relationship;
-  IdP and RAS tenant identifiers are not interchangeable.
+  qualifying `sub` by the validated IdP issuer, by `tenant` at a
+  multi-tenant issuer ({{Section 6.3 of ID-JAG}}), and by the tenant
+  relationship; IdP and RAS tenant identifiers are not interchangeable.
 * Use `aud_sub` only when the IdP is authorized to assert local account
   identifiers for that Target Tenant, and MUST NOT use it to override
   a conflicting approved link.
@@ -1820,7 +1861,9 @@ The RAS:
    `oauth-wag+jwt` ({{Section 6.1 of WAG}}), so that an ID-JAG or
    another JWT from the same issuer cannot be accepted as a WAG. Require
    `iss` to be a configured governing IdP for the asserted agent
-   namespace. Reject a WAG that contains `act` with `invalid_grant`.
+   namespace, and at a multi-tenant issuer apply the `tenant` rule of
+   {{canonical-identity}}. Reject a WAG that contains `act` with
+   `invalid_grant`.
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
 3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
@@ -2196,10 +2239,11 @@ multiple values or a different resource with `invalid_target`.
    retained authentication-method binding and any additional sender
    binding under RFC 9449 or RFC 8705. Dropping or replacing a
    sender binding requires a new grant.
-2. **Authorization context:** Preserve the user, qualified actor, Target
-   Tenant, resource, and authorization ceiling, including
-   `authorization_details`. Apply current local user and actor policy
-   and {{Section 6 of RFC9396}}.
+2. **Authorization context:** Preserve the user, qualified actor, the
+   grant's `tenant` at a multi-tenant issuer, Target Tenant, resource,
+   and authorization ceiling, including `authorization_details`. Apply
+   current trust in the issuer and that tenant ({{canonical-identity}}),
+   current local user and actor policy, and {{Section 6 of RFC9396}}.
 3. **Profile:** Enforce current minimum-profile policy against the
    profile under which the grant was accepted. Reject with
    `invalid_grant` if it no longer qualifies. Adding a proof does not
@@ -3256,6 +3300,7 @@ referenced sections define each requirement.
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
+| Multi-tenant issuers | `tenant` also names the agent's Governance Tenant: no ID-JAG for an agent of a tenant other than the user's, `tenant` in every WAG, and the RAS's tenant rule of {{Section 4.4.1 of ID-JAG}} applied to a WAG | {{canonical-identity}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Grant binding | `cnf.jkt` from a DPoP proof, redeemed with `jwt-dpop`; no `x5t#S256` certificate binding ({{Section 9.11.2 of ID-JAG}}) | {{grant-protection}}, {{redemption-request}} |
 | Redemption client authentication | Required for every grant, including a bound grant; {{Section 4.4 of ID-JAG}} lets a bound ID-JAG stand in for it, and {{Section 4.1 of JWT-DPOP-GRANT}} makes it optional | {{redemption-common}} |
@@ -3284,7 +3329,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
-| Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | Not defined: neither grant carries the Governance Tenant ({{canonical-identity}}); open ({{wag-gaps}}) |
+| Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | `tenant`, set to the agent's Governance Tenant, required in a WAG from a multi-tenant issuer; the RAS trusts `iss` and `tenant` together ({{canonical-identity}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}
 
@@ -3310,8 +3355,6 @@ items are:
 * a token exchange in which the authenticated client is the subject
   without a subject token ({{wag-request}}), which would also give
   X.509-SVID authentication a self-acting path;
-* telling apart agents of Governance Tenants that share an issuer,
-  which {{Section 6.3 of WAG}} does with a registered claim;
 * self-acting Client Associations ({{AGENT-MANAGEMENT}}); and
 * a WAG lifecycle composition: {{AGENT-LIFECYCLE}} defines no WAG wire
   composition, and revoking one WAG is deployment-specific.

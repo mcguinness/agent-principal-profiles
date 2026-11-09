@@ -803,6 +803,9 @@ poll, the RAS MUST re-evaluate the redemption under
 
 * neither the approval's expiry nor any enforcement deadline has
   passed;
+* the RAS still trusts the grant's issuer for the Target Tenant, in the
+  grant's `tenant` at a multi-tenant issuer ("Canonical Identity and
+  Tenant Boundaries" in {{FEDERATION}});
 * no applied disablement, correlation removal, local restriction, or
   Local Suspension affects the agent or, for an ID-JAG, the user
   ("Applied Disablement and Revocation" in {{FEDERATION}},

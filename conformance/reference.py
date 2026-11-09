@@ -104,6 +104,7 @@ CHECKS = {
     "idp.binding_enabled": "Identity Binding is enabled",
     "idp.agent_active": "Agent Principal is active",
     "idp.tenant_pair": "the agent's Governance Tenant is authorized for the Target Tenant",
+    "idp.tenant_match": "a delegated grant's agent is governed in the user's tenant",
     "idp.presented_evidence_required": "a shared client configured for presented evidence must "
                                        "present the platform JWT, with no mode fallback",
     "idp.platform_audience": "a platform JWT's aud includes an audience accepted for this IdP",
@@ -128,6 +129,11 @@ CHECKS = {
     "ras.resource_match": "the resource parameter equals the grant's resource",
     "ras.scope_claim": "the grant's scope claim is a non-empty string",
     "ras.agent_eligibility": "the correlated agent record exists and is active",
+    "ras.tenant_trust": "a grant from a multi-tenant issuer names a tenant trusted with the "
+                        "issuer for the Target Tenant",
+    "ras.user_tenant": "an ID-JAG's subject is resolved within its issuer tenant",
+    "ras.tenant_recheck": "resolution and refresh re-check that the RAS still trusts the "
+                          "grant's issuer tenant for the Target Tenant",
     "ras.restriction_follows_agent": "an agent disabled at the RAS is refused through every "
                                      "client, not only those the RAS knows it through",
     "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
@@ -449,11 +455,13 @@ class IdP(Server):
             self.platforms[PLATFORM_ISSUER] = {"key": self.platform_key, "alg": "ES256",
                                                "clients": {"platform-client"},
                                                "audiences": {IDP_ISSUER}}
-        self.users = {"alice": {"active": True}}
+        # The issuer is multi-tenant (ID-JAG Section 6.1): each user is in
+        # one of its tenants, and each grant names the user's in `tenant`.
+        self.users = {"alice": {"active": True, "tenant": "acme"}}
         self.ras_subjects = {("alice", RAS_ISSUER): "alice-ras"}
-        # Each Agent Principal has one Governance Tenant. Governance Tenants
-        # share this issuer, and the agent identifier is unique across them
-        # (core: Canonical Identity and Tenant Boundaries).
+        # Each Agent Principal has one Governance Tenant, a tenant of this
+        # issuer, and the agent identifier is unique across them (core:
+        # Canonical Identity and Tenant Boundaries).
         self.agents = {"agent-42": {"active": True, "governance_tenant": "acme"},
                        "agent-43": {"active": True, "governance_tenant": "acme"}}
         # (Governance Tenant, Target Tenant) pairs that policy authorizes for
@@ -515,6 +523,11 @@ class IdP(Server):
                 self.agents["agent-42"]["active"] = value
             elif what == "agent_governance_tenant":
                 self.agents["agent-42"]["governance_tenant"] = value
+            elif what == "user_tenant":
+                self.users["alice"]["tenant"] = value
+            elif what == "client_registration":
+                # value: [IdP client, its registration at the RAS]
+                self.targets[RAS_ISSUER]["registrations"][value[0]] = value[1]
             elif what == "tenant_pair":
                 # value: [Governance Tenant, Target Tenant, authorized]
                 pair = (value[0], value[1])
@@ -580,10 +593,16 @@ class IdP(Server):
         downstream_client = target["registrations"].get(client_id)
         if downstream_client is None:
             raise OAuthError("invalid_target")
+        # A delegated grant's agent is governed in the user's tenant, which
+        # the grant's tenant claim names (core: Canonical Identity and
+        # Tenant Boundaries).
+        tenant = self.users[user]["tenant"]
+        if self.agents[agent]["governance_tenant"] != tenant and self.on("idp.tenant_match"):
+            raise OAuthError("actor_unauthorized",
+                             description="agent governed in a tenant other than the user's")
         # The agent's Governance Tenant must be authorized for the Target
-        # Tenant (core: Issuance Authorization). The core assigns no code to
-        # this refusal; the reference uses actor_unauthorized, as for other
-        # policy refusals of a resolved agent in delegated issuance.
+        # Tenant (core: Issuance Authorization), or delegated issuance is
+        # refused with actor_unauthorized (core: Issuance Errors).
         pair = (self.agents[agent]["governance_tenant"], target["resources"][resource])
         if pair not in self.tenant_pairs and self.on("idp.tenant_pair"):
             raise OAuthError("actor_unauthorized",
@@ -616,7 +635,7 @@ class IdP(Server):
         claims = {"iss": self.issuer, "sub": ras_sub, "aud": audience, "iat": now,
                   "exp": exp, "jti": uuid.uuid4().hex, "client_id": downstream_client,
                   "resource": resource, "scope": " ".join(granted),
-                  "act": {"iss": self.issuer, "sub": agent}}
+                  "act": {"iss": self.issuer, "sub": agent}, "tenant": tenant}
         if jkt is not None:
             claims["cnf"] = {"jkt": jkt}
         grant = jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid}, claims, self.key)
@@ -813,10 +832,18 @@ class RAS(Server):
         self.clients = {cid: {"key": key, "profile": "bound"}
                         for cid, key in self.client_keys.items()}
         self.trusted_idps = {IDP_ISSUER: self.idp_public_key}
+        # The IdP's issuer is multi-tenant, and the RAS trusts its tenant
+        # acme for acme-data (core: Canonical Identity and Tenant Boundaries).
+        self.multi_tenant_issuers = {IDP_ISSUER}
+        self.trusted_tenants = {(IDP_ISSUER, "acme-data"): {"acme"}}
         # default_scope is used only by a RAS with ras.scope_claim switched off.
         self.resources = {RESOURCE: {"tenant": "acme-data", "protection": "dpop",
                                      "default_scope": "files.read"}}
-        self.user_links = {(IDP_ISSUER, "acme-data", "alice-ras"): "user-108"}
+        # (issuer, issuer tenant, Target Tenant, sub) -> local user. At a
+        # multi-tenant issuer, a subject is unique only within its tenant
+        # (ID-JAG Section 6.3); the issuer tenant is None at a single-tenant
+        # issuer.
+        self.user_links = {(IDP_ISSUER, "acme", "acme-data", "alice-ras"): "user-108"}
         # agent-43 is a second agent for the same user, used by the deferral
         # cases that need two pending redemptions through one client.
         self.agents = {(IDP_ISSUER, "agent-42"): {"local": "service-principal-42", "active": True},
@@ -836,6 +863,8 @@ class RAS(Server):
         self.actor_gate_rules = set()
         # Optional just-in-time correlation (core: Agent Principal
         # Correlation), enabled per (issuer, Target Tenant); off by default.
+        # The issuer's one trusted tenant per Target Tenant stands for the
+        # issuer and tenant that the core enables it for.
         self.jit = set()
         self.accepted_grants = {}
         # Deferred redemption (oversight: Deferred Redemption).
@@ -869,9 +898,17 @@ class RAS(Server):
             elif what == "actor_gate_rule":
                 rule = (IDP_ISSUER, "acme-data")
                 (self.actor_gate_rules.add if value else self.actor_gate_rules.discard)(rule)
+            elif what == "tenant_trust":
+                # value: [issuer tenant, Target Tenant, trusted]
+                trusted = self.trusted_tenants.setdefault((IDP_ISSUER, value[1]), set())
+                (trusted.add if value[2] else trusted.discard)(value[0])
             elif what == "jit":
                 scope = (IDP_ISSUER, "acme-data")
                 (self.jit.add if value else self.jit.discard)(scope)
+            elif what == "user_link":
+                # value: [issuer tenant, sub, local user]: links the IdP's
+                # subject in that tenant to a local user in acme-data.
+                self.user_links[(IDP_ISSUER, value[0], "acme-data", value[1])] = value[2]
             elif what == "correlate_agent":
                 # value: an agent identifier of the IdP; correlates it in
                 # acme-data and lets it act for user-108 there.
@@ -1028,8 +1065,15 @@ class RAS(Server):
         config = self.resources.get(resource)
         if config is None:
             raise OAuthError("invalid_grant", description="resource not governed")
+        # At a multi-tenant issuer, trust in the issuer is trust in one of
+        # its tenants (ID-JAG Section 4.4.1; core: Canonical Identity and
+        # Tenant Boundaries).
+        issuer_tenant = self.issuer_tenant(claims)
+        if not self.tenant_trusted(claims["iss"], issuer_tenant, config["tenant"]) and \
+                self.on("ras.tenant_trust"):
+            raise OAuthError("invalid_grant", description="tenant not trusted for the Target Tenant")
         # Local authorization: user, agent correlation, actor gate.
-        user = self.user_links.get((claims["iss"], config["tenant"], claims["sub"]))
+        user = self.resolve_user(claims["iss"], issuer_tenant, config["tenant"], claims["sub"])
         if user is None:
             raise OAuthError("invalid_grant", description="user not resolved")
         agent = self.agents.get((act["iss"], act["sub"]))
@@ -1135,7 +1179,8 @@ class RAS(Server):
         if lifetime <= 0:
             raise OAuthError("invalid_grant", description="absolute authorization expiration")
         pending = {"code": secrets.token_urlsafe(24), "digest": digest, "grant_key": grant_key,
-                   "grant_sub": claims["sub"], "client_id": client_id, "jkt": jkt,
+                   "grant_sub": claims["sub"], "issuer_tenant": self.issuer_tenant(claims),
+                   "client_id": client_id, "jkt": jkt,
                    "params": self.request_params(form), "user": user,
                    "agent": (act["iss"], act["sub"]), "act": copy.deepcopy(act),
                    # The local principal the agent correlated to at receipt,
@@ -1248,8 +1293,8 @@ class RAS(Server):
             pending["state"] = "denied"
             raise OAuthError("access_denied", description=failure)
         auth = {name: pending[name] for name in
-                ("client_id", "jkt", "user", "grant_key", "grant_sub", "agent", "act",
-                 "agent_local", "profile", "tenant", "resource", "abs_exp")}
+                ("client_id", "jkt", "user", "grant_key", "grant_sub", "issuer_tenant", "agent",
+                 "act", "agent_local", "profile", "tenant", "resource", "abs_exp")}
         auth.update(scope=" ".join(scope), approval=copy.deepcopy(approval),
                     enforcement=enforcement)
         token, exp = self.authorized_token(auth, now)
@@ -1278,6 +1323,9 @@ class RAS(Server):
                                                                          returned_until)
         if enforcement is not None and enforcement <= now:
             return "enforcement deadline passed", enforcement
+        if not self.tenant_trusted(auth["grant_key"][0], auth["issuer_tenant"], auth["tenant"]) \
+                and self.on("ras.tenant_recheck"):
+            return "issuer tenant no longer trusted", enforcement
         if self.on("ras.resolution_recheck"):
             agent = self.agents.get(auth["agent"])
             if agent is None or not agent["active"]:
@@ -1288,8 +1336,8 @@ class RAS(Server):
                 return "agent correlation changed", enforcement
             if not self.gate_permits(auth["user"], *auth["agent"], auth["tenant"]):
                 return "actor gate", enforcement
-            if self.user_links.get((auth["grant_key"][0], auth["tenant"],
-                                    auth["grant_sub"])) != auth["user"]:
+            if self.resolve_user(auth["grant_key"][0], auth["issuer_tenant"], auth["tenant"],
+                                 auth["grant_sub"]) != auth["user"]:
                 return "user resolution changed", enforcement
         return None, enforcement
 
@@ -1342,6 +1390,26 @@ class RAS(Server):
         token, exp = self.authorized_token(auth, now)
         return {"access_token": token, "token_type": "DPoP", "expires_in": exp - int(now),
                 "scope": auth["scope"]}
+
+    def issuer_tenant(self, claims):
+        """The grant's tenant at a multi-tenant issuer; None at a single-tenant one."""
+        return claims.get("tenant") if claims["iss"] in self.multi_tenant_issuers else None
+
+    def tenant_trusted(self, iss, issuer_tenant, target_tenant):
+        """Whether the RAS trusts the issuer, in that tenant if it is multi-tenant, for the
+        Target Tenant (core: Canonical Identity and Tenant Boundaries)."""
+        return iss not in self.multi_tenant_issuers or (
+            isinstance(issuer_tenant, str) and
+            issuer_tenant in self.trusted_tenants.get((iss, target_tenant), ()))
+
+    def resolve_user(self, iss, issuer_tenant, target_tenant, sub):
+        """The local user an ID-JAG's subject links to, within its issuer tenant (core:
+        User Resolution and Linking; ID-JAG Section 6.3)."""
+        if self.on("ras.user_tenant"):
+            return self.user_links.get((iss, issuer_tenant, target_tenant, sub))
+        # Non-conforming: the subject is resolved without its issuer tenant.
+        return next((user for (i, _, t, s), user in self.user_links.items()
+                     if (i, t, s) == (iss, target_tenant, sub)), None)
 
     def gate_permits(self, user, iss, sub, tenant):
         """The actor gate: an entry for this user and agent, or an issuer-wide rule."""

@@ -98,9 +98,15 @@ class Config:
     uncorrelated_agent: str = "agent-99"
     # A user the IdP has no record of (N32).
     unknown_user: str = "carol"
-    # A Governance Tenant on the IdP's issuer that policy does not authorize
-    # for `tenant` (N33).
+    # Governance Tenants (N33, N41 to N43): the IdP tenant of the user, the
+    # IdP client and the agent; another tenant of the IdP's issuer, and a
+    # subject of it that test control links to the user (N43); and whether
+    # that issuer is multi-tenant (ID-JAG Section 6.1), so that each grant
+    # names governance_tenant in `tenant`.
+    governance_tenant: str = "acme"
     other_governance_tenant: str = "beta"
+    other_tenant_sub: str = "bob-ras"
+    multi_tenant_issuer: bool = False
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
     # the self-acting population for `resource`, whose tokens name the local
@@ -336,8 +342,21 @@ class Adapter:
                                           for at the resource),
                                           agent_governance_tenant (the
                                           Governance Tenant the agent
-                                          belongs to)
+                                          belongs to), tenant_pair
+                                          ([Governance Tenant, Target
+                                          Tenant, authorized]: whether
+                                          policy authorizes the pair),
+                                          client_registration ([IdP
+                                          client, RAS registration]: the
+                                          client registration association)
                                      ras: agent_active, actor_gate,
+                                          tenant_trust ([issuer tenant,
+                                          Target Tenant, trusted]: whether
+                                          the RAS trusts the IdP's tenant
+                                          for the Target Tenant), user_link
+                                          ([issuer tenant, sub, local
+                                          user]: links that subject to the
+                                          local user),
                                           jit (just-in-time correlation for
                                           the IdP's agents in `tenant`),
                                           resource_protection ("dpop", or
@@ -843,6 +862,9 @@ def p1(ctx):
     check(grant.get("client_id") == cfg.ras_client_id, "client_id is the RAS registration")
     check(single(grant.get("resource")) == cfg.resource, "resource")
     check(grant.get("scope") == cfg.scope, "scope")
+    if cfg.multi_tenant_issuer:
+        check(grant.get("tenant") == cfg.governance_tenant,
+              f"tenant {grant.get('tenant')!r} is not the user's tenant {cfg.governance_tenant}")
     act = grant.get("act")
     check(isinstance(act, dict) and "act" not in act and
           act.get("iss") == cfg.expect["agent_iss"] and act.get("sub") == cfg.expect["agent"],
@@ -1196,13 +1218,8 @@ def n22(ctx):
       "RFC 7523 Section 3; core: Time, Replay, and Key Validation",
       needs=("mint_grant",), defeats=("ras.grant_time",))
 def n23(ctx):
-    cfg, now = ctx.cfg, int(time.time())
-    grant = ctx.adapter.mint_grant({
-        "sub": cfg.expect["grant_sub"], "client_id": cfg.ras_client_id,
-        "resource": cfg.resource, "scope": cfg.scope,
-        "act": {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
-        "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))},
-        "nbf": now + HOUR, "exp": now + HOUR + 300})
+    now = int(time.time())
+    grant = ctx.adapter.mint_grant(grant_claims(ctx, nbf=now + HOUR, exp=now + HOUR + 300))
     expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
 
 
@@ -1231,6 +1248,8 @@ def grant_claims(ctx, **overrides):
               "resource": cfg.resource, "scope": cfg.scope,
               "act": {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
               "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))}}
+    if cfg.multi_tenant_issuer:
+        claims["tenant"] = cfg.governance_tenant
     claims.update(overrides)
     return claims
 
@@ -1318,20 +1337,16 @@ def n32(ctx):
     expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
 
 
-@case("N33", "IdP", "Refuses issuance for an agent whose Governance Tenant is not authorized for "
-      "the Target Tenant",
-      "core: Issuance Authorization; Canonical Identity and Tenant Boundaries",
-      needs=("set:idp.agent_governance_tenant",), defeats=("idp.tenant_pair",))
+@case("N33", "IdP", "Refuses with actor_unauthorized an agent whose Governance Tenant is not "
+      "authorized for the Target Tenant",
+      "core: Issuance Authorization; Issuance Errors",
+      needs=("set:idp.tenant_pair",), defeats=("idp.tenant_pair",))
 def n33(ctx):
-    # The Governance Tenant resolves; policy does not authorize it for the
-    # resource's Target Tenant. The core assigns no code to this refusal
-    # (README, draft question 9), so any error without a grant passes.
-    ctx.adapter.set("idp", "agent_governance_tenant", ctx.cfg.other_governance_tenant)
-    resp = ctx.client.exchange(ctx.id_token())
-    body = resp.json()
-    check(resp.status == 400 and isinstance(body.get("error"), str),
-          f"expected HTTP 400 with an error, got {resp}")
-    check("access_token" not in body, "an error response carried a grant")
+    # Policy stops authorizing the agent's Governance Tenant for the
+    # resource's Target Tenant.
+    cfg = ctx.cfg
+    ctx.adapter.set("idp", "tenant_pair", [cfg.governance_tenant, cfg.tenant, False])
+    expect_error(ctx.client.exchange(ctx.id_token()), 400, "actor_unauthorized")
 
 
 @case("N34", "RAS", "A just-in-time correlation does not authorize the agent it creates",
@@ -1399,6 +1414,33 @@ def p11(ctx):
           f"act {claims.get('act')!r} does not name {sc.agent}")
     check(claims.get("client_id") == sc.ras_client_id,
           f"client_id {claims.get('client_id')!r}, expected {sc.ras_client_id}")
+
+
+@case("P13", "IdP", "Gives two IdP clients one RAS registration, and the RAS still restricts "
+      "each agent alone",
+      "core: Issuance Prerequisites (Downstream client); Agent Principal Correlation",
+      needs=("shared_client", "set:idp.client_registration", "set:ras.agent_active"),
+      defeats=("ras.agent_eligibility",))
+def p13(ctx):
+    # The shared client's IdP client is mapped to the dedicated client's
+    # RAS registration, so grants for agent-42 and agent-43 name one
+    # client_id and are redeemed with one credential.
+    cfg, sc = ctx.cfg, shared(ctx)
+    ctx.adapter.set("idp", "client_registration", [sc.idp_client_id, cfg.ras_client_id])
+    resp = ctx.client.shared_exchange(shared_id_token(ctx), platform_jwt(ctx))
+    check(resp.status == 200, f"shared exchange failed: {resp}")
+    theirs = resp.json()["access_token"]
+    for grant, agent in ((ctx.grant(), cfg.expect["agent"]), (theirs, sc.agent)):
+        claims = jws.decode(grant)[1]
+        check(claims.get("client_id") == cfg.ras_client_id,
+              f"client_id {claims.get('client_id')!r}, expected {cfg.ras_client_id}")
+        check((claims.get("act") or {}).get("sub") == agent, f"act {claims.get('act')!r}")
+    expect_token(ctx.client.redeem(ctx.grant()))
+    # Disabling agent-42 at the RAS refuses it, and leaves agent-43 admitted
+    # through the same registration.
+    ctx.adapter.set("ras", "agent_active", False)
+    expect_error(ctx.client.redeem(ctx.grant()), 400, "invalid_grant")
+    expect_token(ctx.client.redeem(theirs))
 
 
 @case("P12", "IdP", "Expires the grant no later than the platform JWT's evidence deadline",
@@ -1477,6 +1519,69 @@ def n40(ctx):
     expect_error(through_other_client(), 400, "invalid_grant")
     ctx.adapter.set("ras", "agent_active", True)
     expect_token(through_other_client())
+
+
+def multi_tenant(ctx):
+    if not ctx.cfg.multi_tenant_issuer:
+        raise NotRun("the IdP's issuer is single-tenant (Config.multi_tenant_issuer)")
+    return ctx.cfg
+
+
+@case("N41", "IdP", "Refuses with actor_unauthorized a delegated grant for an agent governed in "
+      "a tenant other than the user's",
+      "core: Canonical Identity and Tenant Boundaries; Issuance Errors",
+      needs=("set:idp.agent_governance_tenant", "set:idp.tenant_pair"),
+      defeats=("idp.tenant_match",))
+def n41(ctx):
+    # The agent moves to another tenant of the issuer, which policy
+    # authorizes for the Target Tenant, so only the mismatch with the
+    # user's tenant refuses it.
+    cfg = multi_tenant(ctx)
+    ctx.adapter.set("idp", "agent_governance_tenant", cfg.other_governance_tenant)
+    ctx.adapter.set("idp", "tenant_pair", [cfg.other_governance_tenant, cfg.tenant, True])
+    expect_error(ctx.client.exchange(ctx.id_token()), 400, "actor_unauthorized")
+
+
+@case("N42", "RAS", "Rejects with invalid_grant a grant from a multi-tenant issuer without a "
+      "tenant it trusts for the Target Tenant",
+      "ID-JAG Section 4.4.1; core: Canonical Identity and Tenant Boundaries",
+      needs=("mint_grant", "set:ras.user_link"), defeats=("ras.tenant_trust",))
+def n42(ctx):
+    # The other tenant's subject is linked to the user, so only the RAS's
+    # trust in that tenant refuses its grant.
+    cfg = multi_tenant(ctx)
+    other = cfg.other_governance_tenant
+    ctx.adapter.set("ras", "user_link", [other, cfg.other_tenant_sub, cfg.expect["token_sub"]])
+    for label, tenant in (("another tenant", other), ("no tenant", None)):
+        claims = grant_claims(ctx, tenant=tenant, sub=cfg.other_tenant_sub)
+        if tenant is None:
+            claims = grant_claims(ctx)
+            del claims["tenant"]
+        resp = ctx.client.redeem(ctx.adapter.mint_grant(claims))
+        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+              f"{label}: expected HTTP 400 invalid_grant, got {resp}")
+        check("access_token" not in resp.json(), "an error response carried a token")
+
+
+@case("N43", "RAS", "Resolves the user within the grant's issuer tenant, so another tenant's "
+      "grant naming the same subject resolves no user",
+      "ID-JAG Section 6.3; core: User Resolution and Linking",
+      needs=("mint_grant", "set:ras.tenant_trust", "set:ras.user_link"),
+      defeats=("ras.user_tenant",))
+def n43(ctx):
+    # The RAS also trusts the issuer's other tenant for the Target Tenant,
+    # and links that tenant's own subject to the user, so its grants
+    # redeem; the minted grant's agent stands for one of that tenant's.
+    # The first tenant's subject, named under the other tenant, is not
+    # that user: subjects are unique only within a tenant.
+    cfg = multi_tenant(ctx)
+    other = cfg.other_governance_tenant
+    ctx.adapter.set("ras", "tenant_trust", [other, cfg.tenant, True])
+    ctx.adapter.set("ras", "user_link", [other, cfg.other_tenant_sub, cfg.expect["token_sub"]])
+    expect_token(ctx.client.redeem(ctx.adapter.mint_grant(
+        grant_claims(ctx, tenant=other, sub=cfg.other_tenant_sub))))
+    expect_error(ctx.client.redeem(ctx.adapter.mint_grant(grant_claims(ctx, tenant=other))),
+                 400, "invalid_grant")
 
 
 # Deferred redemption at the RAS ---------------------------------------------
@@ -1559,11 +1664,9 @@ def minted_grant(ctx, agent=None, scope=None):
     for the same RAS client, user, resource and scope.
     """
     cfg = ctx.cfg
-    return ctx.adapter.mint_grant({
-        "sub": cfg.expect["grant_sub"], "client_id": cfg.ras_client_id,
-        "resource": cfg.resource, "scope": scope or cfg.scope,
-        "act": {"iss": cfg.expect["agent_iss"], "sub": agent or cfg.expect["agent"]},
-        "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))}})
+    return ctx.adapter.mint_grant(grant_claims(
+        ctx, scope=scope or cfg.scope,
+        act={"iss": cfg.expect["agent_iss"], "sub": agent or cfg.expect["agent"]}))
 
 
 def scopes(value):
@@ -1957,6 +2060,33 @@ def d24(ctx):
     expect_pending(ctx.client.poll(first["deferral_code"]))
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
     expect_token(ctx.client.poll(first["deferral_code"]))
+
+
+@case("D25", "RAS", "Denies at the next poll when the RAS stops trusting the grant's tenant "
+      "while pending",
+      "oversight: Redemption Resolution; core: Canonical Identity and Tenant Boundaries",
+      needs=("set:ras.approval_required", "set:ras.tenant_trust", "tasks", "approve"),
+      defeats=("ras.tenant_recheck",))
+def d25(ctx):
+    cfg = multi_tenant(ctx)
+    require_approval(ctx)
+    code = defer(ctx, ctx.grant())["deferral_code"]
+    ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
+    ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
+    expect_error(ctx.client.poll(code), 400, "access_denied")
+
+
+@case("D26", "RAS", "A refresh fails once the RAS stops trusting the grant's tenant",
+      "core: Optional RAS Refresh Tokens (step 2); oversight: Refresh and Continuation",
+      needs=("set:ras.approval_required", "set:ras.refresh_permitted", "set:ras.tenant_trust",
+             "tasks", "approve"),
+      defeats=("ras.tenant_recheck",))
+def d26(ctx):
+    cfg = multi_tenant(ctx)
+    _, body, _ = approved_refresh(ctx, ctx.now() + 3600)
+    expect_token(ctx.client.refresh(body["refresh_token"]))
+    ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
+    expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
 
 # Policy services at the API ------------------------------------------------
 #

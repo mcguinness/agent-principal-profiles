@@ -79,20 +79,19 @@ Coordination is needed on:
 * **Shared issuers:** Section 6.3 of WAG, present since -01, tells
   Workload Identity Providers that share one issuer apart by a claim
   registered for each, and recommends dedicated issuers or the ID-JAG
-  `tenant` claim. The core lets Governance Tenants share an issuer and
-  carries no Governance Tenant in either grant, so a RAS cannot restrict
-  shared-issuer trust to one governance partition from the grant
-  (`base-differences`). The WAG-01 and WAG-02 assessments missed this.
-  The two-tenant experiment (`experiments/shared-issuer`) shows that the
-  RAS cannot learn the agent's Governance Tenant from the grant.
-  Per-agent admission at the RAS remains an independent control; with
-  issuer-wide admission, and no governance-partition information
-  provisioned to the RAS by other means, the RAS relies on the IdP's
-  (Governance Tenant, Target Tenant) authorization. Its fix candidates
-  are dedicated issuers, a Governance Tenant claim distinct from
-  ID-JAG's `tenant`, or a security consideration only; none is chosen.
-  Which code the IdP returns for an unauthorized pair is also open
-  (conformance draft question 9).
+  `tenant` claim, leaving the claim's name to each registration. The
+  core takes the second recommendation (`canonical-identity`): a
+  Governance Tenant is a tenant of the issuer in the sense of Section
+  6.1 of ID-JAG, so at a multi-tenant issuer an ID-JAG's `tenant` names
+  the agent's Governance Tenant as well as the user's (the core refuses
+  delegation across tenants there), every WAG carries `tenant`, and the
+  RAS trusts the issuer one tenant at a time, applying Section 4.4.1 of
+  ID-JAG's tenant rule to a WAG too. The two-tenant experiment
+  (`experiments/shared-issuer`) records the outcomes: every RAS
+  configuration refuses another tenant's grants. WAG could name
+  `tenant` as the claim for an issuer that several tenants share. An
+  unauthorized (Governance Tenant, Target Tenant) pair is refused with
+  `actor_unauthorized` (delegated) or `invalid_target` (self-acting).
 * **Issuer metadata:** WAG defines no metadata for the issuer. The core
   has the IdP advertise the WAG token type in
   `identity_chaining_requested_token_types_supported`

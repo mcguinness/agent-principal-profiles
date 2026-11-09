@@ -199,7 +199,10 @@ configuration object types are prescribed.
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
   Client Identifier URL provides one identifier at both servers when
-  both servers use the document.
+  both servers use the document. Several clients can map to one
+  registration, such as the dedicated clients of one platform's agents;
+  the RAS then cannot tell them apart, and only a bound grant stays with
+  the key that obtained it.
 
 **At the RAS:**
 
@@ -323,11 +326,11 @@ suite](conformance/README.md) and how far they go:
 | Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | IdP issuer and grant signing keys | IdP | `https://idp.example/`; its JWK Set | Yes (`jwks_uri`) | Positive path: P2 |
-| Authority for the IdP to assert agents in `act` under its issuer ([Grant Validation][redemption-validation]) | RAS trust configuration | Agents of `https://idp.example/` | No | Positive path: P2 |
+| Authority for the IdP to assert agents in `act` under its issuer, and at a multi-tenant issuer in which of its tenants ([Grant Validation][redemption-validation]; [Canonical Identity and Tenant Boundaries][canonical-identity]) | RAS trust configuration | Agents of `https://idp.example/` in its tenant `acme` | No | Positive path: P2. Direct for the tenant: N42 |
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
-| Client registration association: each IdP client's registration at the RAS, which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13 |
+| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13. A shared registration: P13 |
 | The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
 | Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 for a disabled agent and N27 for an uncorrelated one, both `invalid_grant` |
 | What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |
@@ -437,7 +440,8 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
+cases N01 to N09, N21, N22, N25, N28, N31 to N33, N36 to N39, and
+N41.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
@@ -448,7 +452,10 @@ cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
   binding, active Agent Principal, or Governance Tenant.
 * `actor_unauthorized`, with HTTP 400: no Client Association permits
   the binding; no applicable Delegation Authorization covers the agent,
-  user, client, and target; or policy categorically prohibits the agent.
+  user, client, and target; policy categorically prohibits the agent;
+  policy does not authorize the agent's Governance Tenant for the
+  Target Tenant; or, at a multi-tenant issuer, the agent is governed in
+  a tenant other than the user's.
 * `invalid_scope`: beyond an applicable authorization's scope ceiling.
 * `invalid_target`: the target, its Target Tenant, or the client
   registration association cannot be resolved.
@@ -461,7 +468,7 @@ cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, N34, and N40.
+N30, N34, N40, N42, and N43.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
@@ -478,7 +485,9 @@ N30, N34, and N40.
   * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
     or restricted;
   * a grant whose resource has no Target Tenant that the RAS can
-    determine unambiguously, or is not governed for it.
+    determine unambiguously, or is not governed for it;
+  * a grant from a multi-tenant issuer without a `tenant` the RAS
+    trusts with that issuer for the Target Tenant.
 * `actor_unauthorized`, with HTTP 400: the actor gate refuses an
   ID-JAG's agent for the user.
 * `access_denied`: other current RAS policy refuses a valid ID-JAG,
@@ -545,7 +554,7 @@ applies.
 * **Oversight, at the IdP and the RAS** ([Client Opt-In][ov-opt-in];
   [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery];
   [Redemption Resolution][ov-redemption-resolution]; [Refresh and
-  Continuation][ov-redemption-refresh]; cases D01 to D24, at the RAS
+  Continuation][ov-redemption-refresh]; cases D01 to D26, at the RAS
   only):
   * When policy requires approval, a request without the opt-in gets
     the IdP's ordinary refusal: `actor_unauthorized` for a delegated
@@ -671,7 +680,7 @@ A deployment that uses oversight adds this configuration to the
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
 
 The conformance suite tests deferred redemption against the reference,
-whose Access Request Service it controls: D01 to D24. WAG deferral,
+whose Access Request Service it controls: D01 to D26. WAG deferral,
 mutual-TLS resources, continuation ineligibility, and grant-derived
 revocation while pending are untested.
 
@@ -1591,6 +1600,7 @@ agent cannot use the token directly.
 [agent-correlation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#agent-correlation
 [jit-correlation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#jit-correlation
 [redemption-validation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-validation
+[canonical-identity]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#canonical-identity
 [access-token-protection]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#access-token-protection
 [introspection]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#introspection
 [api-processing]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#api-processing
