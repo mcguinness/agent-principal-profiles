@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>Governed Agent Lifecycle Profile for SCIM and OAuth</title>
+<title>Agent Principal Lifecycle Profile for SCIM and OAuth</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
-       This document profiles SCIM for provisioning issuer-qualified Agent
-Principals into a resource domain and applying administrative disablement
-to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
+       This document profiles SCIM for provisioning issuer-qualified,
+enterprise-governed Agent Principals into a resource domain and applying
+administrative disablement to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
 existing session-revocation events can invalidate identified authorization
 sessions independently of principal state. 
        The profile defines identity correlation, receiver actions, and the
@@ -1052,7 +1052,7 @@ svg {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">Governed Agent Lifecycle</td>
+<td class="center">Agent Principal Lifecycle</td>
 <td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
@@ -1085,12 +1085,12 @@ svg {
 </dd>
 </dl>
 </div>
-<h1 id="title">Governed Agent Lifecycle Profile for SCIM and OAuth</h1>
+<h1 id="title">Agent Principal Lifecycle Profile for SCIM and OAuth</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">This document profiles SCIM for provisioning issuer-qualified Agent
-Principals into a resource domain and applying administrative disablement
-to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
+<p id="section-abstract-1">This document profiles SCIM for provisioning issuer-qualified,
+enterprise-governed Agent Principals into a resource domain and applying
+administrative disablement to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
 existing session-revocation events can invalidate identified authorization
 sessions independently of principal state.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 <p id="section-abstract-2">The profile defines identity correlation, receiver actions, and the
@@ -1351,7 +1351,7 @@ Current administrative state does not establish a history of revocation.<a href=
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">Governed Agent Federation <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> separates agent identity,
+<p id="section-1-1">Agent Principal Federation <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> separates agent identity,
 client authority, user delegation, and resource authorization. It
 identifies an Agent Principal by the pair (IdP issuer, agent
 identifier), independently of the client or workload credential used to
@@ -2222,7 +2222,7 @@ credentials.<a href="#section-12-1" class="pilcrow">¶</a></p>
 <dd class="break"></dd>
 <dt id="FEDERATION">[FEDERATION]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="SCIM-AGENT">[SCIM-AGENT]</dt>
         <dd>
@@ -2265,11 +2265,11 @@ credentials.<a href="#section-12-1" class="pilcrow">¶</a></p>
 <dl class="references">
 <dt id="AGENT-MANAGEMENT">[AGENT-MANAGEMENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Governed Agent Federation Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Agent Principal Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="GUIDE">[GUIDE]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Governed Agent Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Agent Principal Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7009">[RFC7009]</dt>
         <dd>

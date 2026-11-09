@@ -8,18 +8,18 @@ Intended status: Standards Track                         9 November 2026
 Expires: 13 May 2027
 
 
-      Identity Continuation Profile for Governed Agent Federation
+      Identity Continuation Profile for Agent Principal Federation
        draft-mcguinness-oauth-governed-agent-continuation-latest
 
 Abstract
 
-   The OAuth 2.0 Profile for Governed Agent Federation carries a
-   governed Agent Principal from an identity provider into one resource
-   domain, as the actor of an Identity Assertion JWT Authorization Grant
-   (ID-JAG) or the subject of a Workload Authorization Grant (WAG).  A
-   gateway that receives such an agent's request and calls resources in
-   other domains for it holds neither the user's credential nor the
-   agent's.
+   The OAuth 2.0 Profile for Agent Principal Federation carries an
+   enterprise-governed Agent Principal from an identity provider into
+   one resource domain, as the actor of an Identity Assertion JWT
+   Authorization Grant (ID-JAG) or the subject of a Workload
+   Authorization Grant (WAG).  A gateway that receives such an agent's
+   request and calls resources in other domains for it holds neither the
+   user's credential nor the agent's.
 
    This document profiles the Identity Continuation Assertion for
    governed agents, with gateways as the primary deployment.  The
@@ -1483,7 +1483,7 @@ Table of Contents
    *  Common Name: Grant profile identifier for a Resource Authorization
       Server that binds the identity_continuation_handle claim of
       governed ID-JAGs and WAGs to authorization state under the
-      Identity Continuation Profile for Governed Agent Federation
+      Identity Continuation Profile for Agent Principal Federation
 
    *  Change Controller: IETF
 
@@ -1524,7 +1524,7 @@ Table of Contents
 15.1.  Normative References
 
    [FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Governed Agent
+              McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 9 October
               2026, <https://mcguinness.github.io/governed-agent-
@@ -1599,23 +1599,23 @@ Table of Contents
 15.2.  Informative References
 
    [OVERSIGHT]
-              McGuinness, K., "Human Oversight Profile for Governed
-              Agent Federation", Work in Progress, Internet-Draft,
+              McGuinness, K., "Human Oversight Profile for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
               draft-mcguinness-oauth-governed-agent-oversight,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-oversight.html>.
 
    [AGENT-LIFECYCLE]
-              McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
-              and OAuth", Work in Progress, Internet-Draft, draft-
+              McGuinness, K., "Agent Principal Lifecycle Profile for
+              SCIM and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, n.d.,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-lifecycle.html>.
 
    [AGENT-MANAGEMENT]
-              McGuinness, K., "SCIM Profile for Governed Agent
-              Federation Management", Work in Progress, Internet-Draft,
-              draft-mcguinness-scim-agent-federation, 18 September 2026,
+              McGuinness, K., "SCIM Profile for Agent Principal
+              Management", Work in Progress, Internet-Draft, draft-
+              mcguinness-scim-agent-federation, 18 September 2026,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-scim-agent-federation.html>.
 
@@ -1626,7 +1626,7 @@ Table of Contents
               authorization/2026-07-28/enterprise-managed-
               authorization.mdx>.
 
-   [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
               Federation", <https://github.com/mcguinness/governed-
               agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 

@@ -8,21 +8,22 @@ Intended status: Standards Track                         9 November 2026
 Expires: 13 May 2027
 
 
-         SCIM Profile for Governed Agent Federation Management
+              SCIM Profile for Agent Principal Management
              draft-mcguinness-scim-agent-federation-latest
 
 Abstract
 
    This document profiles the System for Cross-domain Identity
    Management (SCIM) for platform-to-identity-provider management of
-   Agent Principals, Identity Bindings, and Client Associations.  It
-   extends the SCIM Agent resource with the principal's issuer-qualified
-   identity and defines resources for identity and client-use
-   relationships.  A dedicated-client binding administers both decisions
-   together; shared-client permissions use separate Client Associations.
-   Both reference OAuthClient resources from the generic SCIM client-
-   management profile.  Shared clients use independent workload bindings
-   to distinguish the agents they exercise.
+   enterprise-governed Agent Principals, Identity Bindings, and Client
+   Associations.  It extends the SCIM Agent resource with the
+   principal's issuer-qualified identity and defines resources for
+   identity and client-use relationships.  A dedicated-client binding
+   administers both decisions together; shared-client permissions use
+   separate Client Associations.  Both reference OAuthClient resources
+   from the generic SCIM client-management profile.  Shared clients use
+   independent workload bindings to distinguish the agents they
+   exercise.
 
    The profile reuses SCIM operations, discovery, and conditional
    updates.  It defines how approved management changes affect new grant
@@ -138,7 +139,7 @@ Table of Contents
 
 1.  Introduction
 
-   Governed Agent Federation [FEDERATION] separates the identity of an
+   Agent Principal Federation [FEDERATION] separates the identity of an
    Agent Principal from its resolution inputs, permitted OAuth clients,
    user delegations, and resource permissions.  Its token protocol
    assumes that the corresponding administrative relationships already
@@ -1165,7 +1166,7 @@ Table of Contents
               management.html>.
 
    [FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Governed Agent
+              McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 18 September
               2026, <https://mcguinness.github.io/governed-agent-
@@ -1201,11 +1202,11 @@ Table of Contents
               DOI 10.17487/RFC6901, April 2013,
               <https://www.rfc-editor.org/rfc/rfc6901>.
 
-   [INPUTS]   McGuinness, K., "Agent Resolution Input Profiles for
-              Governed Agent Federation", Work in Progress, Internet-
-              Draft, draft-mcguinness-oauth-governed-agent-inputs, 9
-              October 2026, <https://mcguinness.github.io/governed-
-              agent-profiles/draft-mcguinness-oauth-governed-agent-
+   [INPUTS]   McGuinness, K., "Agent Resolution Inputs for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-inputs, 9 October
+              2026, <https://mcguinness.github.io/governed-agent-
+              profiles/draft-mcguinness-oauth-governed-agent-
               inputs.html>.
 
    [BCP14]    Best Current Practice 14,
@@ -1224,14 +1225,14 @@ Table of Contents
 12.2.  Informative References
 
    [LIFECYCLE]
-              McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
-              and OAuth", Work in Progress, Internet-Draft, draft-
+              McGuinness, K., "Agent Principal Lifecycle Profile for
+              SCIM and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, 18 September
               2026, <https://mcguinness.github.io/governed-agent-
               profiles/draft-mcguinness-oauth-governed-agent-
               lifecycle.html>.
 
-   [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
               Federation", <https://github.com/mcguinness/governed-
               agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 

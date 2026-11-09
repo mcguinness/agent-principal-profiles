@@ -8,16 +8,16 @@ Intended status: Standards Track                         9 November 2026
 Expires: 13 May 2027
 
 
-         Human Oversight Profile for Governed Agent Federation
+         Human Oversight Profile for Agent Principal Federation
          draft-mcguinness-oauth-governed-agent-oversight-latest
 
 Abstract
 
-   The OAuth 2.0 Profile for Governed Agent Federation decides which
-   governed agent acts, for whom, and under what authorization, and an
-   identity provider issues the resulting grant without a person
-   present.  It bounds what an external approval can do but leaves
-   asynchronous approval undefined.
+   The OAuth 2.0 Profile for Agent Principal Federation decides which
+   enterprise-governed agent acts, for whom, and under what
+   authorization, and an identity provider issues the resulting grant
+   without a person present.  It bounds what an external approval can do
+   but leaves asynchronous approval undefined.
 
    This document defines three oversight modes for governed agent
    access.  With a human in the loop, an authenticated person decides on
@@ -1330,16 +1330,16 @@ Table of Contents
 13.1.  Normative References
 
    [FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Governed Agent
+              McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-federation.html>.
 
    [CONTINUATION]
-              McGuinness, K., "Identity Continuation Profile for
-              Governed Agent Federation", Work in Progress, Internet-
-              Draft, draft-mcguinness-oauth-governed-agent-continuation,
+              McGuinness, K., "Identity Continuation Profile for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-continuation,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-continuation.html>.
 
@@ -1382,8 +1382,8 @@ Table of Contents
 13.2.  Informative References
 
    [AGENT-LIFECYCLE]
-              McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
-              and OAuth", Work in Progress, Internet-Draft, draft-
+              McGuinness, K., "Agent Principal Lifecycle Profile for
+              SCIM and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-lifecycle.html>.

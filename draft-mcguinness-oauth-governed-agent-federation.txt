@@ -8,7 +8,7 @@ Intended status: Standards Track                         9 November 2026
 Expires: 13 May 2027
 
 
-            OAuth 2.0 Profile for Governed Agent Federation
+            OAuth 2.0 Profile for Agent Principal Federation
         draft-mcguinness-oauth-governed-agent-federation-latest
 
 Abstract
@@ -3606,11 +3606,11 @@ Table of Contents
               RFC 9700, DOI 10.17487/RFC9700, January 2025,
               <https://www.rfc-editor.org/rfc/rfc9700>.
 
-   [INPUTS]   McGuinness, K., "Agent Resolution Input Profiles for
-              Governed Agent Federation", Work in Progress, Internet-
-              Draft, draft-mcguinness-oauth-governed-agent-inputs, 9
-              October 2026, <https://mcguinness.github.io/governed-
-              agent-profiles/draft-mcguinness-oauth-governed-agent-
+   [INPUTS]   McGuinness, K., "Agent Resolution Inputs for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-inputs, 9 October
+              2026, <https://mcguinness.github.io/governed-agent-
+              profiles/draft-mcguinness-oauth-governed-agent-
               inputs.html>.
 
    [BCP14]    Best Current Practice 14,
@@ -3629,9 +3629,9 @@ Table of Contents
 15.2.  Informative References
 
    [AGENT-MANAGEMENT]
-              McGuinness, K., "SCIM Profile for Governed Agent
-              Federation Management", Work in Progress, Internet-Draft,
-              draft-mcguinness-scim-agent-federation, 18 September 2026,
+              McGuinness, K., "SCIM Profile for Agent Principal
+              Management", Work in Progress, Internet-Draft, draft-
+              mcguinness-scim-agent-federation, 18 September 2026,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-scim-agent-federation.html>.
 
@@ -3643,8 +3643,8 @@ Table of Contents
               aims-01>.
 
    [AGENT-LIFECYCLE]
-              McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
-              and OAuth", Work in Progress, Internet-Draft, draft-
+              McGuinness, K., "Agent Principal Lifecycle Profile for
+              SCIM and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, n.d.,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-lifecycle.html>.
@@ -3692,17 +3692,17 @@ Table of Contents
               ietf-oauth-identity-chaining-17>.
 
    [OVERSIGHT]
-              McGuinness, K., "Human Oversight Profile for Governed
-              Agent Federation", Work in Progress, Internet-Draft,
+              McGuinness, K., "Human Oversight Profile for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
               draft-mcguinness-oauth-governed-agent-oversight,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-oversight.html>.
 
    [CONTINUATION]
-              McGuinness, K., "Identity Continuation Profile for
-              Governed Agent Federation", Work in Progress, Internet-
-              Draft, draft-mcguinness-oauth-governed-agent-continuation,
-              14 October 2026, <https://mcguinness.github.io/governed-
+              McGuinness, K., "Identity Continuation Profile for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-continuation, 14
+              October 2026, <https://mcguinness.github.io/governed-
               agent-profiles/draft-mcguinness-oauth-governed-agent-
               continuation.html>.
 
@@ -3739,7 +3739,7 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-mora-oauth-
               entity-profiles-02>.
 
-   [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
               Federation", <https://github.com/mcguinness/governed-
               agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 

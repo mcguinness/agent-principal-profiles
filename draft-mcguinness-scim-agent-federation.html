@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>SCIM Profile for Governed Agent Federation Management</title>
+<title>SCIM Profile for Agent Principal Management</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
        This document profiles the System for Cross-domain Identity Management
-(SCIM) for platform-to-identity-provider management of Agent Principals,
-Identity Bindings, and Client Associations. It extends the SCIM Agent
+(SCIM) for platform-to-identity-provider management of
+enterprise-governed Agent Principals, Identity Bindings, and Client
+Associations. It extends the SCIM Agent
 resource with the principal's issuer-qualified identity and defines
 resources for identity and client-use relationships. A dedicated-client
 binding administers both decisions together; shared-client permissions
@@ -1054,7 +1055,7 @@ svg {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">SCIM Agent Federation</td>
+<td class="center">SCIM Agent Principal Management</td>
 <td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
@@ -1087,12 +1088,13 @@ svg {
 </dd>
 </dl>
 </div>
-<h1 id="title">SCIM Profile for Governed Agent Federation Management</h1>
+<h1 id="title">SCIM Profile for Agent Principal Management</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
 <p id="section-abstract-1">This document profiles the System for Cross-domain Identity Management
-(SCIM) for platform-to-identity-provider management of Agent Principals,
-Identity Bindings, and Client Associations. It extends the SCIM Agent
+(SCIM) for platform-to-identity-provider management of
+enterprise-governed Agent Principals, Identity Bindings, and Client
+Associations. It extends the SCIM Agent
 resource with the principal's issuer-qualified identity and defines
 resources for identity and client-use relationships. A dedicated-client
 binding administers both decisions together; shared-client permissions
@@ -1356,7 +1358,7 @@ revoke previously issued downstream authorization.<a href="#section-abstract-2" 
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">Governed Agent Federation <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> separates the identity of an
+<p id="section-1-1">Agent Principal Federation <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> separates the identity of an
 Agent Principal from its resolution inputs, permitted OAuth clients,
 user delegations, and resource permissions. Its token protocol assumes
 that the corresponding administrative relationships already exist. This
@@ -2697,7 +2699,7 @@ registered. Credential-class names are local to this profile's schema.<a href="#
 <dd class="break"></dd>
 <dt id="FEDERATION">[FEDERATION]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="INSTANCE">[INSTANCE]</dt>
         <dd>
@@ -2721,7 +2723,7 @@ registered. Credential-class names are local to this profile's schema.<a href="#
 <dd class="break"></dd>
 <dt id="INPUTS">[INPUTS]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Resolution Input Profiles for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-inputs</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Resolution Inputs for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-inputs</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
       <dd>
@@ -2744,11 +2746,11 @@ registered. Credential-class names are local to this profile's schema.<a href="#
 <dl class="references">
 <dt id="LIFECYCLE">[LIFECYCLE]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Governed Agent Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Principal Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="GUIDE">[GUIDE]</dt>
       <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Governed Agent Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Agent Principal Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>

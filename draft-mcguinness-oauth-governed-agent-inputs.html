@@ -4,14 +4,16 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>Agent Resolution Input Profiles for Governed Agent Federation</title>
+<title>Agent Resolution Inputs for Agent Principal Federation</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
        This document defines optional agent-resolution input profiles for the
-OAuth 2.0 Profile for Governed Agent Federation: SPIFFE JWT-SVIDs,
-WIT-SVIDs, and X.509-SVIDs, and OAuth Attestation-Based Client
-Authentication, including resolution of managed installations by client
-instance identifier. Each profile satisfies the federation profile's
+OAuth 2.0 Profile for Agent Principal Federation, with which an
+enterprise identity provider resolves an authenticated client or
+workload identity to an enterprise-governed Agent Principal. The inputs
+are SPIFFE JWT-SVIDs, WIT-SVIDs, and X.509-SVIDs, and OAuth
+Attestation-Based Client Authentication, including resolution of managed
+installations by client instance identifier. Each profile satisfies the federation profile's
 agent-resolution input contract and is claimed separately. 
     " name="description">
 <meta content="xml2rfc 3.35.0" name="generator">
@@ -1049,7 +1051,7 @@ svg {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">Governed Agent Inputs</td>
+<td class="center">Agent Principal Inputs</td>
 <td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
@@ -1082,14 +1084,16 @@ svg {
 </dd>
 </dl>
 </div>
-<h1 id="title">Agent Resolution Input Profiles for Governed Agent Federation</h1>
+<h1 id="title">Agent Resolution Inputs for Agent Principal Federation</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
 <p id="section-abstract-1">This document defines optional agent-resolution input profiles for the
-OAuth 2.0 Profile for Governed Agent Federation: SPIFFE JWT-SVIDs,
-WIT-SVIDs, and X.509-SVIDs, and OAuth Attestation-Based Client
-Authentication, including resolution of managed installations by client
-instance identifier. Each profile satisfies the federation profile's
+OAuth 2.0 Profile for Agent Principal Federation, with which an
+enterprise identity provider resolves an authenticated client or
+workload identity to an enterprise-governed Agent Principal. The inputs
+are SPIFFE JWT-SVIDs, WIT-SVIDs, and X.509-SVIDs, and OAuth
+Attestation-Based Client Authentication, including resolution of managed
+installations by client instance identifier. Each profile satisfies the federation profile's
 agent-resolution input contract and is claimed separately.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
@@ -1747,7 +1751,7 @@ identifiers are scoped per receiver under <span><a href="https://datatracker.iet
 <dl class="references">
 <dt id="FEDERATION">[FEDERATION]</dt>
       <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ATTEST">[ATTEST]</dt>
       <dd>

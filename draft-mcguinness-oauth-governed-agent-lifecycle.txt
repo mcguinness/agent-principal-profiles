@@ -8,17 +8,17 @@ Intended status: Standards Track                         9 November 2026
 Expires: 13 May 2027
 
 
-          Governed Agent Lifecycle Profile for SCIM and OAuth
+          Agent Principal Lifecycle Profile for SCIM and OAuth
          draft-mcguinness-oauth-governed-agent-lifecycle-latest
 
 Abstract
 
-   This document profiles SCIM for provisioning issuer-qualified Agent
-   Principals into a resource domain and applying administrative
-   disablement to OAuth authorization.  Existing SCIM Events can
-   accelerate reconciliation; existing session-revocation events can
-   invalidate identified authorization sessions independently of
-   principal state.
+   This document profiles SCIM for provisioning issuer-qualified,
+   enterprise-governed Agent Principals into a resource domain and
+   applying administrative disablement to OAuth authorization.  Existing
+   SCIM Events can accelerate reconciliation; existing session-
+   revocation events can invalidate identified authorization sessions
+   independently of principal state.
 
    The profile defines identity correlation, receiver actions, and the
    limits of propagation and resource enforcement.  It defines no new
@@ -133,7 +133,7 @@ Table of Contents
 
 1.  Introduction
 
-   Governed Agent Federation [FEDERATION] separates agent identity,
+   Agent Principal Federation [FEDERATION] separates agent identity,
    client authority, user delegation, and resource authorization.  It
    identifies an Agent Principal by the pair (IdP issuer, agent
    identifier), independently of the client or workload credential used
@@ -864,7 +864,7 @@ Table of Contents
               identity-assertion-authz-grant-06>.
 
    [FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Governed Agent
+              McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 18 September
               2026, <https://datatracker.ietf.org/doc/html/draft-
@@ -916,13 +916,13 @@ Table of Contents
 14.2.  Informative References
 
    [AGENT-MANAGEMENT]
-              McGuinness, K., "SCIM Profile for Governed Agent
-              Federation Management", Work in Progress, Internet-Draft,
-              draft-mcguinness-scim-agent-federation, 18 September 2026,
+              McGuinness, K., "SCIM Profile for Agent Principal
+              Management", Work in Progress, Internet-Draft, draft-
+              mcguinness-scim-agent-federation, 18 September 2026,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-scim-agent-federation.html>.
 
-   [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
               Federation", <https://github.com/mcguinness/governed-
               agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 

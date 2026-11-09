@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>Identity Continuation Profile for Governed Agent Federation</title>
+<title>Identity Continuation Profile for Agent Principal Federation</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
-       The OAuth 2.0 Profile for Governed Agent Federation carries a governed
-Agent Principal from an identity provider into one resource domain, as
-the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
+       The OAuth 2.0 Profile for Agent Principal Federation carries an
+enterprise-governed Agent Principal from an identity provider into one
+resource domain, as the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
 the subject of a Workload Authorization Grant (WAG). A gateway that
 receives such an agent's request and calls resources in other domains
 for it holds neither the user's credential nor the agent's. 
@@ -1060,7 +1060,7 @@ svg {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">Governed Agent Continuation</td>
+<td class="center">Agent Principal Continuation</td>
 <td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
@@ -1093,12 +1093,12 @@ svg {
 </dd>
 </dl>
 </div>
-<h1 id="title">Identity Continuation Profile for Governed Agent Federation</h1>
+<h1 id="title">Identity Continuation Profile for Agent Principal Federation</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">The OAuth 2.0 Profile for Governed Agent Federation carries a governed
-Agent Principal from an identity provider into one resource domain, as
-the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
+<p id="section-abstract-1">The OAuth 2.0 Profile for Agent Principal Federation carries an
+enterprise-governed Agent Principal from an identity provider into one
+resource domain, as the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
 the subject of a Workload Authorization Grant (WAG). A gateway that
 receives such an agent's request and calls resources in other domains
 for it holds neither the user's credential nor the agent's.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
@@ -3074,7 +3074,7 @@ audit data.<a href="#section-13-1" class="pilcrow">¶</a></p>
           <p id="section-14-2.2.1">Common Name: Grant profile identifier for a Resource Authorization
 Server that binds the <code>identity_continuation_handle</code> claim of
 governed ID-JAGs and WAGs to authorization state under the Identity
-Continuation Profile for Governed Agent Federation<a href="#section-14-2.2.1" class="pilcrow">¶</a></p>
+Continuation Profile for Agent Principal Federation<a href="#section-14-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-14-2.3">
           <p id="section-14-2.3.1">Change Controller: IETF<a href="#section-14-2.3.1" class="pilcrow">¶</a></p>
@@ -3137,7 +3137,7 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dl class="references">
 <dt id="FEDERATION">[FEDERATION]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ICA">[ICA]</dt>
         <dd>
@@ -3200,15 +3200,15 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dl class="references">
 <dt id="OVERSIGHT">[OVERSIGHT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Human Oversight Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-oversight</span>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Human Oversight Profile for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-oversight</span>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="AGENT-LIFECYCLE">[AGENT-LIFECYCLE]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Governed Agent Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <span>n.d.</span>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Principal Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <span>n.d.</span>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="AGENT-MANAGEMENT">[AGENT-MANAGEMENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Governed Agent Federation Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Agent Principal Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="EMA">[EMA]</dt>
         <dd>
@@ -3216,7 +3216,7 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dd class="break"></dd>
 <dt id="GUIDE">[GUIDE]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Governed Agent Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Agent Principal Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ID-CHAINING">[ID-CHAINING]</dt>
         <dd>
