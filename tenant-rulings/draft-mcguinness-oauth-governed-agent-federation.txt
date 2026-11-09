@@ -2168,7 +2168,8 @@ Table of Contents
    bindings, the RAS MUST:
 
    *  Resolve exactly one local user in the authorized Target Tenant,
-      qualifying sub by the validated IdP issuer and tenant
+      qualifying sub by the validated IdP issuer, by tenant at a multi-
+      tenant issuer (Section 6.3 of [ID-JAG]), and by the tenant
       relationship; IdP and RAS tenant identifiers are not
       interchangeable.
 
@@ -2721,10 +2722,11 @@ Table of Contents
        binding under RFC 9449 or RFC 8705.  Dropping or replacing a
        sender binding requires a new grant.
 
-   2.  *Authorization context:* Preserve the user, qualified actor,
-       Target Tenant, resource, and authorization ceiling, including
-       authorization_details.  Apply current local user and actor policy
-       and Section 6 of [RFC9396].
+   2.  *Authorization context:* Preserve the user, qualified actor, the
+       grant's tenant at a multi-tenant issuer, Target Tenant, resource,
+       and authorization ceiling, including authorization_details.
+       Apply current trust in the issuer and that tenant (Section 3.3),
+       current local user and actor policy, and Section 6 of [RFC9396].
 
    3.  *Profile:* Enforce current minimum-profile policy against the
        profile under which the grant was accepted.  Reject with

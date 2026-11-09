@@ -4236,8 +4236,9 @@ bindings, the RAS <span class="bcp14">MUST</span>:<a href="#section-6.4.2-1" cla
 <ul class="normal">
 <li class="normal" id="section-6.4.2-2.1">
               <p id="section-6.4.2-2.1.1">Resolve exactly one local user in the authorized Target Tenant,
-qualifying <code>sub</code> by the validated IdP issuer and tenant relationship;
-IdP and RAS tenant identifiers are not interchangeable.<a href="#section-6.4.2-2.1.1" class="pilcrow">¶</a></p>
+qualifying <code>sub</code> by the validated IdP issuer, by <code>tenant</code> at a
+multi-tenant issuer (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.3" class="relref">Section 6.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>), and by the tenant
+relationship; IdP and RAS tenant identifiers are not interchangeable.<a href="#section-6.4.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.4.2-2.2">
               <p id="section-6.4.2-2.2.1">Use <code>aud_sub</code> only when the IdP is authorized to assert local account
@@ -4958,10 +4959,11 @@ binding under RFC 9449 or RFC 8705. Dropping or replacing a
 sender binding requires a new grant.<a href="#section-8.2-7.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-8.2-7.2">
-            <p id="section-8.2-7.2.1"><strong>Authorization context:</strong> Preserve the user, qualified actor, Target
-Tenant, resource, and authorization ceiling, including
-<code>authorization_details</code>. Apply current local user and actor policy
-and <span><a href="https://rfc-editor.org/rfc/rfc9396#section-6" class="relref">Section 6</a> of [<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>.<a href="#section-8.2-7.2.1" class="pilcrow">¶</a></p>
+            <p id="section-8.2-7.2.1"><strong>Authorization context:</strong> Preserve the user, qualified actor, the
+grant's <code>tenant</code> at a multi-tenant issuer, Target Tenant, resource,
+and authorization ceiling, including <code>authorization_details</code>. Apply
+current trust in the issuer and that tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>),
+current local user and actor policy, and <span><a href="https://rfc-editor.org/rfc/rfc9396#section-6" class="relref">Section 6</a> of [<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>.<a href="#section-8.2-7.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-8.2-7.3">
             <p id="section-8.2-7.3.1"><strong>Profile:</strong> Enforce current minimum-profile policy against the

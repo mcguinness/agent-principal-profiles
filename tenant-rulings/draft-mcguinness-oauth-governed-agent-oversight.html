@@ -2307,26 +2307,31 @@ poll, the RAS <span class="bcp14">MUST</span> re-evaluate the redemption under
 passed;<a href="#section-5.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.5-2.2">
-            <p id="section-5.5-2.2.1">no applied disablement, correlation removal, local restriction, or
-Local Suspension affects the agent or, for an ID-JAG, the user
-("Applied Disablement and Revocation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>,
-<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>);<a href="#section-5.5-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-5.5-2.2.1">the RAS still trusts the grant's issuer for the Target Tenant, in the
+grant's <code>tenant</code> at a multi-tenant issuer ("Canonical Identity and
+Tenant Boundaries" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>);<a href="#section-5.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.5-2.3">
-            <p id="section-5.5-2.3.1">for an ID-JAG, the user is active and resolves to the same local
+            <p id="section-5.5-2.3.1">no applied disablement, correlation removal, local restriction, or
+Local Suspension affects the agent or, for an ID-JAG, the user
+("Applied Disablement and Revocation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>,
+<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>);<a href="#section-5.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.5-2.4">
+            <p id="section-5.5-2.4.1">for an ID-JAG, the user is active and resolves to the same local
 user, the <code>act</code> agent correlates to the same local agent principal,
 and the actor gate permits the relationship. An account-link change
 does not substitute another user ("User Resolution and Linking" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and a changed agent link does not transfer the
-delegation ("Agent Principal Correlation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>);<a href="#section-5.5-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-5.5-2.4">
-            <p id="section-5.5-2.4.1">for a WAG, (<code>iss</code>, <code>sub</code>) correlates to the same local agent
-principal; and<a href="#section-5.5-2.4.1" class="pilcrow">¶</a></p>
+delegation ("Agent Principal Correlation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>);<a href="#section-5.5-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.5-2.5">
-            <p id="section-5.5-2.5.1">current RAS policy permits the approved authority for the client,
-Target Tenant, and resource.<a href="#section-5.5-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-5.5-2.5.1">for a WAG, (<code>iss</code>, <code>sub</code>) correlates to the same local agent
+principal; and<a href="#section-5.5-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.5-2.6">
+            <p id="section-5.5-2.6.1">current RAS policy permits the approved authority for the client,
+Target Tenant, and resource.<a href="#section-5.5-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-5.5-3">If any check fails, the RAS returns <code>access_denied</code> and issues no
