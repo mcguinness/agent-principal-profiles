@@ -30,7 +30,7 @@ A claim whose cases were not run says so in Part 5.
 
 | Claim | Cases |
 |---|---|
-| IdP: delegated access, dedicated client, ID Token subjects | P1, P13 (with a second IdP client), N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
+| IdP: delegated access, dedicated client, ID Token subjects | P1, P16, P13 (with a second IdP client), N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
 | RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50 |
 | API: delegated access | P3, P4, N17 to N20, N24, N35, S32, S33, S35, S36 |
 | Generic shared-client interoperability (IdP) | P11, P12, N36 to N39 |

@@ -806,6 +806,11 @@ def typ_is(header, media_type):
     return isinstance(value, str) and value.lower() in (media_type, "application/" + media_type)
 
 
+def numeric(value):
+    """A NumericDate: a JSON number, integer or not (RFC 7519 Section 2)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def single(value):
     """A JWT claim that may be a string or a one-element array, as one value."""
     return value[0] if isinstance(value, list) and len(value) == 1 else value
@@ -1131,6 +1136,22 @@ def p10(ctx):
     check(resp.status == 200, f"read failed: {resp}")
     check(urlsplit(ctx.cfg.api_base).netloc in ctx.client.nonce_demands,
           "setup: the API did not demand a nonce")
+
+
+@case("P16", "IdP", "Expires the grant no later than the ID Token",
+      "core: Grant Issuance (the subject credential's expiration); Common Grant Claims, "
+      "Lifetime, and Response",
+      needs=("id_token:claims",), defeats=("idp.subject_deadline",))
+def p16(ctx):
+    # The ID Token expires in 90 s, within the grant's own 300 s limit, so
+    # only the subject credential's expiration bounds the grant.
+    id_token = ctx.id_token(claims={"exp": ctx.now() + 90})
+    resp = ctx.client.exchange(id_token)
+    check(resp.status == 200, f"exchange failed: {resp}")
+    deadline = jws.decode(id_token)[1]["exp"]
+    exp = jws.decode(resp.json()["access_token"])[1].get("exp")
+    check(numeric(exp) and exp <= deadline,
+          f"grant exp {exp} is after the ID Token's exp {deadline}")
 
 
 # IdP rejections ------------------------------------------------------------

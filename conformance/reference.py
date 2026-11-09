@@ -124,6 +124,7 @@ CHECKS = {
                         "platform JWT binding",
     "idp.evidence_deadline": "the grant expires no later than the platform JWT's evidence "
                              "deadline",
+    "idp.subject_deadline": "the grant expires no later than the ID Token it was issued for",
     "idp.client_association": "Client Association permits delegated use of the binding",
     "idp.self_acting_association": "Client Association permits self-acting use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
@@ -668,7 +669,9 @@ class IdP(Server):
                 raise OAuthError("actor_unauthorized", description="agent prohibited for the scope")
             raise OAuthError("invalid_scope")
         now = int(self.now())
-        exp = min(now + GRANT_LIFETIME, id_token_exp)
+        exp = now + GRANT_LIFETIME
+        if self.on("idp.subject_deadline"):
+            exp = min(exp, id_token_exp)
         if evidence_deadline is not None and self.on("idp.evidence_deadline"):
             exp = min(exp, evidence_deadline)
         claims = {"iss": self.issuer, "sub": ras_sub, "aud": audience, "iat": now,
