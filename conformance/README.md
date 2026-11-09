@@ -134,6 +134,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N50 | RAS | With unbound grants, an ID-JAG without `cnf` redeemed once with a proof of K and presented again with a proof of K2 fails with `invalid_grant` | core: Common Grant Validation (Grant replay); Renewal and Negative Tests | Let the IdP issue, and the RAS accept, unbound grants |
 | N51 | RAS | With unbound grants, a WAG without `cnf` redeemed once and presented again fails with `invalid_grant` | core: Common Grant Validation (Grant replay); Renewal and Negative Tests | As N50, for the self-acting registration |
 | N52 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, an ID-JAG-typed grant without `act`, naming the self-acting registration, and a WAG-typed grant carrying `act` both fail with `invalid_grant`: the RAS tells the grants apart by `typ`, so neither becomes the other | core: Grant Validation (Actor); Self-Acting Redemption: WAG, step 1; Credential and Token Confusion | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; mint an ID-JAG and a WAG |
+| N53 | API | With the user delegating only `files.write` and the API's actor gate closed, a read with the resulting access token, which lacks `files.read`, fails with 403 `actor_unauthorized`, not `insufficient_scope`: the actor gate is reported first | core: Error Responses (selection order); Delegated Actor Authorization | Set the delegation's scopes at the IdP; close the API's actor gate |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -218,7 +219,7 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14, S15, S18, S35 to S37, S39, and the
+API (N20, N53, S02, S03, S07, S11, S14, S15, S18, S35 to S37, S39, and the
 setup reads of S25 to S28) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
@@ -232,11 +233,12 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02,
 D09 and D24, name the reference checks they exercise (`CHECKS` in
-[reference.py](reference.py)). With `--vacuity`, each of these 121
+[reference.py](reference.py)). With `--vacuity`, each of these 122
 cases runs once for each check it names, with that check switched off;
-eight S cases, N40, N47 and N49 name two checks, so there are 132 runs,
+eight S cases, N40, N47 and N49 name two checks, so there are 133 runs,
 and every run fails. Forty-five N cases fail because the server then
-accepts the request. P2 fails because the access token
+accepts the request, and N53 because the API then reports
+`insufficient_scope` first. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, P8 to P10 because the server then accepts a nonce it never
 provided, P12 and P16 because the grant then outlives the platform JWT
@@ -585,7 +587,8 @@ The suite tests nothing outside the path above, including:
 * a real policy decision point, and policy services at the IdP or the
   RAS;
 * the error selection order under the API's own evaluation, except the
-  actor gate (N20) and an invalid argument beside the API's own actor
+  actor gate (N20), the actor gate beside a missing scope (N53), and an
+  invalid argument beside the API's own actor
   gate or scope (S25, S28), and a policy decision the API cannot
   interpret; the
   S cases test the order through the policy service, S17 an
@@ -644,7 +647,8 @@ another IdP, RAS or API:
    `partner_agent_iss` and `set:ras.trusted_issuer`. N50 and N51 need
    `set:idp.client_profile` and `set:ras.client_profile`, N51 for the
    self-acting registration too; N52 needs `mint_grant`, `mint_wag` and
-   the just-in-time controls of N47. D10 and D11 need
+   the just-in-time controls of N47; N53 needs `extra_scope` and
+   `set:idp.delegation_scope`. D10 and D11 need
    `second_agent`, another agent the RAS correlates and lets act for
    the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28

@@ -95,7 +95,8 @@ class Config:
     extra_scope: str = "files.write"
     # Error codes (N25 to N28): an agent the RAS has no correlation for. N25
     # and N28 also use extra_scope, as a scope the IdP can be configured to
-    # exclude from the delegation or to prohibit for the agent. N34 and N47
+    # exclude from the delegation or to prohibit for the agent, and N53 as
+    # the only scope the delegation permits. N34 and N47
     # to N49 have the RAS correlate the agent just in time.
     uncorrelated_agent: str = "agent-99"
     # A user the IdP has no record of (N32).
@@ -2035,6 +2036,31 @@ def n52(ctx):
     resp = ctx.client.redeem(ctx.adapter.mint_wag(grant_claims(ctx)))
     check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
           f"a WAG with act: expected HTTP 400 invalid_grant, got {resp}")
+
+
+@case("N53", "API", "Reports the actor gate, not insufficient_scope, when the token also lacks "
+      "the read's scope",
+      "core: Error Responses (selection order); Delegated Actor Authorization",
+      needs=("set:idp.delegation_scope", "set:api.actor_gate"), defeats=("api.error_order",))
+def n53(ctx):
+    # The user delegates only extra_scope, so the access token lacks the
+    # read's scope, and the API's actor gate is closed: both conditions
+    # deny, and Error Responses reports the actor gate first. The API
+    # evaluates both itself, with no policy service (S14 uses one).
+    cfg = ctx.cfg
+    if getattr(ctx.adapter, "signs_grants", False):
+        grant = ctx.adapter.mint_grant(grant_claims(ctx, scope=cfg.extra_scope))
+    else:
+        ctx.adapter.set("idp", "delegation_scope", [cfg.extra_scope])
+        resp = ctx.client.exchange(ctx.id_token(), scope=cfg.extra_scope)
+        check(resp.status == 200, f"setup: exchange for {cfg.extra_scope} failed: {resp}")
+        grant = resp.json()["access_token"]
+    body, claims = expect_token(ctx.client.redeem(grant))
+    check(cfg.scope not in scopes(claims.get("scope")),
+          f"setup: the access token carries {cfg.scope}")
+    ctx.adapter.set("api", "actor_gate", False)
+    expect_denial_code(ctx, ctx.client.get(cfg.read_path, body["access_token"]),
+                       "actor_unauthorized")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

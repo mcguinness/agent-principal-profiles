@@ -502,7 +502,7 @@ N30, N34, N40, N42, N43, and N46 to N52.
 ### At the API
 
 [Error Responses][resource-errors] and [Optional Policy
-Services][policy-services]; cases N17 to N20, N24, N35, S02 to S07,
+Services][policy-services]; cases N17 to N20, N24, N35, N53, S02 to S07,
 S14 to S31, and S35 to S39. [Error Disclosure][security-errors]: S32 to S34.
 
 The API reports the first failure in this order, whatever order it
