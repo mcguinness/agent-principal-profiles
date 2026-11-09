@@ -125,7 +125,7 @@ Recorded differences, which need no change to WAG:
   correlation enabled, a RAS accepts an unseen agent's first WAG as WAG
   describes; the core makes that a policy choice, off by default, keys
   the record by the exact pair, and keeps creating it separate from
-  authorization.
+  authorization. The reference tests it for a WAG (N47).
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
   continuing self-acting access re-issues the grant. Section 5 of WAG-02
   adds that access tokens SHOULD NOT outlive the assertion by a

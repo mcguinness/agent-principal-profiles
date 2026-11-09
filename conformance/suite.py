@@ -391,6 +391,9 @@ class Adapter:
                                           local user),
                                           jit (just-in-time correlation for
                                           the IdP's agents in `tenant`),
+                                          self_acting_rule (RAS policy
+                                          granting every agent of the IdP
+                                          `scope` for itself in `tenant`),
                                           resource_protection ("dpop", or
                                           "dpop_or_bearer" for a resource
                                           that permits bearer tokens),
@@ -1747,6 +1750,31 @@ def n46(ctx):
         check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
               f"{label}: expected HTTP 400 invalid_grant, got {resp}")
         check("access_token" not in resp.json(), "an error response carried a token")
+
+
+@case("N47", "RAS", "Correlates a WAG's previously unseen agent just in time without "
+      "authorizing it; RAS policy can then admit it",
+      "core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG",
+      needs=("self_acting", "mint_wag", "set:ras.jit", "set:ras.self_acting_rule"),
+      defeats=("ras.jit_correlation_only",))
+def n47(ctx):
+    # With just-in-time correlation on, the RAS creates a record for an
+    # agent it has not seen, which grants nothing: RAS policy refuses the
+    # WAG (invalid_target), or local policy creates the record ineligible
+    # (invalid_grant). A self-acting rule then admits the agent, as WAG's
+    # registration-level policy would.
+    cfg = self_acting(ctx)
+    ctx.adapter.set("ras", "jit", True)
+
+    def unseen():
+        return ctx.adapter.mint_wag(wag_claims(ctx, sub=cfg.uncorrelated_agent))
+
+    expect_error(ctx.client.redeem(unseen(), as_self_acting=True), 400,
+                 ("invalid_target", "invalid_grant"))
+    ctx.adapter.set("ras", "self_acting_rule", True)
+    body, claims = expect_token(ctx.client.redeem(unseen(), as_self_acting=True))
+    check(claims.get("sub") != cfg.uncorrelated_agent and "act" not in claims,
+          f"the token names the agent's local principal, with no act: {claims}")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

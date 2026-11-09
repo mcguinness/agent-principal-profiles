@@ -19,7 +19,9 @@ issues a WAG in authentication-context resolution, with the client's
 assertion repeated as the subject token, under a self-acting Client
 Association and an Agent Authorization, naming the client's separate
 self-acting registration at the RAS; the RAS redeems it for an access
-token that names the local agent principal. It does not defer a WAG.
+token that names the local agent principal, correlating a previously
+unseen agent just in time where test control enables it. It does not
+defer a WAG.
 
 For the core's Optional Policy Services, the API can hand its
 authorization decision to a test-controlled policy service, in place of
@@ -948,6 +950,10 @@ class RAS(Server):
         # user in a Target Tenant: (issuer, tenant). The core lets the gate
         # be "another explicit rule"; off unless test control sets it.
         self.actor_gate_rules = set()
+        # A self-acting rule granting every agent an issuer asserts some
+        # scopes of its own in a Target Tenant: (issuer, tenant) -> scopes.
+        # The policy of Section 6.2 of WAG; off unless test control sets it.
+        self.self_acting_rules = {}
         # Optional just-in-time correlation (core: Agent Principal
         # Correlation), enabled per (issuer, Target Tenant); off by default.
         # The issuer's one trusted tenant per Target Tenant stands for the
@@ -982,6 +988,12 @@ class RAS(Server):
             elif what == "actor_gate":
                 entry = ("user-108", IDP_ISSUER, "agent-42", "acme-data")
                 (self.actor_gate.add if value else self.actor_gate.discard)(entry)
+            elif what == "self_acting_rule":
+                rule = (IDP_ISSUER, "acme-data")
+                if value:
+                    self.self_acting_rules[rule] = {"files.read"}
+                else:
+                    self.self_acting_rules.pop(rule, None)
             elif what == "actor_gate_rule":
                 rule = (IDP_ISSUER, "acme-data")
                 (self.actor_gate_rules.add if value else self.actor_gate_rules.discard)(rule)
@@ -1174,7 +1186,8 @@ class RAS(Server):
             raise OAuthError("invalid_grant", description="user not resolved")
         agent = self.agents.get((act["iss"], act["sub"]))
         if agent is None and (act["iss"], config["tenant"]) in self.jit:
-            agent = self.correlate_just_in_time(act, user, config["tenant"])
+            agent = self.correlate_just_in_time((act["iss"], act["sub"]), config["tenant"],
+                                                user=user)
         ineligible = agent is None or not agent["active"]
         if agent is not None and not self.on("ras.restriction_follows_agent"):
             # Non-conforming: the restriction holds only through the clients
@@ -1219,13 +1232,15 @@ class RAS(Server):
     def redeem_wag(self, claims, client_id, jkt, config, resource, scope, grant_key, now):
         """Self-Acting Redemption: WAG, steps 4 to 6 (core): the correlated
         agent's own access, with the local agent principal as sub, no act and
-        no refresh token. The reference neither defers a WAG nor correlates
-        one just in time."""
+        no refresh token. The reference does not defer a WAG."""
         agent_key = (claims["iss"], claims["sub"])
         agent = self.agents.get(agent_key)
+        if agent is None and (claims["iss"], config["tenant"]) in self.jit:
+            agent = self.correlate_just_in_time(agent_key, config["tenant"], scope=scope)
         if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
             raise OAuthError("invalid_grant", description="agent not eligible")
-        permitted = self.self_acting.get((agent_key, config["tenant"]), set())
+        permitted = self.self_acting.get((agent_key, config["tenant"]), set()) | \
+            self.self_acting_rules.get((claims["iss"], config["tenant"]), set())
         if not set(scope.split()) <= permitted and self.on("ras.wag_policy"):
             raise OAuthError("invalid_target", description="RAS policy refuses the WAG")
         # A RAS that does not defer refuses with its refusal error, which for
@@ -1544,18 +1559,23 @@ class RAS(Server):
         return (user, iss, sub, tenant) in self.actor_gate or \
             (iss, tenant) in self.actor_gate_rules
 
-    def correlate_just_in_time(self, act, user, tenant):
+    def correlate_just_in_time(self, agent_key, tenant, user=None, scope=""):
         """Optional Just-in-Time Correlation: a record keyed by the exact pair.
 
         Creating the record is correlation, not authorization: the actor
-        gate still applies. Initial eligibility is local policy; here,
-        eligible. With ras.jit_correlation_only switched off, creation also
-        opens the actor gate, which no conforming RAS does.
+        gate, or for a WAG the RAS's self-acting policy, still applies.
+        Initial eligibility is local policy; here, eligible. With
+        ras.jit_correlation_only switched off, creation also opens the
+        actor gate, or grants a WAG's agent its requested scope, which no
+        conforming RAS does.
         """
-        record = {"local": "jit-" + act["sub"], "active": True}
-        self.agents[(act["iss"], act["sub"])] = record
+        record = {"local": "jit-" + agent_key[1], "active": True}
+        self.agents[agent_key] = record
         if not self.on("ras.jit_correlation_only"):
-            self.actor_gate.add((user, act["iss"], act["sub"], tenant))
+            if user is None:
+                self.self_acting[(agent_key, tenant)] = set(scope.split())
+            else:
+                self.actor_gate.add((user, *agent_key, tenant))
         return record
 
     def validate_grant(self, assertion):
