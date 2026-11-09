@@ -1629,12 +1629,12 @@ def p13(ctx):
         check(claims.get("client_id") == cfg.ras_client_id,
               f"client_id {claims.get('client_id')!r}, expected {cfg.ras_client_id}")
         check((claims.get("act") or {}).get("sub") == agent, f"act {claims.get('act')!r}")
-    expect_token(ctx.client.redeem(ctx.grant()))
+    expect_token_response(ctx.client.redeem(ctx.grant()))
     # Disabling agent-42 at the RAS refuses it, and leaves agent-43 admitted
     # through the same registration.
     ctx.adapter.set("ras", "agent_active", False)
     expect_error(ctx.client.redeem(ctx.grant()), 400, "invalid_grant")
-    expect_token(ctx.client.redeem(theirs))
+    expect_token_response(ctx.client.redeem(theirs))
 
 
 @case("P12", "IdP", "Expires the grant no later than the platform JWT's evidence deadline",
@@ -1712,7 +1712,7 @@ def n40(ctx):
     ctx.adapter.set("ras", "agent_active", False)
     expect_error(through_other_client(), 400, "invalid_grant")
     ctx.adapter.set("ras", "agent_active", True)
-    expect_token(through_other_client())
+    expect_token_response(through_other_client())
 
 
 def multi_tenant(ctx):
@@ -1772,7 +1772,7 @@ def n43(ctx):
     other = cfg.other_governance_tenant
     ctx.adapter.set("ras", "tenant_trust", [other, cfg.tenant, True])
     ctx.adapter.set("ras", "user_link", [other, cfg.other_tenant_sub, cfg.expect["token_sub"]])
-    expect_token(ctx.client.redeem(ctx.adapter.mint_grant(
+    expect_token_response(ctx.client.redeem(ctx.adapter.mint_grant(
         grant_claims(ctx, tenant=other, sub=cfg.other_tenant_sub))))
     expect_error(ctx.client.redeem(ctx.adapter.mint_grant(grant_claims(ctx, tenant=other))),
                  400, "invalid_grant")
@@ -2014,7 +2014,7 @@ def n50(ctx):
     ctx.adapter.set("ras", "client_profile", "governed")
     grant = ctx.grant(dpop_key=None)
     check("cnf" not in jws.decode(grant)[1], "setup: the grant carries cnf")
-    expect_token(ctx.client.redeem(grant))
+    expect_token_response(ctx.client.redeem(grant))
     expect_error(ctx.client.redeem(grant, dpop_key="k2"), 400, "invalid_grant")
 
 
@@ -2029,7 +2029,7 @@ def n51(ctx):
     ctx.adapter.set("ras", "client_profile", [cfg.self_acting_client_id, "governed"])
     grant = wag(ctx, dpop_key=None)
     check("cnf" not in jws.decode(grant)[1], "setup: the WAG carries cnf")
-    expect_token(ctx.client.redeem(grant, as_self_acting=True))
+    expect_token_response(ctx.client.redeem(grant, as_self_acting=True))
     expect_error(ctx.client.redeem(grant, as_self_acting=True), 400, "invalid_grant")
 
 
@@ -2130,11 +2130,19 @@ def expect_pending(resp):
     check("access_token" not in body, "a pending response carried a token")
 
 
-def expect_token(resp):
-    """A successful token response; returns the body and the access token's claims."""
+def expect_token_response(resp):
+    """A successful token response, whatever the access token's format; returns the
+    body."""
     body = resp.json()
-    check(resp.status == 200 and isinstance(body.get("access_token"), str),
-          f"expected a token response, got {resp}")
+    check(resp.status == 200 and isinstance(body.get("access_token"), str) and
+          body["access_token"], f"expected a token response, got {resp}")
+    return body
+
+
+def expect_token(resp):
+    """A successful token response with a JWT access token; returns the body and the
+    token's claims. A case that needs the claims is not run for an opaque token."""
+    body = expect_token_response(resp)
     return body, access_token_jwt(body["access_token"])[1]
 
 
@@ -2301,7 +2309,7 @@ def d09(ctx):
     code = defer(ctx, grant)["deferral_code"]
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
     check(defer(ctx, grant)["deferral_code"] == code, "recovery returned another deferral code")
-    expect_token(ctx.client.poll(code))
+    expect_token_response(ctx.client.poll(code))
 
 
 @case("D10", "RAS", "A second agent through the same client gets its own access request",
@@ -2318,7 +2326,7 @@ def d10(ctx):
     check(len(found) == 2, f"expected two pending access requests, found {len(found)}")
     ctx.adapter.approve(only_task(ctx, cfg.expect["agent"]), ctx.now() + 3600)
     expect_pending(ctx.client.poll(code_b))
-    expect_token(ctx.client.poll(code_a))
+    expect_token_response(ctx.client.poll(code_a))
 
 
 @case("D11", "RAS", "Another task's approval leaves the redemption pending",
@@ -2449,7 +2457,7 @@ def d17(ctx):
           f"recovery extended the pending deadline: expires_in {first['expires_in']} s, "
           f"then {again['expires_in']} s 900 s later")
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
-    expect_token(ctx.client.poll(first["deferral_code"]))
+    expect_token_response(ctx.client.poll(first["deferral_code"]))
 
 
 @case("D18", "RAS", "Recovery that reuses the first request's DPoP proof fails",
@@ -2474,7 +2482,7 @@ def d19(ctx):
     grant = ctx.grant()
     code = defer(ctx, grant)["deferral_code"]
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
-    expect_token(ctx.client.poll(code))
+    expect_token_response(ctx.client.poll(code))
     expect_error(ctx.client.redeem(grant, deferred=True), 400, "invalid_grant")
 
 
@@ -2508,7 +2516,7 @@ def d21(ctx):
     body, _ = expect_token(ctx.client.poll(code))
     check(isinstance(body.get("refresh_token"), str),
           "setup: no refresh token with refresh permitted")
-    expect_token(ctx.client.refresh(body["refresh_token"]))
+    expect_token_response(ctx.client.refresh(body["refresh_token"]))
     ctx.adapter.set("ras", "client_profile", "bound")
     expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
 
@@ -2525,7 +2533,7 @@ def d22(ctx):
     resp = ctx.client.refresh(refresh_token, dpop_key="k2")
     check(400 <= resp.status < 500 and "access_token" not in resp.json(),
           f"setup: a refresh proven with another key was not rejected: {resp}")
-    expect_token(ctx.client.refresh(refresh_token))
+    expect_token_response(ctx.client.refresh(refresh_token))
     ctx.adapter.set("ras", "actor_gate", False)
     expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
     ctx.adapter.set("ras", "actor_gate", True)
@@ -2561,7 +2569,7 @@ def d24(ctx):
           "recovery returned another interaction_uri")
     expect_pending(ctx.client.poll(first["deferral_code"]))
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
-    expect_token(ctx.client.poll(first["deferral_code"]))
+    expect_token_response(ctx.client.poll(first["deferral_code"]))
 
 
 @case("D25", "RAS", "Denies at the next poll when the RAS stops trusting the grant's tenant "
@@ -2586,7 +2594,7 @@ def d25(ctx):
 def d26(ctx):
     cfg = multi_tenant(ctx)
     _, body, _ = approved_refresh(ctx, ctx.now() + 3600)
-    expect_token(ctx.client.refresh(body["refresh_token"]))
+    expect_token_response(ctx.client.refresh(body["refresh_token"]))
     ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
     expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
 
@@ -2715,7 +2723,8 @@ def s03(ctx):
     token = ctx.access_token()
     other = ctx.adapter.mint_access_token(minted_token_claims(
         ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.second_agent}))
-    check(jws.decode(other)[1].get("client_id") == jws.decode(token)[1].get("client_id"),
+    check(access_token_jwt(other)[1].get("client_id") ==
+          access_token_jwt(token)[1].get("client_id"),
           "setup: the two tokens carry different client_id values")
     use_policy(ctx, policy(ctx))
     expect_denial_code(ctx, ctx.client.get(cfg.read_path, other), "actor_unauthorized")
