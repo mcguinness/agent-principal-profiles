@@ -2354,7 +2354,13 @@ permit one agent to use another agent's.<a href="#section-3.6.2-1" class="pilcro
 token or RAS refresh authorization already issued; the grant's <code>exp</code>
 limits redemption, not subsequent access.<a href="#section-3.6.3-1" class="pilcrow">¶</a></p>
 <p id="section-3.6.3-2">The RAS <span class="bcp14">MUST</span> limit access-token and refresh-authorization lifetimes
-under its local policy (<a href="#ras-refresh" class="auto internal xref">Section 8.2</a>). This profile defines no
+under its local policy (<a href="#ras-refresh" class="auto internal xref">Section 8.2</a>). <span><a href="https://rfc-editor.org/rfc/rfc7521#section-4.1" class="relref">Section 4.1</a> of [<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>,
+which both grants follow under <code>jwt-bearer</code>
+(<span><a href="https://rfc-editor.org/rfc/rfc7523#section-2.1" class="relref">Section 2.1</a> of [<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>) and <code>jwt-dpop</code>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-parecki-oauth-jwt-dpop-grant-02#section-4.1" class="relref">Section 4.1</a> of [<a href="#JWT-DPOP-GRANT" class="cite xref">JWT-DPOP-GRANT</a>]</span>), recommends that an authorization
+server not issue an access token with a lifetime that exceeds the
+validity period of the assertion by a significant period; this document
+does not change that recommendation. This profile defines no
 portable IdP-imposed deadline on downstream authorization
 (<a href="#excluded-compositions" class="auto internal xref">Appendix B.3</a>) and requires no shared approval record or correlated
 lifetime lookup.<a href="#section-3.6.3-2" class="pilcrow">¶</a></p>
@@ -6088,6 +6094,10 @@ This document requests no registration for them.<a href="#section-14.2-3" class=
         <dd>
 <span class="refAuthor">Campbell, B.</span> and <span class="refAuthor">H. Tschofenig</span>, <span class="refTitle">"An IETF URN Sub-Namespace for OAuth"</span>, <span class="seriesInfo">RFC 6755</span>, <span class="seriesInfo">DOI 10.17487/RFC6755</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6755">https://www.rfc-editor.org/rfc/rfc6755</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC7521">[RFC7521]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Mortimore, C.</span>, <span class="refAuthor">Jones, M.</span>, and <span class="refAuthor">Y. Goland</span>, <span class="refTitle">"Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants"</span>, <span class="seriesInfo">RFC 7521</span>, <span class="seriesInfo">DOI 10.17487/RFC7521</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7521">https://www.rfc-editor.org/rfc/rfc7521</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC7942">[RFC7942]</dt>
         <dd>
 <span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7942">https://www.rfc-editor.org/rfc/rfc7942</a>&gt;</span>. </dd>
@@ -6946,6 +6956,11 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
               <td class="text-left" rowspan="1" colspan="1">Client authentication</td>
               <td class="text-left" rowspan="1" colspan="1">Not required; <code>client_id</code> carries no meaning</td>
               <td class="text-left" rowspan="1" colspan="1">Required at issuance and redemption; <code>client_id</code> is the client's registration at the RAS (<a href="#redemption-common" class="auto internal xref">Section 6.2</a>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Client registration</td>
+              <td class="text-left" rowspan="1" colspan="1">Never required per Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">Required for the redeeming client (<a href="#redemption-common" class="auto internal xref">Section 6.2</a>). Shared clients can redeem grants for multiple agents, and several dedicated clients can map to one registration (<a href="#flow-configuration" class="auto internal xref">Section 5.1</a>), but a RAS can still give each agent's client its own. WAG's prohibition is not adopted</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Grant binding</td>

@@ -2135,7 +2135,12 @@ its time claims are checked when the request is received; the grant's
 <code>exp</code> limits redemption, not later access ("Authorization Lifetime" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). This document thus reads the originating-grant
 preconditions that <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-11.7" class="relref">Section 11.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> re-evaluates as excluding
-the grant's own expiration (<a href="#open-items" class="auto internal xref">Appendix C</a>).<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+the grant's own expiration (<a href="#open-items" class="auto internal xref">Appendix C</a>). Approval can therefore
+come after the grant's <code>exp</code>. The access token then issued has <code>iat</code>
+set at resolution, and both RAS lifetime policy ("Authorization
+Lifetime" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) and the deadlines of
+<a href="#redemption-resolution" class="auto internal xref">Section 5.5</a> apply to its expiration: the approval expiry,
+any enforcement deadline, and the absolute authorization expiration.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 <p id="section-5.2-4">The RAS then accepts the grant. It <span class="bcp14">MUST</span> record the grant's (<code>iss</code>,
 <code>jti</code>) as accepted, whether or not the grant is bound, and <span class="bcp14">MUST NOT</span>
 accept the grant again for another redemption. This narrows the

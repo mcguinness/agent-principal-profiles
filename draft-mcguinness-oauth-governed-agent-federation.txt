@@ -805,8 +805,13 @@ Table of Contents
    limits redemption, not subsequent access.
 
    The RAS MUST limit access-token and refresh-authorization lifetimes
-   under its local policy (Section 8.2).  This profile defines no
-   portable IdP-imposed deadline on downstream authorization
+   under its local policy (Section 8.2).  Section 4.1 of [RFC7521],
+   which both grants follow under jwt-bearer (Section 2.1 of [RFC7523])
+   and jwt-dpop (Section 4.1 of [JWT-DPOP-GRANT]), recommends that an
+   authorization server not issue an access token with a lifetime that
+   exceeds the validity period of the assertion by a significant period;
+   this document does not change that recommendation.  This profile
+   defines no portable IdP-imposed deadline on downstream authorization
    (Appendix B.3) and requires no shared approval record or correlated
    lifetime lookup.
 
@@ -3703,6 +3708,11 @@ Table of Contents
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6755>.
 
+   [RFC7521]  Campbell, B., Mortimore, C., Jones, M., and Y. Goland,
+              "Assertion Framework for OAuth 2.0 Client Authentication
+              and Authorization Grants", RFC 7521, DOI 10.17487/RFC7521,
+              May 2015, <https://www.rfc-editor.org/rfc/rfc7521>.
+
    [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
               Code: The Implementation Status Section", BCP 205,
               RFC 7942, DOI 10.17487/RFC7942, July 2016,
@@ -4462,53 +4472,65 @@ B.1.  Differences from Base Specifications
    For self-acting access, this profile composes [WAG] as follows
    (Section 4.2):
 
-    +================+========================+=======================+
-    | Area           | WAG-02                 | This profile          |
-    +================+========================+=======================+
-    | Issuer         | The Workload Identity  | The governing IdP,    |
-    |                | Provider of the        | through token         |
-    |                | Platform that created  | exchange              |
-    |                | the agent              | (Section 5.7)         |
-    +----------------+------------------------+-----------------------+
-    | Client         | Not required;          | Required at issuance  |
-    | authentication | client_id carries no   | and redemption;       |
-    |                | meaning                | client_id is the      |
-    |                |                        | client's registration |
-    |                |                        | at the RAS            |
-    |                |                        | (Section 6.2)         |
-    +----------------+------------------------+-----------------------+
-    | Grant binding  | Bearer; proof of       | DPoP under            |
-    |                | possession open        | Section 4.4, required |
-    |                |                        | for the bound         |
-    |                |                        | profile; a bound WAG  |
-    |                |                        | is redeemed with jwt- |
-    |                |                        | dpop, where Section 5 |
-    |                |                        | of [WAG] uses jwt-    |
-    |                |                        | bearer (Section 6.1)  |
-    +----------------+------------------------+-----------------------+
-    | Replay         | Open                   | Unbound grants are    |
-    |                |                        | single-use            |
-    |                |                        | (Section 6.2)         |
-    +----------------+------------------------+-----------------------+
-    | resource       | Recommended, not       | Exactly one           |
-    |                | required               | (Section 5.2)         |
-    +----------------+------------------------+-----------------------+
-    | Previously     | Accepted on first      | Authorized            |
-    | unseen agents  | assertion              | correlation required  |
-    |                |                        | (Section 6.3)         |
-    +----------------+------------------------+-----------------------+
-    | Shared issuers | A claim registered for | tenant, set to the    |
-    |                | each Workload Identity | agent's Governance    |
-    |                | Provider tells         | Tenant, required in a |
-    |                | providers sharing one  | WAG from a multi-     |
-    |                | issuer apart;          | tenant issuer; the    |
-    |                | dedicated issuers, or  | RAS trusts iss and    |
-    |                | else the ID-JAG tenant | tenant together       |
-    |                | claim, are RECOMMENDED | (Section 3.3)         |
-    |                | (Section 6.3 of [WAG]) |                       |
-    +----------------+------------------------+-----------------------+
-    | Refresh tokens | Prohibited             | Prohibited            |
-    +----------------+------------------------+-----------------------+
+   +================+====================+=============================+
+   | Area           | WAG-02             | This profile                |
+   +================+====================+=============================+
+   | Issuer         | The Workload       | The governing IdP, through  |
+   |                | Identity Provider  | token exchange              |
+   |                | of the Platform    | (Section 5.7)               |
+   |                | that created the   |                             |
+   |                | agent              |                             |
+   +----------------+--------------------+-----------------------------+
+   | Client         | Not required;      | Required at issuance and    |
+   | authentication | client_id carries  | redemption; client_id is    |
+   |                | no meaning         | the client's registration   |
+   |                |                    | at the RAS (Section 6.2)    |
+   +----------------+--------------------+-----------------------------+
+   | Client         | Never required per | Required for the redeeming  |
+   | registration   | Agent              | client (Section 6.2).       |
+   |                |                    | Shared clients can redeem   |
+   |                |                    | grants for multiple         |
+   |                |                    | agents, and several         |
+   |                |                    | dedicated clients can map   |
+   |                |                    | to one registration         |
+   |                |                    | (Section 5.1), but a RAS    |
+   |                |                    | can still give each         |
+   |                |                    | agent's client its own.     |
+   |                |                    | WAG's prohibition is not    |
+   |                |                    | adopted                     |
+   +----------------+--------------------+-----------------------------+
+   | Grant binding  | Bearer; proof of   | DPoP under Section 4.4,     |
+   |                | possession open    | required for the bound      |
+   |                |                    | profile; a bound WAG is     |
+   |                |                    | redeemed with jwt-dpop,     |
+   |                |                    | where Section 5 of [WAG]    |
+   |                |                    | uses jwt-bearer             |
+   |                |                    | (Section 6.1)               |
+   +----------------+--------------------+-----------------------------+
+   | Replay         | Open               | Unbound grants are single-  |
+   |                |                    | use (Section 6.2)           |
+   +----------------+--------------------+-----------------------------+
+   | resource       | Recommended, not   | Exactly one (Section 5.2)   |
+   |                | required           |                             |
+   +----------------+--------------------+-----------------------------+
+   | Previously     | Accepted on first  | Authorized correlation      |
+   | unseen agents  | assertion          | required (Section 6.3)      |
+   +----------------+--------------------+-----------------------------+
+   | Shared issuers | A claim registered | tenant, set to the agent's  |
+   |                | for each Workload  | Governance Tenant,          |
+   |                | Identity Provider  | required in a WAG from a    |
+   |                | tells providers    | multi-tenant issuer; the    |
+   |                | sharing one issuer | RAS trusts iss and tenant   |
+   |                | apart; dedicated   | together (Section 3.3)      |
+   |                | issuers, or else   |                             |
+   |                | the ID-JAG tenant  |                             |
+   |                | claim, are         |                             |
+   |                | RECOMMENDED        |                             |
+   |                | (Section 6.3 of    |                             |
+   |                | [WAG])             |                             |
+   +----------------+--------------------+-----------------------------+
+   | Refresh tokens | Prohibited         | Prohibited                  |
+   +----------------+--------------------+-----------------------------+
 
                    Table 26: Governed composition of WAG
 
