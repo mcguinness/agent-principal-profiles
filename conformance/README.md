@@ -230,7 +230,7 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2, P7 to P10, P12, P13, P16 and D02, name the
+Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02, D09 and D24, name the
 reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
 With `--vacuity`, each of these 112 cases runs once for each check it
 names, with that check switched off; eight S cases and N40 name two
@@ -261,7 +261,8 @@ steps, and with both removed the request fails at the Delegation
 Authorization with `actor_unauthorized` instead. N48 fails because the
 RAS then refuses the ineligible record's agent on policy
 (`invalid_target`), and N49 because both issuers' agents then get one
-local principal.
+local principal. Without `ras.wag_policy`, N47 and N49 fail because the
+RAS then admits a WAG that its policy does not permit.
 
 The D cases fail without their check in these ways:
 
@@ -275,10 +276,11 @@ The D cases fail without their check in these ways:
 * it opens one access request for two redemptions (D10), or two
   pending redemptions for one grant (D16).
 
-D09 and D24 are positive cases and name no check. D24 fails when the
-reference's opt-in test is the exact match `completion_mode=deferred`,
-or when the suite accepts only `authorization_pending` in a deferred
-response.
+D09 and D24 are positive cases that depend on recovery: without
+`ras.single_pending`, recovery returns another deferral code. D24 also
+fails when the reference's opt-in test is the exact match
+`completion_mode=deferred`, or when the suite accepts only
+`authorization_pending` in a deferred response.
 
 Without these checks, the S cases fail because the API then serves the
 file (HTTP 200):

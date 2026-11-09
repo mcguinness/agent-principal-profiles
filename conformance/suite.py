@@ -1893,7 +1893,7 @@ def created_principal(ctx, iss, claims):
       "core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG; Redemption Errors",
       needs=("self_acting", "mint_wag", "agent_record", "set:ras.jit", "set:ras.jit_eligible",
              "set:ras.self_acting_rule"),
-      defeats=("ras.jit_correlation_only",))
+      defeats=("ras.jit_correlation_only", "ras.wag_policy"))
 def n47(ctx):
     # With just-in-time correlation on and created records eligible, the
     # RAS creates a record for an agent it has not seen, which grants
@@ -1935,7 +1935,7 @@ def n48(ctx):
       "Redemption: WAG",
       needs=("self_acting", "mint_wag", "agent_record", "set:ras.trusted_issuer", "set:ras.jit",
              "set:ras.jit_eligible", "set:ras.self_acting_rule"),
-      defeats=("ras.jit_qualified_principal",))
+      defeats=("ras.jit_qualified_principal", "ras.wag_policy"))
 def n49(ctx):
     # The RAS trusts a second issuer and correlates both issuers' agents
     # just in time; each asserts uncorrelated_agent. The records are keyed
@@ -2229,7 +2229,8 @@ def d08(ctx):
 
 @case("D09", "RAS", "Recovery after approval returns the code, and the poll then issues",
       "oversight: Recovery",
-      needs=("set:ras.approval_required", "tasks", "approve"))
+      needs=("set:ras.approval_required", "tasks", "approve"),
+      defeats=("ras.single_pending",))
 def d09(ctx):
     require_approval(ctx)
     grant = ctx.grant()
@@ -2482,7 +2483,8 @@ def d23(ctx):
 
 @case("D24", "RAS", "Defers, recovers and issues for the opt-in deferred deferred_interactive",
       "oversight: Redemption Opt-In; Recovery; Approval",
-      needs=("set:ras.approval_required", "tasks", "approve"))
+      needs=("set:ras.approval_required", "tasks", "approve"),
+      defeats=("ras.single_pending",))
 def d24(ctx):
     require_approval(ctx)
     grant = ctx.grant()
