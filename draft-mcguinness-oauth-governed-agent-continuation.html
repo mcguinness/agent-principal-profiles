@@ -1836,7 +1836,10 @@ cannot confirm it refuses temporarily (<a href="#continuation-errors" class="aut
 <p id="section-4-1">The gateway's RAS redeems the root grant under "Grant Redemption at the
 RAS" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. When continuation-aware, it also binds the
 handle as <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.2" class="relref">Section 5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> specifies, for a WAG as for an ID-JAG,
-and exposes it to the CAI through a carrier of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.3" class="relref">Section 5.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+and exposes it to the CAI through a carrier of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.3" class="relref">Section 5.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>.
+At a multi-tenant issuer, the tenant it binds there is the grant's
+<code>tenant</code>, which names the chain's Governance Tenant ("Canonical
+Identity and Tenant Boundaries" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>).<a href="#section-4-1" class="pilcrow">¶</a></p>
 <p id="section-4-2">A continuation-aware RAS selects access-token protection under
 "Access-Token Protection" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, including for a
 continuation-capable grant that carries <code>cnf</code>. For such a grant, this
@@ -2875,8 +2878,19 @@ establishment and changed by every disablement or withdrawal
 <li class="normal" id="section-11.2-1.1">
             <p id="section-11.2-1.1.1"><strong>Several Governance Tenants:</strong> A gateway that serves several
 Governance Tenants is configured in each, because <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> scopes
-actor identities and CAI trust to one tenant. How it selects among
-those registrations is an open item (<a href="#open-items" class="auto internal xref">Appendix B.4</a>).<a href="#section-11.2-1.1.1" class="pilcrow">¶</a></p>
+actor identities and CAI trust to one tenant. It selects the
+registration for a continuation by configuration. Where each
+Governance Tenant reaches the gateway through a Target Tenant that the
+gateway's RAS trusts for that issuer tenant alone, the access token's
+audience identifies the Governance Tenant. Where one Target Tenant is
+trusted for several, the gateway obtains the tenant its RAS bound to
+the authorization (<a href="#root-redemption" class="auto internal xref">Section 4</a>) by deployment-specific means;
+this document defines no carrier for it. A continuation authenticated
+with another tenant's registration fails validation, since its
+canonical actor identity and Continuation Association belong to that
+other tenant (steps 4 and 6 of <a href="#continuation-validation" class="auto internal xref">Section 6.4</a>): the
+identity mismatch of step 4 comes first, with <code>invalid_request</code>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.6" class="relref">Section 5.5.6</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>).<a href="#section-11.2-1.1.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -4168,16 +4182,10 @@ delegated chain can anchor to a refresh-token grant
 (<a href="#security-self-acting" class="auto internal xref">Section 12.4</a>)?<a href="#appendix-B.4-2.5.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-B.4-2.6">
-            <p id="appendix-B.4-2.6.1"><strong>Tenant selection at a gateway:</strong> How does a gateway that serves
-several Governance Tenants select its registration and credential at
-the IdP, when neither its incoming token nor the assertion response
-names the Governance Tenant?<a href="#appendix-B.4-2.6.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-B.4-2.7">
-            <p id="appendix-B.4-2.7.1"><strong>Temporary refusals:</strong> Should <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> adopt the same HTTP 503
+            <p id="appendix-B.4-2.6.1"><strong>Temporary refusals:</strong> Should <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> adopt the same HTTP 503
 response for state it cannot confirm, and define an OAuth error code
 for policy that blocks a chain only temporarily
-(<a href="#continuation-errors" class="auto internal xref">Section 6.6</a>)?<a href="#appendix-B.4-2.7.1" class="pilcrow">¶</a></p>
+(<a href="#continuation-errors" class="auto internal xref">Section 6.6</a>)?<a href="#appendix-B.4-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>

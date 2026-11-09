@@ -2817,6 +2817,12 @@ of them, while a restriction of an agent follows the agent
 (<a href="#agent-correlation" class="auto internal xref">Section 6.3</a>). Every holder of that registration's credentials
 can redeem a grant that names it, so only a grant bound under
 <a href="#grant-protection" class="auto internal xref">Section 4.4</a> stays with the key that obtained it.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">An IdP client <span class="bcp14">MAY</span> also map to a different registration at a RAS for
+self-acting grants than for delegated grants, so that the client
+registration tells the two token populations apart
+(<a href="#api-applicability" class="auto internal xref">Section 7.1</a>). The association then names a registration for
+each acting relationship, and a grant's <code>client_id</code> is the registration
+for its own.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="issuance-request">
@@ -4618,7 +4624,9 @@ malformed <code>act</code> for a configured governed delegated population.
 Self-acting tokens carry no <code>act</code> (<a href="#wag-api" class="auto internal xref">Section 7.4</a>). An ordinary <code>act</code>
 claim alone does not establish governed issuance.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
 <p id="section-7.1-4">Separate client registrations, audiences, or issuers for the delegated
-and self-acting populations satisfy these rules. The absence of <code>act</code>
+and self-acting populations satisfy these rules; a client registration
+association can name a separate registration for a client's self-acting
+grants (<a href="#flow-configuration" class="auto internal xref">Section 5.1</a>). The absence of <code>act</code>
 alone does not: a delegated token lacking <code>act</code> would otherwise be
 accepted as self-acting.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
 <p id="section-7.1-5">Conformance does not by itself provide a portable discriminator for
@@ -5432,8 +5440,10 @@ optional just-in-time correlation; the error selection order and
 optional policy services at the API; introspection of opaque tokens;
 the existing platform JWT input for a shared client, with a
 dedicated-issuer credential class and exact issuer-and-<code>sub</code>
-bindings; and the deferred redemption of <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span> at the RAS.
-It does not implement WAG issuance or redemption, platform JWT
+bindings; WAG issuance from client authentication and WAG redemption,
+with a separate self-acting registration; and the deferred redemption
+of <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span> at the RAS, for an ID-JAG. It does not implement
+presented-evidence WAG issuance, deferred WAG redemption, platform JWT
 selectors, the binding of key-bound platform JWTs (it refuses them),
 the inputs of <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>, Client ID Metadata Documents, mutual TLS,
 refresh tokens outside a deferred redemption, <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>,
