@@ -412,7 +412,9 @@ class Adapter:
                                           resource_protection ("dpop", or
                                           "dpop_or_bearer" for a resource
                                           that permits bearer tokens),
-                                          client_profile ("bound" or "governed"),
+                                          client_profile ("bound" or "governed"
+                                          for ras_client_id, or [registration,
+                                          profile] for another),
                                           approval_required (a list of scopes
                                           RAS policy requires approval for),
                                           refresh_permitted (refresh tokens for
@@ -1719,11 +1721,18 @@ def wag_claims(ctx, **overrides):
     return claims
 
 
-def wag(ctx):
-    """A WAG for the agent: from the IdP, or signed by the suite in RAS-only mode."""
+def wag(ctx, dpop_key="k"):
+    """A WAG for the agent, bound to dpop_key's key or unbound without one: from the
+    IdP, or signed by the suite in RAS-only mode."""
     if getattr(ctx.adapter, "signs_grants", False):
-        return ctx.adapter.mint_wag(wag_claims(ctx))
-    resp = ctx.client.wag_exchange()
+        claims = wag_claims(ctx)
+        if dpop_key:
+            claims["cnf"] = {"jkt": jws.thumbprint(jws.public_jwk(getattr(ctx.client,
+                                                                          dpop_key)))}
+        else:
+            claims.pop("cnf")
+        return ctx.adapter.mint_wag(claims)
+    resp = ctx.client.wag_exchange(dpop_key=dpop_key)
     check(resp.status == 200, f"self-acting exchange failed: {resp}")
     return resp.json()["access_token"]
 
@@ -1909,6 +1918,39 @@ def n49(ctx):
     partner_local = created_principal(ctx, partner, partner_claims)
     check(home_local != partner_local,
           f"both issuers' agents are the local principal {home_local!r}")
+
+
+@case("N50", "RAS", "Rejects with invalid_grant an unbound ID-JAG presented again, with a proof "
+      "of another key",
+      "core: Common Grant Validation (Grant replay); Renewal and Negative Tests, unbound grant "
+      "presented again",
+      needs=("set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.grant_replay",))
+def n50(ctx):
+    # Under governed agent access the grant has no cnf, so only the replay
+    # rule refuses it the second time: an access-token proof, of any key,
+    # does not make an unbound grant reusable.
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", "governed")
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the grant carries cnf")
+    expect_token(ctx.client.redeem(grant))
+    expect_error(ctx.client.redeem(grant, dpop_key="k2"), 400, "invalid_grant")
+
+
+@case("N51", "RAS", "Rejects with invalid_grant an unbound WAG presented again",
+      "core: Common Grant Validation (Grant replay); Renewal and Negative Tests, self-acting "
+      "variant",
+      needs=("self_acting", "set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.grant_replay",))
+def n51(ctx):
+    cfg = self_acting(ctx)
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", [cfg.self_acting_client_id, "governed"])
+    grant = wag(ctx, dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the WAG carries cnf")
+    expect_token(ctx.client.redeem(grant, as_self_acting=True))
+    expect_error(ctx.client.redeem(grant, as_self_acting=True), 400, "invalid_grant")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

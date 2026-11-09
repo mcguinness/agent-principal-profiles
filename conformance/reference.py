@@ -131,6 +131,7 @@ CHECKS = {
                                    "scope is enforced",
     "idp.scope_ceiling": "the issued scope stays within the Delegation Authorization's scope set",
     "ras.client_id": "grant client_id matches the authenticated client",
+    "ras.grant_replay": "a grant the RAS has accepted is refused when presented again",
     "ras.grant_time": "grant iat and nbf are not in the future",
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
@@ -1038,7 +1039,10 @@ class RAS(Server):
                 self.agents[(IDP_ISSUER, value)] = {"local": "local-" + value, "active": True}
                 self.actor_gate.add(("user-108", IDP_ISSUER, value, "acme-data"))
             elif what == "client_profile":
-                self.clients["analysis-api"]["profile"] = value
+                # A profile for analysis-api, or [registration, profile].
+                registration, profile = value if isinstance(value, list) \
+                    else ("analysis-api", value)
+                self.clients[registration]["profile"] = profile
             elif what == "resource_protection":
                 # "dpop", or "dpop_or_bearer": a resource explicitly configured
                 # to permit bearer tokens (core: Access-Token Protection).
@@ -1320,7 +1324,7 @@ class RAS(Server):
         """Whether an accepted grant is refused; a deferral-consumed one through switchable checks."""
         if grant_key in self.deferred_grants:
             return self.on("ras.grant_consumed") and self.on("ras.single_pending")
-        return True
+        return self.on("ras.grant_replay")
 
     @staticmethod
     def completion_modes(form):

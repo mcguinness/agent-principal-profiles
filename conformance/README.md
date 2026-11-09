@@ -130,6 +130,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N47 | RAS | With just-in-time correlation on and created records eligible, a WAG naming `agent-99`, which the RAS has not seen, fails with `invalid_target`: the created record authorizes nothing. With a self-acting rule granting the issuer's agents `files.read` in `acme-data`, the next such WAG redeems for a token whose `sub` is the created record's local principal, as test control reads it back | core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG; Redemption Errors | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; mint a WAG; read the agent record |
 | N48 | RAS | With just-in-time correlation on and created records ineligible, a WAG naming `agent-99` fails with `invalid_grant` and leaves a record for the pair. With a self-acting rule set, the next such WAG still fails with `invalid_grant`: permission does not make the record eligible | core: Optional Just-in-Time Correlation; Redemption Errors | Turn on just-in-time correlation; make created records ineligible; set a self-acting rule; mint a WAG; read the agent record |
 | N49 | RAS | With the RAS also trusting `https://partner-idp.example/` and correlating both issuers' agents just in time, a WAG for `agent-99` from the IdP's issuer redeems under a self-acting rule for that issuer, and one from the partner issuer fails with `invalid_target`. With a rule for the partner issuer too, its WAG redeems. Each token's `sub` is its own record's local principal, and the two differ | core: Optional Just-in-Time Correlation; Agent Principal Correlation; Self-Acting Redemption: WAG | Trust a second issuer; turn on just-in-time correlation for both issuers; make created records eligible; set self-acting rules; mint WAGs for both issuers; read the agent records |
+| N50 | RAS | With unbound grants, an ID-JAG without `cnf` redeemed once with a proof of K and presented again with a proof of K2 fails with `invalid_grant` | core: Common Grant Validation (Grant replay); Renewal and Negative Tests | Let the IdP issue, and the RAS accept, unbound grants |
+| N51 | RAS | With unbound grants, a WAG without `cnf` redeemed once and presented again fails with `invalid_grant` | core: Common Grant Validation (Grant replay); Renewal and Negative Tests | As N50, for the self-acting registration |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -555,7 +557,8 @@ Some cases depend on choices made for the reference:
 The suite tests nothing outside the path above, including:
 
 * governed agent access with unbound grants, except bearer issuance
-  (P5 to P7) and as the setup for N10, N30, and D08;
+  (P5 to P7), their single use (N50, N51), and as the setup for N10,
+  N30, and D08;
 * the existing platform JWT input beyond P11, P12 and N36 to N39: JSON
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
