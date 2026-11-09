@@ -1,4 +1,4 @@
-# Conformance suite: the mandatory delegated path
+# Conformance suite
 
 This directory holds executable positive and negative tests for one
 interoperable path through the core profile, and a reference
@@ -13,8 +13,11 @@ transaction](../EXAMPLES.md#first-delegated-transaction) traces it:
 * bound governed agent access, with DPoP at the IdP and the RAS;
 * a DPoP-bound JWT access token, validated at the API.
 
-It also holds tests of the oversight companion's deferred redemption at
-the reference RAS ([Deferred redemption at the
+Beyond that path, it tests self-acting issuance and redemption (P14,
+P15, N44 to N49, N51, N52), the existing platform JWT input for a
+shared client (P11 to P13, N36 to N39), and just-in-time correlation
+(N34, N47 to N49). It also holds tests of the oversight companion's
+deferred redemption at the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
 Policy Services, error selection order, self-acting access and
 introspection at the reference API ([Policy services at the
@@ -578,10 +581,11 @@ The suite tests nothing outside the path above, including:
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
   presentation; and the inputs of the inputs draft;
-* WAG issuance and redemption beyond P14, P15 and N44 to N49: presented
-  evidence, the byte-identical subject token, the Agent Authorization's
-  scope ceiling, deferred WAG redemption, and the other WAG rows of
-  Redemption Errors; S08 and S09 use minted self-acting tokens;
+* WAG issuance and redemption beyond P14, P15, N44 to N49, N51 and
+  N52: presented evidence, the byte-identical subject token, the Agent
+  Authorization's scope ceiling, deferred WAG redemption, and the other
+  WAG rows of Redemption Errors; S08 and S09 use minted self-acting
+  tokens;
 * introspection beyond the API's processing in S10 to S13: the RAS's
   own introspection responses, caching and freshness limits,
   `authorization_details`, certificate-bound tokens, and opaque tokens

@@ -111,7 +111,7 @@ reference each other normatively and are published together.
 | Adding an optional capability | The guide's chapter for it: continuation for gateways and scheduled work, human oversight for approval at the IdP, the RAS, or an action, AuthZEN for policy services | The companion profile that defines it |
 | Building an agent platform | The guide, then [SCIM management][management] to register agents | [Lifecycle][lifecycle] for agents the platform hosts |
 | Building a SCIM service for OAuth clients | [SCIM OAuth client management][oauth-client] | |
-| Testing an implementation | The [conformance suite](conformance/README.md): cases for the delegated path, deferred redemption at the RAS, and an API's policy service, each listing the control of the implementation it needs, with a test-only reference IdP, RAS, and API | |
+| Testing an implementation | The [conformance suite](conformance/README.md): cases for the delegated path, self-acting issuance and redemption, the shared-client input, deferred redemption at the RAS, and an API's policy service, each listing the control of the implementation it needs, with a test-only reference IdP, RAS, and API | |
 | Tracking dependencies | The [coordination notes](COORDINATION.md): what the drafts need from the specifications they depend on | |
 
 ## Contributing
