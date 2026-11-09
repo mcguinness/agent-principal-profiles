@@ -399,7 +399,9 @@ class Adapter:
                                           jit_eligible (whether a record
                                           created just in time is eligible;
                                           set before the request that
-                                          creates it),
+                                          creates it), remove_correlation
+                                          ([issuer, sub]: an administrator
+                                          removes that agent's correlation),
                                           self_acting_rule (RAS policy
                                           granting every agent of the IdP
                                           `scope` for itself in `tenant`,
@@ -2082,6 +2084,29 @@ def n53(ctx):
     ctx.adapter.set("api", "actor_gate", False)
     expect_denial_code(ctx, ctx.client.get(cfg.read_path, body["access_token"]),
                        "actor_unauthorized")
+
+
+@case("N54", "RAS", "Does not create again, just in time, an agent whose correlation the RAS "
+      "removed",
+      "core: Optional Just-in-Time Correlation; Applied Disablement and Revocation; Redemption "
+      "Errors",
+      needs=("self_acting", "mint_wag", "agent_record", "set:ras.jit", "set:ras.jit_eligible",
+             "set:ras.self_acting_rule", "set:ras.remove_correlation"),
+      defeats=("ras.removal_retained",))
+def n54(ctx):
+    # A record created just in time admits the agent under a self-acting
+    # rule. Once the RAS removes that correlation, the next WAG must not
+    # create the record again: the removal is retained revocation state.
+    cfg = self_acting(ctx)
+    home = cfg.expect["agent_iss"]
+    ctx.adapter.set("ras", "jit", True)
+    ctx.adapter.set("ras", "jit_eligible", True)
+    ctx.adapter.set("ras", "self_acting_rule", True)
+    expect_token_response(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True))
+    ctx.adapter.set("ras", "remove_correlation", [home, cfg.uncorrelated_agent])
+    expect_error(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True), 400, "invalid_grant")
+    check(ctx.adapter.agent_record(home, cfg.uncorrelated_agent) is None,
+          "the RAS created the removed agent's record again")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

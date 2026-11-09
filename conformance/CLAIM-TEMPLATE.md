@@ -39,10 +39,10 @@ implementation](README.md#running-against-another-implementation)).
 | RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50 |
 | API: delegated access | P3, P4, N17 to N20, N24, N35, N53; reference-implementation tests: S32, S33, S35, S36 |
 | Generic shared-client interoperability (IdP) | P11 to P13 (P13 with a second IdP client), N36 to N39 |
-| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
+| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52, N54 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
 | Bearer access tokens | P5 to P7, N35; reference-implementation tests: S38, S39 |
 | DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
-| Just-in-time correlation | N34, N47 to N49, N52 |
+| Just-in-time correlation | N34, N47 to N49, N52, N54 |
 | Opaque access tokens and introspection | Reference-implementation tests: S10 to S13, S20, S21, S31, S34, S38 |
 | Policy services | Reference-implementation tests: S01 to S11, S14 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | N20, N53; reference-implementation tests: S14 to S31 |

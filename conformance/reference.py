@@ -157,6 +157,7 @@ CHECKS = {
     "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
     "ras.jit_qualified_principal": "a just-in-time record's local principal is allocated for "
                                    "its qualified pair, not derived from sub alone",
+    "ras.removal_retained": "a correlation the RAS removed is not created again just in time",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
     "ras.bind_when_proven": "where DPoP or bearer is permitted, the access token is bound to a "
@@ -987,6 +988,11 @@ class RAS(Server):
         # The initial eligibility of a record created just in time, which
         # the core leaves to local policy.
         self.jit_eligible = True
+        # (iss, sub) pairs whose correlation the RAS removed: retained
+        # revocation state, which just-in-time correlation applies (core:
+        # Optional Just-in-Time Correlation; Applied Disablement and
+        # Revocation).
+        self.removed_correlations = set()
         self.accepted_grants = {}
         # Deferred redemption (oversight: Deferred Redemption).
         self.approval_required = set()   # scopes whose redemption RAS policy holds for approval
@@ -1044,6 +1050,12 @@ class RAS(Server):
                 (self.jit.add if on else self.jit.discard)((issuer, "acme-data"))
             elif what == "jit_eligible":
                 self.jit_eligible = bool(value)
+            elif what == "remove_correlation":
+                # value: [issuer, sub]: an administrator removes the agent's
+                # correlation; the RAS keeps the removal.
+                pair = (value[0], value[1])
+                self.agents.pop(pair, None)
+                self.removed_correlations.add(pair)
             elif what == "user_link":
                 # value: [issuer tenant, sub, local user]: links the IdP's
                 # subject in that tenant to a local user in acme-data.
@@ -1234,7 +1246,8 @@ class RAS(Server):
         if user is None:
             raise OAuthError("invalid_grant", description="user not resolved")
         agent = self.agents.get((act["iss"], act["sub"]))
-        if agent is None and (act["iss"], config["tenant"]) in self.jit:
+        if agent is None and (act["iss"], config["tenant"]) in self.jit and \
+                not self.removal_applies((act["iss"], act["sub"])):
             agent = self.correlate_just_in_time((act["iss"], act["sub"]), config["tenant"],
                                                 user=user)
         ineligible = agent is None or not agent["active"]
@@ -1284,7 +1297,8 @@ class RAS(Server):
         no refresh token. The reference does not defer a WAG."""
         agent_key = (claims["iss"], claims["sub"])
         agent = self.agents.get(agent_key)
-        if agent is None and (claims["iss"], config["tenant"]) in self.jit:
+        if agent is None and (claims["iss"], config["tenant"]) in self.jit and \
+                not self.removal_applies(agent_key):
             agent = self.correlate_just_in_time(agent_key, config["tenant"], scope=scope)
         if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
             raise OAuthError("invalid_grant", description="agent not eligible")
@@ -1334,6 +1348,11 @@ class RAS(Server):
         if self.introspection_omit_act:
             response.pop("act", None)
         return response
+
+    def removal_applies(self, agent_key):
+        """Whether the RAS removed this pair's correlation, which a record created
+        just in time must not undo; with ras.removal_retained off, it would."""
+        return agent_key in self.removed_correlations and self.on("ras.removal_retained")
 
     def replay_refused(self, grant_key):
         """Whether an accepted grant is refused; a deferral-consumed one through switchable checks."""
