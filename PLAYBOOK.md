@@ -547,7 +547,8 @@ introspection response, under a member the two agree on; the drafts
 define none. A deployment that wants no such contract, or whose API
 validates access tokens offline, gives self-acting tokens a separate
 client registration or audience instead, and configures the API with
-that mapping.
+that mapping. The client registration association can name a separate
+registration for the client's self-acting grants.
 
 **Configuration.**
 

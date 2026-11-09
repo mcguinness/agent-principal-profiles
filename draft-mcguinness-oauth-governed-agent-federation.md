@@ -1026,6 +1026,13 @@ of them, while a restriction of an agent follows the agent
 can redeem a grant that names it, so only a grant bound under
 {{grant-protection}} stays with the key that obtained it.
 
+An IdP client MAY also map to a different registration at a RAS for
+self-acting grants than for delegated grants, so that the client
+registration tells the two token populations apart
+({{api-applicability}}). The association then names a registration for
+each acting relationship, and a grant's `client_id` is the registration
+for its own.
+
 ## Token Exchange Request {#issuance-request}
 
 Both grants are requested with a token exchange request {{RFC8693}} to
@@ -2033,7 +2040,9 @@ Self-acting tokens carry no `act` ({{wag-api}}). An ordinary `act`
 claim alone does not establish governed issuance.
 
 Separate client registrations, audiences, or issuers for the delegated
-and self-acting populations satisfy these rules. The absence of `act`
+and self-acting populations satisfy these rules; a client registration
+association can name a separate registration for a client's self-acting
+grants ({{flow-configuration}}). The absence of `act`
 alone does not: a delegated token lacking `act` would otherwise be
 accepted as self-acting.
 

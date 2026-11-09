@@ -202,7 +202,9 @@ configuration object types are prescribed.
   both servers use the document. Several clients can map to one
   registration, such as the dedicated clients of one platform's agents;
   the RAS then cannot tell them apart, and only a bound grant stays with
-  the key that obtained it.
+  the key that obtained it. One client can also map to a separate
+  registration for its self-acting grants, so that the API tells the
+  two token populations apart by `client_id`.
 
 **At the RAS:**
 
@@ -1100,7 +1102,9 @@ and carries no `act` (excerpt):
 The client registration `analysis-agent-client` is configured for
 self-acting access at this resource, which is how the API tells this
 population apart from the delegated one with the same audience
-([Profile Applicability][api-applicability]). The local principal
+([Profile Applicability][api-applicability]). The IdP's client
+registration association maps `analysis-client`'s self-acting grants to
+it ([Issuance Prerequisites][flow-configuration]). The local principal
 stands for the Agent Principal, and the policy evaluates the agent's
 own authority. No actor gate applies.
 
