@@ -823,14 +823,35 @@ def single(value):
     return value[0] if isinstance(value, list) and len(value) == 1 else value
 
 
+def jose_header(token):
+    """Whether token is a compact JWS: three segments, the first a JSON object with
+    alg. An opaque token's syntax can also contain periods (RFC 6750 Section 2.1)."""
+    parts = token.split(".") if isinstance(token, str) else []
+    if len(parts) != 3:
+        return False
+    try:
+        header = json.loads(jws.b64u_decode(parts[0]))
+    except (ValueError, TypeError):
+        return False
+    return isinstance(header, dict) and "alg" in header
+
+
 def access_token_jwt(token):
-    """A JWT access token's header and claims. The core also permits an opaque
-    token with equivalent context, which the suite does not read: a case that
-    needs the claims is then not run."""
-    if not isinstance(token, str) or token.count(".") != 2:
+    """A JWT access token's header and claims.
+
+    The core also permits an opaque token with equivalent context, which the
+    suite does not read: a case that needs the claims is then not run. A token
+    with a JOSE header that does not decode is a failure, not an opaque token.
+    """
+    check(isinstance(token, str) and token, f"access_token is not a non-empty string: "
+          f"{token!r}")
+    if not jose_header(token):
         raise NotRun("the RAS issued an opaque access token; the suite reads JWT access "
                      "tokens")
-    header, claims, _, _ = jws.decode(token)
+    try:
+        header, claims, _, _ = jws.decode(token)
+    except ValueError as err:
+        raise AssertionError(f"the access token has a JOSE header but does not decode: {err}")
     return header, claims
 
 
@@ -1078,7 +1099,7 @@ def bearer_setup(ctx):
 
 def unbound_jwt(token):
     """Whether a JWT access token carries no cnf; an opaque token is not inspected."""
-    return token.count(".") != 2 or "cnf" not in jws.decode(token)[1]
+    return not jose_header(token) or "cnf" not in access_token_jwt(token)[1]
 
 
 @case("P5", "RAS", "Issues a bearer token, without cnf, to a redemption with no proof where the "
@@ -1118,8 +1139,8 @@ def p7(ctx):
     check(str(body.get("token_type", "")).lower() == "dpop",
           f"token_type {body.get('token_type')!r}, expected DPoP")
     token = body["access_token"]
-    if token.count(".") == 2:
-        check(jkt(jws.decode(token)[1]) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
+    if jose_header(token):
+        check(jkt(access_token_jwt(token)[1]) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
               "the access token is not bound to the redemption proof key")
 
 
