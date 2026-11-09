@@ -65,7 +65,7 @@ normative:
   RFC9449:
   RFC9700:
   INPUTS:
-    title: "Agent Resolution Input Profiles for Agent Principal Federation"
+    title: "Agent Resolution Inputs for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-09

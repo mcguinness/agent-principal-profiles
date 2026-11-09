@@ -46,7 +46,7 @@ normative:
   RFC7644:
   RFC6901:
   INPUTS:
-    title: "Agent Resolution Input Profiles for Agent Principal Federation"
+    title: "Agent Resolution Inputs for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-09

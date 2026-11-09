@@ -1,5 +1,5 @@
 ---
-title: "Agent Resolution Input Profiles for Agent Principal Federation"
+title: "Agent Resolution Inputs for Agent Principal Federation"
 abbrev: "Agent Principal Inputs"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-inputs-latest

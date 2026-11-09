@@ -894,7 +894,7 @@ flowchart LR
 | Connection | Defined in |
 |---|---|
 | Token exchange, grant, redemption, call | OAuth 2.0 Profile for Agent Principal Federation (the core) |
-| Workload evidence | The core (dedicated client, platform JWT); Agent Resolution Input Profiles (SPIFFE, Client Attestation) |
+| Workload evidence | The core (dedicated client, platform JWT); Agent Resolution Inputs (SPIFFE, Client Attestation) |
 | Register agents and relationships | SCIM Profile for Agent Principal Management, with OAuth clients from the SCIM Profile for OAuth 2.0 Client Management |
 | Provision, disable, revoke | Agent Principal Lifecycle Profile for SCIM and OAuth |
 | Continuation exchange, onward grant | Identity Continuation Profile for Agent Principal Federation |

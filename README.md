@@ -89,7 +89,7 @@ addresses:
 
 | When you need | Add | Working group |
 |---|---|---|
-| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] ([source](draft-mcguinness-oauth-governed-agent-inputs.md)) | OAuth |
+| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Inputs][inputs] ([source](draft-mcguinness-oauth-governed-agent-inputs.md)) | OAuth |
 | A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] ([source](draft-mcguinness-oauth-governed-agent-continuation.md)) | OAuth |
 | Platforms that register agents and their relationships at the IdP | [SCIM Profile for Agent Principal Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | SCIM |
 | OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] ([source](draft-mcguinness-scim-oauth-client-management.md)) | SCIM |
