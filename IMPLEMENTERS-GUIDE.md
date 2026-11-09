@@ -370,7 +370,7 @@ one also exchanges or agrees on its item:
 
 | Item | Between | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|---|
-|  Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | Client and RAS | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22. Otherwise untested: P2 notes a refresh token but does not fail  |
+|  Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | Client and RAS | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22, D26. Otherwise untested: P2 notes a refresh token but does not fail  |
 |  Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS and API | RAS | Not used | Introspection endpoint | Direct against the reference, without caching: S12 for an inactive token, S13 for a delegated response without `act`, S20 for an endpoint that fails or answers without a boolean `active` (503, not `invalid_token`), and S21 for a proof failure established during that outage. Positive path: S10, S11  |
 |  Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | RAS and API | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, S37, and for the error selection order, S14 to S19 and S26 to S30. Positive path: S01, S08, S10  |
 

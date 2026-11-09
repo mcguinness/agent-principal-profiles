@@ -698,7 +698,8 @@ disablement.
 **A policy decision service is unavailable.** Unless a failure is
 established and no unfinished check ranks earlier, the API answers HTTP
 503, normally with `Retry-After` ([core, Error
-Responses][core-resource-errors]). A COAZ-MCP enforcement point fails
+Responses][core-resource-errors]). An enforcement point under
+[COAZ-MCP][coaz-mcp], the AuthZEN binding for MCP tool calls, fails
 closed with a JSON-RPC error, and COAZ-MCP names no HTTP status for it.
 The guide proposes an interpretation for an enforcement point that
 controls the HTTP status and decides before the response is committed:
@@ -916,7 +917,7 @@ What each draft needs from the specifications it depends on is in
 | Bound governed agent access | The adoption profile that requires DPoP at grant issuance and redemption | The core |
 | Chain, hop | The IdP's record of grants continued from one root grant; each grant in it is a hop | ICA, as the continuation profile uses it |
 | Client Association | Permission for an OAuth client to use an agent through the selected Identity Binding, in one acting relationship and credential class | The core |
-| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id`, which several clients can share, and which can name a separate registration for a client's self-acting grants; not a Client Association | The core ("Issuance Prerequisites") |
+| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS. The registration supplies the grant's `client_id`; several clients can share one, and a client's self-acting grants can name a separate one. Not a Client Association | The core ("Issuance Prerequisites") |
 | Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop, that its authorization is active, and that the continuing client is associated with it | Identity Continuation Assertion (ICA) |
 | Continuation Association | Permission for a client to continue an agent's governed chains in one acting relationship | Continuation |
 | `continuation_via` | The onward grant's claim listing the continuing clients on the path | Continuation |
