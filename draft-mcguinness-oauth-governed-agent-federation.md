@@ -1026,6 +1026,13 @@ of them, while a restriction of an agent follows the agent
 can redeem a grant that names it, so only a grant bound under
 {{grant-protection}} stays with the key that obtained it.
 
+An IdP client MAY also map to a different registration at a RAS for
+self-acting grants than for delegated grants, so that the client
+registration tells the two token populations apart
+({{api-applicability}}). The association then names a registration for
+each acting relationship, and a grant's `client_id` is the registration
+for its own.
+
 ## Token Exchange Request {#issuance-request}
 
 Both grants are requested with a token exchange request {{RFC8693}} to
@@ -2033,7 +2040,9 @@ Self-acting tokens carry no `act` ({{wag-api}}). An ordinary `act`
 claim alone does not establish governed issuance.
 
 Separate client registrations, audiences, or issuers for the delegated
-and self-acting populations satisfy these rules. The absence of `act`
+and self-acting populations satisfy these rules; a client registration
+association can name a separate registration for a client's self-acting
+grants ({{flow-configuration}}). The absence of `act`
 alone does not: a delegated token lacking `act` would otherwise be
 accepted as self-acting.
 
@@ -2559,8 +2568,10 @@ fit".
   optional policy services at the API; introspection of opaque tokens;
   the existing platform JWT input for a shared client, with a
   dedicated-issuer credential class and exact issuer-and-`sub`
-  bindings; and the deferred redemption of {{OVERSIGHT}} at the RAS.
-  It does not implement WAG issuance or redemption, platform JWT
+  bindings; WAG issuance from client authentication and WAG redemption,
+  with a separate self-acting registration; and the deferred redemption
+  of {{OVERSIGHT}} at the RAS, for an ID-JAG. It does not implement
+  presented-evidence WAG issuance, deferred WAG redemption, platform JWT
   selectors, the binding of key-bound platform JWTs (it refuses them),
   the inputs of {{INPUTS}}, Client ID Metadata Documents, mutual TLS,
   refresh tokens outside a deferred redemption, {{CONTINUATION}},

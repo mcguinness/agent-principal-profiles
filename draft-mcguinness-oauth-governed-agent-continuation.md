@@ -427,6 +427,9 @@ The gateway's RAS redeems the root grant under "Grant Redemption at the
 RAS" in {{FEDERATION}}. When continuation-aware, it also binds the
 handle as {{Section 5.2 of ICA}} specifies, for a WAG as for an ID-JAG,
 and exposes it to the CAI through a carrier of {{Section 5.3 of ICA}}.
+At a multi-tenant issuer, the tenant it binds there is the grant's
+`tenant`, which names the chain's Governance Tenant ("Canonical
+Identity and Tenant Boundaries" in {{FEDERATION}}).
 
 A continuation-aware RAS selects access-token protection under
 "Access-Token Protection" in {{FEDERATION}}, including for a
@@ -1076,8 +1079,19 @@ intend.
 
 * **Several Governance Tenants:** A gateway that serves several
   Governance Tenants is configured in each, because {{ICA}} scopes
-  actor identities and CAI trust to one tenant. How it selects among
-  those registrations is an open item ({{open-items}}).
+  actor identities and CAI trust to one tenant. It selects the
+  registration for a continuation by configuration. Where each
+  Governance Tenant reaches the gateway through a Target Tenant that the
+  gateway's RAS trusts for that issuer tenant alone, the access token's
+  audience identifies the Governance Tenant. Where one Target Tenant is
+  trusted for several, the gateway obtains the tenant its RAS bound to
+  the authorization ({{root-redemption}}) by deployment-specific means;
+  this document defines no carrier for it. A continuation authenticated
+  with another tenant's registration fails validation, since its
+  canonical actor identity and Continuation Association belong to that
+  other tenant (steps 4 and 6 of {{continuation-validation}}): the
+  identity mismatch of step 4 comes first, with `invalid_request`
+  ({{Section 5.5.6 of ICA}}).
 
 # Security Considerations {#security}
 
@@ -1821,11 +1835,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    to anchor to a work authorization with its own lifecycle, as a
    delegated chain can anchor to a refresh-token grant
    ({{security-self-acting}})?
-6. **Tenant selection at a gateway:** How does a gateway that serves
-   several Governance Tenants select its registration and credential at
-   the IdP, when neither its incoming token nor the assertion response
-   names the Governance Tenant?
-7. **Temporary refusals:** Should {{ICA}} adopt the same HTTP 503
+6. **Temporary refusals:** Should {{ICA}} adopt the same HTTP 503
    response for state it cannot confirm, and define an OAuth error code
    for policy that blocks a chain only temporarily
    ({{continuation-errors}})?

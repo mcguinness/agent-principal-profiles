@@ -685,6 +685,14 @@ rule that stays local to the profile:
   value for handle binding of governed ID-JAGs and WAGs, because its
   access-token protection and redemption differ from what
   `id-jag-continuation` advertises.
+* **Tenant at the RAS:** Section 5.2 of ICA binds "the tenant where
+  the deployment conveys one" and leaves how the RAS learns it
+  deployment-specific. The governed grants now convey it: at a
+  multi-tenant issuer, `tenant` names the chain's Governance Tenant
+  (core `canonical-identity`), and the companion's root redemption says
+  so. A gateway serving several Governance Tenants selects its
+  registration by configuration, usually a Target Tenant per issuer
+  tenant (`implementation-client`); the companion defines no carrier.
 * **Redemption grant type:** resolved by ID-JAG-06. Section 5.5.5 of
   ICA redeems onward ID-JAGs with `jwt-dpop` (citing Section 9.8.1.2.1
   of ID-JAG-04, now 9.11.1.2.1), and Section 4.4 of ID-JAG-06 names
