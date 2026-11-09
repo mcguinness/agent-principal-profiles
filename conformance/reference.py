@@ -132,6 +132,8 @@ CHECKS = {
     "idp.scope_ceiling": "the issued scope stays within the Delegation Authorization's scope set",
     "ras.client_id": "grant client_id matches the authenticated client",
     "ras.grant_replay": "a grant the RAS has accepted is refused when presented again",
+    "ras.explicit_type": "the RAS tells an ID-JAG from a WAG by typ, never by whether it "
+                         "carries act",
     "ras.grant_time": "grant iat and nbf are not in the future",
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
@@ -1624,9 +1626,13 @@ class RAS(Server):
         Section 3); returns the claims and whether the grant is a WAG."""
         try:
             header, unverified, _, _ = jws.decode(assertion)
-            wag = _typ_is(header, "oauth-wag+jwt")
-            if not wag and not _typ_is(header, "oauth-id-jag+jwt"):
-                raise ValueError("typ")
+            if self.on("ras.explicit_type"):
+                wag = _typ_is(header, "oauth-wag+jwt")
+                if not wag and not _typ_is(header, "oauth-id-jag+jwt"):
+                    raise ValueError("typ")
+            else:
+                # Non-conforming: the grant's kind is inferred from act.
+                wag = "act" not in unverified
             key = self.trusted_idps.get(unverified.get("iss"))
             if key is None:
                 raise ValueError("untrusted issuer")

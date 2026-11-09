@@ -1953,6 +1953,32 @@ def n51(ctx):
     expect_error(ctx.client.redeem(grant, as_self_acting=True), 400, "invalid_grant")
 
 
+@case("N52", "RAS", "Tells the grants apart by typ: an ID-JAG without act and a WAG with act "
+      "both fail with invalid_grant",
+      "core: Grant Validation (Actor); Self-Acting Redemption: WAG, step 1; Credential and "
+      "Token Confusion",
+      needs=("self_acting", "mint_grant", "mint_wag", "set:ras.jit", "set:ras.jit_eligible",
+             "set:ras.self_acting_rule"),
+      defeats=("ras.explicit_type",))
+def n52(ctx):
+    # With just-in-time correlation and a self-acting rule, a RAS that read
+    # an ID-JAG without act as a WAG would make the user's subject an agent
+    # principal, and one that read a WAG with act as an ID-JAG would issue
+    # delegated access. Only the explicit type refuses each.
+    cfg = self_acting(ctx)
+    ctx.adapter.set("ras", "jit", True)
+    ctx.adapter.set("ras", "jit_eligible", True)
+    ctx.adapter.set("ras", "self_acting_rule", True)
+    claims = grant_claims(ctx, client_id=cfg.self_acting_client_id)
+    del claims["act"]
+    resp = ctx.client.redeem(ctx.adapter.mint_grant(claims), as_self_acting=True)
+    check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+          f"an ID-JAG without act: expected HTTP 400 invalid_grant, got {resp}")
+    resp = ctx.client.redeem(ctx.adapter.mint_wag(grant_claims(ctx)))
+    check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+          f"a WAG with act: expected HTTP 400 invalid_grant, got {resp}")
+
+
 # Deferred redemption at the RAS ---------------------------------------------
 #
 # The oversight companion's Deferred Redemption rows. In every case RAS

@@ -470,7 +470,7 @@ N44, and N45.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, N34, N40, N42, N43, and N46 to N51.
+N30, N34, N40, N42, N43, and N46 to N52.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
