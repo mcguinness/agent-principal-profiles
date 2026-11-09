@@ -42,7 +42,7 @@ implementation](README.md#running-against-another-implementation)).
 | Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
 | Bearer access tokens | P5 to P7, N35; reference-implementation tests: S38, S39 |
 | DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
-| Just-in-time correlation | N34, N47 to N49 |
+| Just-in-time correlation | N34, N47 to N49, N52 |
 | Opaque access tokens and introspection | Reference-implementation tests: S10 to S13, S20, S21, S31, S34, S38 |
 | Policy services | Reference-implementation tests: S01 to S11, S14 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | N20, N53; reference-implementation tests: S14 to S31 |
