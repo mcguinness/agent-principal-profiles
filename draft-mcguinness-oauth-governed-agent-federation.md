@@ -3336,6 +3336,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 |---|---|---|
 | Issuer | The Workload Identity Provider of the Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
 | Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
+| Client registration | Never required per Agent | Required for the redeeming client ({{redemption-common}}). Shared clients can redeem grants for multiple agents, and several dedicated clients can map to one registration ({{flow-configuration}}), but a RAS can still give each agent's client its own. WAG's prohibition is not adopted |
 | Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile; a bound WAG is redeemed with `jwt-dpop`, where {{Section 5 of WAG}} uses `jwt-bearer` ({{redemption-request}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |

@@ -117,9 +117,16 @@ Coordination is needed on:
   whether the core points to it.
 * **Client registration:** Section 5 of WAG-02 says an authorization
   server MUST NOT require a client registration per Agent. This
-  document's mandatory path resolves the agent from a dedicated client,
-  one Agent Principal per client identity at the IdP. Decision pending:
-  whether that conflicts at the RAS, where the client redeems the WAG.
+  document does not adopt that prohibition. Client registration is
+  required for the redeeming client. Shared clients can redeem grants
+  for multiple agents, and several dedicated clients can map to one
+  registration (`flow-configuration`), but a RAS can still give each
+  agent's client its own. CIMD can avoid pre-registration where the RAS
+  supports onboarding from the client's metadata document; Section 7.2
+  of CIMD-02 also permits pre-registered Client Identifier URLs. The
+  core's composition table states this difference (`base-differences`).
+  The agent record that the RAS requires for each agent is a separate
+  difference (Linking, above).
 * **Subject presentation:** A token exchange in which the authenticated
   client is the subject, by permitting omission of `subject_token` in
   that case or by registering a subject token type for authenticated
