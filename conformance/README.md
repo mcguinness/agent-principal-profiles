@@ -149,7 +149,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | D13 | RAS | With an approval expiry 300 s ahead, the access token expires within it, and a refresh after it fails with `invalid_grant` | oversight: Redemption Resolution; Refresh and Continuation | Require approval; permit refresh; approve; advance the clock |
 | D14 | RAS | A refresh after the approval is revoked fails with `invalid_grant` | oversight: Refresh and Continuation | Require approval; permit refresh; approve; revoke; advance the clock |
 | D15 | RAS | A shorter approval expiry returned at one refresh bounds that token and the next | oversight: Approval Binding; Refresh and Continuation | Require approval; permit refresh; approve; shorten |
-| D16 | RAS | Two identical requests sent together get one deferral code, and one access request is opened | oversight: Recovery | Require approval; list tasks |
+| D16 | RAS | Two identical requests sent together, from two threads, get one deferral code, and one access request is opened. The reference serves one request at a time, so against it D16 shows the shared pending redemption but cannot show the absence of a race | oversight: Recovery | Require approval; list tasks |
 | D17 | RAS | After the grant's `exp`, a repeated request gets the same deferral code with the remaining `expires_in`, and the approval then issues | oversight: Recovery | Require approval; approve; advance the clock |
 | D18 | RAS | A repeated request that reuses the first request's DPoP proof fails with `invalid_dpop_proof` | oversight: Recovery; RFC 9449 Section 11.1 | Require approval |
 | D19 | RAS | After a token response redeems the code, a repeated request fails with `invalid_grant` | oversight: Recovery | Require approval; approve |
@@ -579,7 +579,8 @@ The suite tests nothing outside the path above, including:
 * introspection beyond the API's processing in S10 to S13: the RAS's
   own introspection responses, caching and freshness limits,
   `authorization_details`, certificate-bound tokens, and opaque tokens
-  issued by a redemption;
+  issued by a redemption, for which a case that reads the access
+  token's claims is reported as not run;
 * a real policy decision point, and policy services at the IdP or the
   RAS;
 * the error selection order under the API's own evaluation, except the
@@ -639,7 +640,10 @@ another IdP, RAS or API:
    and N46 `mint_wag` and `multi_tenant_issuer`. N47 to N49 need
    `mint_wag`, `uncorrelated_agent`, `agent_record`, `set:ras.jit`,
    `set:ras.jit_eligible` and `set:ras.self_acting_rule`; N49 also needs
-   `partner_agent_iss` and `set:ras.trusted_issuer`. D10 and D11 need
+   `partner_agent_iss` and `set:ras.trusted_issuer`. N50 and N51 need
+   `set:idp.client_profile` and `set:ras.client_profile`, N51 for the
+   self-acting registration too; N52 needs `mint_grant`, `mint_wag` and
+   the just-in-time controls of N47. D10 and D11 need
    `second_agent`, another agent the RAS correlates and lets act for
    the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
@@ -669,8 +673,10 @@ another IdP, RAS or API:
    the IdP issues needs `id_token`; the "Test control" column lists the
    other capabilities. A case whose capability the deployment cannot
    provide is skipped by raising `suite.NotRun` from the adapter method
-   it needs; `run_case` then reports it as not run. Any other exception
-   ends the run. N25 and N28 use `set` on the IdP
+   it needs; `run_case` then reports it as not run. The base `Adapter`
+   raises it from every capability method, so an adapter defines only
+   what the deployment provides, and `reset`. Any other exception ends
+   the run. N25 and N28 use `set` on the IdP
    (`delegation_scope`, `prohibited_scope`). The D cases use `set` on
    the RAS (`approval_required`, `refresh_permitted`,
    `max_pending_lifetime`, `authorization_lifetime`, `client_profile`),
@@ -720,7 +726,10 @@ RAS namespace, the RAS registration as `client_id`, `resource`,
 `scope`, `act`, `cnf.jkt` for the client's key, `tenant` where
 `multi_tenant_issuer` is set, 300 s). IdP cases, and
 any case that needs an ID Token, are reported as not run; `mint_grant`
-needs no IdP test control. With the reference, `run.py --ras-only` has
+needs no IdP test control. The suite signs WAGs the same way, including
+N49's WAGs for `partner_agent_iss` with the same key, so the adapter's
+`trusted_issuer` control must trust that key for the partner issuer.
+With the reference, `run.py --ras-only` has
 the reference RAS trust a key the suite generates for
 `https://idp.example/`, and CI runs this mode with `--vacuity`.
 

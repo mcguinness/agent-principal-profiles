@@ -537,59 +537,65 @@ class Adapter:
     def reset(self):
         raise NotImplementedError
 
+    def disable_check(self, role, name):
+        raise NotImplementedError
+
     def argument_rejection(self, resp):
         return resp.status == 400 and challenge_error(resp) == "invalid_request"
 
     def route_rejection(self, resp, kind):
         return not 200 <= resp.status < 300
 
+    # Every other operation is a capability the deployment may lack: until an
+    # adapter defines it, a case that needs it is reported as not run.
+
     def id_token(self, user, aud=None, claims=None):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement id_token")
 
     def set(self, role, what, value):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement set")
 
     def mint_grant(self, claims):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement mint_grant")
 
-    def mint_access_token(self, claims, typ="at+jwt"):
-        raise NotImplementedError
+    def mint_wag(self, claims):
+        raise NotRun("the adapter does not implement mint_wag")
 
     def agent_record(self, iss, sub):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement agent_record")
 
-    def disable_check(self, role, name):
-        raise NotImplementedError
-
-    def tasks(self):
-        raise NotImplementedError
-
-    def approve(self, task, approved_until, scope=None):
-        raise NotImplementedError
-
-    def deny(self, task):
-        raise NotImplementedError
-
-    def revoke(self, task):
-        raise NotImplementedError
-
-    def shorten(self, task, approved_until):
-        raise NotImplementedError
-
-    def substitute(self, task, other):
-        raise NotImplementedError
-
-    def advance_clock(self, seconds):
-        raise NotImplementedError
+    def mint_access_token(self, claims, typ="at+jwt"):
+        raise NotRun("the adapter does not implement mint_access_token")
 
     def mint_opaque_token(self, claims):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement mint_opaque_token")
+
+    def tasks(self):
+        raise NotRun("the adapter does not implement tasks")
+
+    def approve(self, task, approved_until, scope=None):
+        raise NotRun("the adapter does not implement approve")
+
+    def deny(self, task):
+        raise NotRun("the adapter does not implement deny")
+
+    def revoke(self, task):
+        raise NotRun("the adapter does not implement revoke")
+
+    def shorten(self, task, approved_until):
+        raise NotRun("the adapter does not implement shorten")
+
+    def substitute(self, task, other):
+        raise NotRun("the adapter does not implement substitute")
+
+    def advance_clock(self, seconds):
+        raise NotRun("the adapter does not implement advance_clock")
 
     def set_policy(self, policy):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement set_policy")
 
     def evaluations(self):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement evaluations")
 
 
 class NotRun(Exception):
@@ -816,6 +822,17 @@ def single(value):
     return value[0] if isinstance(value, list) and len(value) == 1 else value
 
 
+def access_token_jwt(token):
+    """A JWT access token's header and claims. The core also permits an opaque
+    token with equivalent context, which the suite does not read: a case that
+    needs the claims is then not run."""
+    if not isinstance(token, str) or token.count(".") != 2:
+        raise NotRun("the RAS issued an opaque access token; the suite reads JWT access "
+                     "tokens")
+    header, claims, _, _ = jws.decode(token)
+    return header, claims
+
+
 def jkt(claims):
     cnf = claims.get("cnf")
     return cnf.get("jkt") if isinstance(cnf, dict) else None
@@ -971,7 +988,7 @@ def p1(ctx):
     check(resp.status == 200, f"exchange failed: {resp}")
     body = resp.json()
     check(body.get("issued_token_type") == ID_JAG_TYPE, "issued_token_type")
-    check(body.get("token_type") == "N_A", "token_type")
+    check(str(body.get("token_type", "")).lower() == "n_a", "token_type N_A")
     header, grant, _, _ = jws.decode(body["access_token"])
     _, subject, _, _ = jws.decode(id_token)
     check(typ_is(header, "oauth-id-jag+jwt"), "typ")
@@ -1006,11 +1023,11 @@ def p2(ctx):
     resp = ctx.client.redeem(grant)
     check(resp.status == 200, f"redemption failed: {resp}")
     body = resp.json()
-    check(body.get("token_type") == "DPoP", "token_type DPoP")
+    check(str(body.get("token_type", "")).lower() == "dpop", "token_type DPoP")
     if "refresh_token" in body:
         ctx.notes.append("a refresh token was issued; the core permits one only under "
                          "explicit policy (Optional RAS Refresh Tokens)")
-    header, token, _, _ = jws.decode(body["access_token"])
+    header, token = access_token_jwt(body["access_token"])
     _, grant_claims, _, _ = jws.decode(grant)
     check(typ_is(header, "at+jwt"), "typ at+jwt or application/at+jwt")
     check(token.get("sub") == cfg.expect["token_sub"], "sub is the local user")
@@ -1607,7 +1624,7 @@ def p12(ctx):
     check(resp.status == 200, f"exchange failed: {resp}")
     deadline = jws.decode(evidence)[1]["exp"]
     exp = jws.decode(resp.json()["access_token"])[1].get("exp")
-    check(isinstance(exp, int) and exp <= deadline,
+    check(numeric(exp) and exp <= deadline,
           f"grant exp {exp} is after the evidence deadline {deadline}")
 
 
@@ -1791,7 +1808,7 @@ def p14(ctx):
     check(resp.status == 200, f"exchange failed: {resp}")
     body = resp.json()
     check(body.get("issued_token_type") == WAG_TYPE, "issued_token_type")
-    check(body.get("token_type") == "N_A", "token_type")
+    check(str(body.get("token_type", "")).lower() == "n_a", "token_type N_A")
     header, grant, _, _ = jws.decode(body["access_token"])
     check(typ_is(header, "oauth-wag+jwt"), "typ")
     check(grant.get("iss") == cfg.idp.issuer, "iss")
@@ -2071,7 +2088,7 @@ def expect_token(resp):
     body = resp.json()
     check(resp.status == 200 and isinstance(body.get("access_token"), str),
           f"expected a token response, got {resp}")
-    return body, jws.decode(body["access_token"])[1]
+    return body, access_token_jwt(body["access_token"])[1]
 
 
 def defer(ctx, grant, **kwargs):
@@ -2132,8 +2149,8 @@ def d02(ctx):
     approved_until = ctx.now() + 3600
     ctx.adapter.approve(only_task(ctx), approved_until)
     body, token = expect_token(ctx.client.poll(code))
-    check(body.get("token_type") == "DPoP", "token_type DPoP")
-    header = jws.decode(body["access_token"])[0]
+    check(str(body.get("token_type", "")).lower() == "dpop", "token_type DPoP")
+    header = access_token_jwt(body["access_token"])[0]
     check(typ_is(header, "at+jwt"), "typ at+jwt or application/at+jwt")
     check(token.get("sub") == cfg.expect["token_sub"], "sub is the local user")
     check(token.get("act") == jws.decode(grant)[1]["act"], f"act unchanged: {token.get('act')}")
