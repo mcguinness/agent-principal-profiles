@@ -133,6 +133,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   RFC6755:
+  RFC7521:
   RFC7942:
   WAG: I-D.carleton-workload-authz-grant-02
   SPIFFE-CONCEPTS:
@@ -730,7 +731,13 @@ token or RAS refresh authorization already issued; the grant's `exp`
 limits redemption, not subsequent access.
 
 The RAS MUST limit access-token and refresh-authorization lifetimes
-under its local policy ({{ras-refresh}}). This profile defines no
+under its local policy ({{ras-refresh}}). {{Section 4.1 of RFC7521}},
+which both grants follow under `jwt-bearer`
+({{Section 2.1 of RFC7523}}) and `jwt-dpop`
+({{Section 4.1 of JWT-DPOP-GRANT}}), recommends that an authorization
+server not issue an access token with a lifetime that exceeds the
+validity period of the assertion by a significant period; this document
+does not change that recommendation. This profile defines no
 portable IdP-imposed deadline on downstream authorization
 ({{excluded-compositions}}) and requires no shared approval record or correlated
 lifetime lookup.

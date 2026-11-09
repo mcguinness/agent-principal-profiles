@@ -156,7 +156,11 @@
     "4": "Evaluation",
     "5": "JSON String Representation"
   },
+  "RFC7521": {
+    "4.1": "Using Assertions as Authorization Grants"
+  },
   "RFC7523": {
+    "2.1": "Using JWTs as Authorization Grants",
     "3": "JWT Format and Processing Requirements",
     "5": "Interoperability Considerations"
   },
