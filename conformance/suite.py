@@ -1220,11 +1220,17 @@ def n10(ctx):
     expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
 
 
-@case("N11", "RAS", "Rejects redemption of a bound grant without a DPoP proof",
+@case("N11", "RAS", "Rejects redemption of a bound grant without a DPoP proof, also where the "
+      "resource permits bearer tokens",
       "core: Renewal and Negative Tests, redemption omits the proof; Access-Token Protection "
-      "(Grant Protection first)",
-      defeats=("ras.require_proof",))
+      "(Grant Protection first, whatever protection the resource requires)",
+      needs=("set:ras.resource_protection",), defeats=("ras.require_proof",))
 def n11(ctx):
+    expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400,
+                 ("invalid_grant", "invalid_dpop_proof"))
+    # Where the resource permits bearer tokens, access-token protection
+    # would issue one; only Grant Protection refuses the bound grant.
+    ctx.adapter.set("ras", "resource_protection", "dpop_or_bearer")
     expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400,
                  ("invalid_grant", "invalid_dpop_proof"))
 

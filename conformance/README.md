@@ -91,7 +91,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N08 | IdP | No Client Association fails with `actor_unauthorized` | core: negative-test row | Remove the association |
 | N09 | IdP | A withdrawn Delegation Authorization fails with `actor_unauthorized` | core: Delegation Authorization; Issuance Errors; PLAYBOOK recipe | Withdraw the delegation |
 | N10 | RAS | A grant without `cnf` under the bound profile fails with `invalid_grant` | core: negative-test row | Let the IdP issue unbound grants |
-| N11 | RAS | A bound grant redeemed without a proof fails with `invalid_grant` or `invalid_dpop_proof` | core: negative-test row; Access-Token Protection | None |
+| N11 | RAS | A bound grant redeemed without a proof fails with `invalid_grant` or `invalid_dpop_proof`, at the DPoP-only resource and again where the resource permits bearer tokens | core: negative-test row; Access-Token Protection | Permit bearer for the resource |
 | N12 | RAS | A redemption proven with another key fails with `invalid_grant` | core: Grant Protection | None |
 | N13 | RAS | A grant redeemed by a client other than its `client_id` fails with `invalid_grant` | core: Redemption Request; ID-JAG Section 4.4.1 | None; needs a second RAS client |
 | N14 | RAS | A `resource` parameter other than the grant's fails with `invalid_target` | core: Common Grant Validation | None |
@@ -244,7 +244,10 @@ access-token protection check then
 rejects the redemption with `invalid_request`; Access-Token Protection
 states that Grant Protection's checks come first, so the case requires
 `invalid_grant` or `invalid_dpop_proof`, the two codes Grant Protection
-permits, and no longer depends on the reference's own order. N27 fails
+permits, and no longer depends on the reference's own order. Its second
+step makes the resource permit bearer tokens, where access-token
+protection would issue a bearer token, so only Grant Protection can
+refuse the bound grant. N27 fails
 because the RAS's actor gate then refuses the uncorrelated agent with
 `actor_unauthorized`, the code Redemption Errors
 keeps for an actor-gate refusal of a valid ID-JAG's agent. N31 fails
