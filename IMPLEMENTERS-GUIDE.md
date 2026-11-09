@@ -1246,6 +1246,7 @@ inform decisions:
 |---|---|---|
 | SCIM provisioning and feed events to a resource domain | Trigger retrieval of current state; never activate an agent | [Lifecycle][lc-scim-events] |
 | CAEP `session-revoked` naming an ID-JAG | Revokes what that grant authorized at participating receivers | [Lifecycle][lc-grant-revocation], optional |
+| WISE `credential-revoked`, `credential-compromised`, `trust-anchor-revoked` and `trust-domain-federation-revoked` from a credential authority the IdP trusts, such as a platform that signs its agents' workload JWTs | Stop agent resolution through the credentials, trust material and trust domains they name, within what configuration trusts that authority for; Identity Bindings and the Agent Principal stay enabled unless IdP policy disables them | [Time, Replay, and Key Validation][time-validation] |
 | WISE credential and posture events from a platform to the IdP | Inform IdP policy and monitoring; change no administrative state | [Lifecycle][lc-platform-signals] |
 | CAEP `risk-level-change` from the IdP to a platform | Applied under the platform's own policy; not a disablement | [Lifecycle][lc-platform-signals] |
 
@@ -1612,6 +1613,7 @@ agent cannot use the token directly.
 [metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#metadata
 [capability-discovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#capability-discovery
 [client-metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-metadata
+[time-validation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#time-validation
 [idp-subject-resolution]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#idp-subject-resolution
 [ras-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#ras-refresh
 [status-changes]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#status-changes
