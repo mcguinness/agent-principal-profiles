@@ -1065,7 +1065,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 12 May 2027</td>
+<td class="center">Expires 13 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1078,12 +1078,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-federation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-08" class="published">8 November 2026</time>
+<time datetime="2026-11-09" class="published">9 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-12">12 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-13">13 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1149,7 +1149,7 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 12 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 13 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -2003,7 +2003,8 @@ that grant for redemption (<a href="#credential-requirements" class="auto intern
 <dt id="section-2.2-1.29">Governance Tenant:</dt>
           <dd style="margin-left: 1.5em" id="section-2.2-1.30">
             <p id="section-2.2-1.30.1">The IdP's administrative scope within which an Agent Principal and its
-relationships are managed. It is not part of the Agent Principal's
+relationships are managed: a tenant of the IdP's issuer in the sense of
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.1" class="relref">Section 6.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. It is not part of the Agent Principal's
 identity, which the IdP issuer qualifies (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>).<a href="#section-2.2-1.30.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
@@ -2168,6 +2169,34 @@ issuance, the Target Tenant for the requested RAS and resource. The RAS
 <span class="bcp14">MUST</span> interpret an agent identifier in its asserted issuer context and
 <span class="bcp14">MUST NOT</span> key agent authorization on a bare <code>sub</code>. Tenant resolution
 failures use the errors in <a href="#errors" class="auto internal xref">Section 4.7</a> and <a href="#issuance-errors" class="auto internal xref">Section 5.8</a>.<a href="#section-3.3-6" class="pilcrow">¶</a></p>
+<p id="section-3.3-7">A single-tenant issuer has one Governance Tenant, which the issuer
+identifies. A multi-tenant issuer identifies each of its tenants by
+<code>tenant</code> together with the issuer (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.1" class="relref">Section 6.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>). At a
+multi-tenant issuer:<a href="#section-3.3-7" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.3-8.1">
+            <p id="section-3.3-8.1.1">The IdP <span class="bcp14">MUST NOT</span> issue an ID-JAG for an agent whose Governance Tenant
+is not the user's tenant, which the ID-JAG's <code>tenant</code> claim names
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.4" class="relref">Section 6.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>). That claim therefore also names the
+agent's Governance Tenant.<a href="#section-3.3-8.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.3-8.2">
+            <p id="section-3.3-8.2.1">The IdP <span class="bcp14">MUST</span> include <code>tenant</code>, set to the agent's Governance Tenant,
+in every WAG (<a href="#wag-claims" class="auto internal xref">Section 5.7.2</a>), the claim that <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>
+recommends for an issuer that several tenants share.<a href="#section-3.3-8.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.3-8.3">
+            <p id="section-3.3-8.3.1">The RAS <span class="bcp14">MUST</span> reject a WAG with <code>invalid_grant</code> unless <code>tenant</code> is
+present and the RAS trusts <code>iss</code> and <code>tenant</code> together for the Target
+Tenant, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.1" class="relref">Section 4.4.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires for an ID-JAG.<a href="#section-3.3-8.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.3-9">A RAS's trust in a multi-tenant issuer to assert agents, including
+just-in-time correlation (<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>) and an actor-gate rule
+that admits every agent an issuer asserts, is therefore trust in one of
+that issuer's tenants. The Agent Principal identifier remains unique
+across the issuer, and <code>tenant</code> does not become part of the agent's
+identity.<a href="#section-3.3-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="governance-boundary">
@@ -2780,6 +2809,14 @@ a Client Association. If the client uses one identifier at both servers,
 such as a Client ID Metadata Document (CIMD) Client Identifier URL
 <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>, the association is the identity mapping. A client-supplied downstream client identifier <span class="bcp14">MUST NOT</span>
 select or override that association.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">Several IdP clients <span class="bcp14">MAY</span> map to one registration at a RAS, such as the
+dedicated clients of one platform's agents, or one client registered at
+several IdPs. The RAS then cannot tell those clients apart: its client
+policy, its audit, and any restriction keyed on <code>client_id</code> apply to all
+of them, while a restriction of an agent follows the agent
+(<a href="#agent-correlation" class="auto internal xref">Section 6.3</a>). Every holder of that registration's credentials
+can redeem a grant that names it, so only a grant bound under
+<a href="#grant-protection" class="auto internal xref">Section 4.4</a> stays with the key that obtained it.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="issuance-request">
@@ -3570,10 +3607,10 @@ classification of <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PRO
 <p id="section-5.6.5-1"><strong>Claims:</strong> The ID-JAG <span class="bcp14">MUST</span> use the format and claims of
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the common claims of <a href="#grant-common" class="auto internal xref">Section 5.5</a>, and
 additionally satisfy:<a href="#section-5.6.5-1" class="pilcrow">¶</a></p>
-<span id="name-id-jag-subject-and-actor-cl"></span><table class="center" id="table-10">
+<span id="name-id-jag-subject-actor-and-te"></span><table class="center" id="table-10">
             <caption>
 <a href="#table-10" class="selfRef">Table 10</a>:
-<a href="#name-id-jag-subject-and-actor-cl" class="selfRef">ID-JAG subject and actor claims</a>
+<a href="#name-id-jag-subject-actor-and-te" class="selfRef">ID-JAG subject, actor, and tenant claims</a>
             </caption>
 <thead>
               <tr>
@@ -3594,6 +3631,12 @@ additionally satisfy:<a href="#section-5.6.5-1" class="pilcrow">¶</a></p>
 </td>
                 <td class="text-left" rowspan="1" colspan="1">Agent Principal actor constructed under <a href="#actor-construction" class="auto internal xref">Section 5.6.4</a>
 </td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>tenant</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">At a multi-tenant issuer, the user's tenant (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.1" class="relref">Section 6.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>), which is also the agent's Governance Tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>)</td>
               </tr>
             </tbody>
           </table>
@@ -3752,10 +3795,10 @@ credential subject from which it was resolved. The grant is a JWT with
 <code>typ</code> <code>oauth-wag+jwt</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-5.1" class="relref">Section 5.1</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>) whose claims are aligned
 with the claim set of that section: the common claims of
 <a href="#grant-common" class="auto internal xref">Section 5.5</a> and the following:<a href="#section-5.7.2-1" class="pilcrow">¶</a></p>
-<span id="name-wag-issuer-subject-and-audi"></span><table class="center" id="table-12">
+<span id="name-wag-issuer-subject-audience"></span><table class="center" id="table-12">
             <caption>
 <a href="#table-12" class="selfRef">Table 12</a>:
-<a href="#name-wag-issuer-subject-and-audi" class="selfRef">WAG issuer, subject, and audience claims</a>
+<a href="#name-wag-issuer-subject-audience" class="selfRef">WAG issuer, subject, audience, and tenant claims</a>
             </caption>
 <thead>
               <tr>
@@ -3781,6 +3824,12 @@ with the claim set of that section: the common claims of
                   <code>aud</code>
 </td>
                 <td class="text-left" rowspan="1" colspan="1">The target RAS issuer identifier</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>tenant</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">At a multi-tenant issuer, the agent's Governance Tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>)</td>
               </tr>
             </tbody>
           </table>
@@ -3877,6 +3926,18 @@ Principal, downstream client, and tenant are unambiguous.<a href="#section-5.7.2
 </td>
             </tr>
             <tr>
+              <td class="text-left" rowspan="1" colspan="1">Policy does not authorize the agent's Governance Tenant for the Target Tenant (<a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>), a relationship local policy prohibits (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01#section-6.6.2" class="relref">Section 6.6.2</a> of [<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>actor_unauthorized</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">At a multi-tenant issuer, the agent's Governance Tenant is not the user's tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>actor_unauthorized</code>
+</td>
+            </tr>
+            <tr>
               <td class="text-left" rowspan="1" colspan="1">An applicable Delegation Authorization's scope ceiling excludes the requested scope</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_scope</code>
@@ -3926,7 +3987,7 @@ Agent Principal, or Governance Tenant, or no user, uses <code>invalid_grant</cod
                 <code>unauthorized_client</code>, not <code>actor_unauthorized</code>, since no actor is asserted</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Agent not authorized for the requested RAS or resource</td>
+              <td class="text-left" rowspan="1" colspan="1">Agent not authorized for the requested RAS or resource, including when policy does not authorize its Governance Tenant for the resource's Target Tenant</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_target</code>
 </td>
@@ -4089,7 +4150,9 @@ enforces <a href="#applied-changes" class="auto internal xref">Section 8.3</a>.<
 <p id="section-6.3.1-1">Where the RAS requires a local agent record and none exists for the
 qualified pair in the authorized Target Tenant, resource policy <span class="bcp14">MAY</span>
 permit the RAS to create one from a validated grant. The policy is
-disabled by default and enabled per governing issuer and Target Tenant.
+disabled by default and enabled per governing issuer, or per issuer and
+<code>tenant</code> at a multi-tenant issuer (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>), and Target
+Tenant.
 When it applies, the RAS:<a href="#section-6.3.1-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-6.3.1-2.1">
@@ -4137,7 +4200,8 @@ to it.<a href="#section-6.3.1-3" class="pilcrow">¶</a></p>
               <p id="section-6.4.1-2.1.1"><strong>Actor:</strong> Require a single <code>act</code> object under Actor Profile's rules,
 with non-empty <code>iss</code> and <code>sub</code> and no nested <code>act</code>. Require <code>act.iss</code>
 to equal the ID-JAG issuer and configured trust to authorize
-assertion of that namespace.<a href="#section-6.4.1-2.1.1" class="pilcrow">¶</a></p>
+assertion of that namespace, in the grant's <code>tenant</code> at a
+multi-tenant issuer (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>).<a href="#section-6.4.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-6.4.1-2.2">
               <p id="section-6.4.1-2.2.1"><strong>Proof and client:</strong> Apply the proof and client checks of
@@ -4172,8 +4236,9 @@ bindings, the RAS <span class="bcp14">MUST</span>:<a href="#section-6.4.2-1" cla
 <ul class="normal">
 <li class="normal" id="section-6.4.2-2.1">
               <p id="section-6.4.2-2.1.1">Resolve exactly one local user in the authorized Target Tenant,
-qualifying <code>sub</code> by the validated IdP issuer and tenant relationship;
-IdP and RAS tenant identifiers are not interchangeable.<a href="#section-6.4.2-2.1.1" class="pilcrow">¶</a></p>
+qualifying <code>sub</code> by the validated IdP issuer, by <code>tenant</code> at a
+multi-tenant issuer (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.3" class="relref">Section 6.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>), and by the tenant
+relationship; IdP and RAS tenant identifiers are not interchangeable.<a href="#section-6.4.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.4.2-2.2">
               <p id="section-6.4.2-2.2.1">Use <code>aud_sub</code> only when the IdP is authorized to assert local account
@@ -4249,7 +4314,9 @@ or replace <code>act.iss</code> with its own issuer.<a href="#section-6.4.3-2.2.
 <code>oauth-wag+jwt</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>), so that an ID-JAG or
 another JWT from the same issuer cannot be accepted as a WAG. Require
 <code>iss</code> to be a configured governing IdP for the asserted agent
-namespace. Reject a WAG that contains <code>act</code> with <code>invalid_grant</code>.<a href="#section-6.5-2.1.1" class="pilcrow">¶</a></p>
+namespace, and at a multi-tenant issuer apply the <code>tenant</code> rule of
+<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>. Reject a WAG that contains <code>act</code> with
+<code>invalid_grant</code>.<a href="#section-6.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-6.5-2.2">
             <p id="section-6.5-2.2.1"><strong>Proof and client:</strong> Apply the proof and client checks of
@@ -4892,10 +4959,11 @@ binding under RFC 9449 or RFC 8705. Dropping or replacing a
 sender binding requires a new grant.<a href="#section-8.2-7.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-8.2-7.2">
-            <p id="section-8.2-7.2.1"><strong>Authorization context:</strong> Preserve the user, qualified actor, Target
-Tenant, resource, and authorization ceiling, including
-<code>authorization_details</code>. Apply current local user and actor policy
-and <span><a href="https://rfc-editor.org/rfc/rfc9396#section-6" class="relref">Section 6</a> of [<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>.<a href="#section-8.2-7.2.1" class="pilcrow">¶</a></p>
+            <p id="section-8.2-7.2.1"><strong>Authorization context:</strong> Preserve the user, qualified actor, the
+grant's <code>tenant</code> at a multi-tenant issuer, Target Tenant, resource,
+and authorization ceiling, including <code>authorization_details</code>. Apply
+current trust in the issuer and that tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>),
+current local user and actor policy, and <span><a href="https://rfc-editor.org/rfc/rfc9396#section-6" class="relref">Section 6</a> of [<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>.<a href="#section-8.2-7.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-8.2-7.3">
             <p id="section-8.2-7.3.1"><strong>Profile:</strong> Enforce current minimum-profile policy against the
@@ -6723,6 +6791,14 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
 </td>
             </tr>
             <tr>
+              <td class="text-left" rowspan="1" colspan="1">Multi-tenant issuers</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>tenant</code> also names the agent's Governance Tenant: no ID-JAG for an agent of a tenant other than the user's, <code>tenant</code> in every WAG, and the RAS's tenant rule of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.1" class="relref">Section 4.4.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> applied to a WAG</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <a href="#canonical-identity" class="auto internal xref">Section 3.3</a>
+</td>
+            </tr>
+            <tr>
               <td class="text-left" rowspan="1" colspan="1">Grant narrowing</td>
               <td class="text-left" rowspan="1" colspan="1">One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and <code>cnf.jkt</code> in the bound profile</td>
               <td class="text-left" rowspan="1" colspan="1">
@@ -6886,7 +6962,8 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Shared issuers</td>
               <td class="text-left" rowspan="1" colspan="1">A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG <code>tenant</code> claim, are <span class="bcp14">RECOMMENDED</span> (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>)</td>
-              <td class="text-left" rowspan="1" colspan="1">Not defined: neither grant carries the Governance Tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>); open (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>tenant</code>, set to the agent's Governance Tenant, required in a WAG from a multi-tenant issuer; the RAS trusts <code>iss</code> and <code>tenant</code> together (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Refresh tokens</td>
@@ -6957,15 +7034,11 @@ without a subject token (<a href="#wag-request" class="auto internal xref">Secti
 X.509-SVID authentication a self-acting path;<a href="#appendix-B.2.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-B.2.1-2.4">
-              <p id="appendix-B.2.1-2.4.1">telling apart agents of Governance Tenants that share an issuer,
-which <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> does with a registered claim;<a href="#appendix-B.2.1-2.4.1" class="pilcrow">¶</a></p>
+              <p id="appendix-B.2.1-2.4.1">self-acting Client Associations (<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>); and<a href="#appendix-B.2.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-B.2.1-2.5">
-              <p id="appendix-B.2.1-2.5.1">self-acting Client Associations (<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>); and<a href="#appendix-B.2.1-2.5.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-B.2.1-2.6">
-              <p id="appendix-B.2.1-2.6.1">a WAG lifecycle composition: <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> defines no WAG wire
-composition, and revoking one WAG is deployment-specific.<a href="#appendix-B.2.1-2.6.1" class="pilcrow">¶</a></p>
+              <p id="appendix-B.2.1-2.5.1">a WAG lifecycle composition: <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> defines no WAG wire
+composition, and revoking one WAG is deployment-specific.<a href="#appendix-B.2.1-2.5.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="appendix-B.2.1-3">Until these close, a self-acting claim has no management path for client

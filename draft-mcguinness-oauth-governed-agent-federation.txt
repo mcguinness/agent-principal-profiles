@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         8 November 2026
-Expires: 12 May 2027
+Intended status: Standards Track                         9 November 2026
+Expires: 13 May 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 12 May 2027.
+   This Internet-Draft will expire on 13 May 2027.
 
 Copyright Notice
 
@@ -520,9 +520,10 @@ Table of Contents
       WAG and bound into that grant for redemption (Section 5.3.4).
 
    Governance Tenant:  The IdP's administrative scope within which an
-      Agent Principal and its relationships are managed.  It is not part
-      of the Agent Principal's identity, which the IdP issuer qualifies
-      (Section 3.3).
+      Agent Principal and its relationships are managed: a tenant of the
+      IdP's issuer in the sense of Section 6.1 of [ID-JAG].  It is not
+      part of the Agent Principal's identity, which the IdP issuer
+      qualifies (Section 3.3).
 
    Target Tenant:  The tenant at the RAS in which the agent or user is
       authorized, that is, where authority is exercised.  It can differ
@@ -659,6 +660,31 @@ Table of Contents
    RAS MUST interpret an agent identifier in its asserted issuer context
    and MUST NOT key agent authorization on a bare sub.  Tenant
    resolution failures use the errors in Section 4.7 and Section 5.8.
+
+   A single-tenant issuer has one Governance Tenant, which the issuer
+   identifies.  A multi-tenant issuer identifies each of its tenants by
+   tenant together with the issuer (Section 6.1 of [ID-JAG]).  At a
+   multi-tenant issuer:
+
+   *  The IdP MUST NOT issue an ID-JAG for an agent whose Governance
+      Tenant is not the user's tenant, which the ID-JAG's tenant claim
+      names (Section 6.4 of [ID-JAG]).  That claim therefore also names
+      the agent's Governance Tenant.
+
+   *  The IdP MUST include tenant, set to the agent's Governance Tenant,
+      in every WAG (Section 5.7.2), the claim that Section 6.3 of [WAG]
+      recommends for an issuer that several tenants share.
+
+   *  The RAS MUST reject a WAG with invalid_grant unless tenant is
+      present and the RAS trusts iss and tenant together for the Target
+      Tenant, as Section 4.4.1 of [ID-JAG] requires for an ID-JAG.
+
+   A RAS's trust in a multi-tenant issuer to assert agents, including
+   just-in-time correlation (Section 6.3.1) and an actor-gate rule that
+   admits every agent an issuer asserts, is therefore trust in one of
+   that issuer's tenants.  The Agent Principal identifier remains unique
+   across the issuer, and tenant does not become part of the agent's
+   identity.
 
 3.4.  Governance Boundary and Execution Independence
 
@@ -1136,6 +1162,15 @@ Table of Contents
    the association is the identity mapping.  A client-supplied
    downstream client identifier MUST NOT select or override that
    association.
+
+   Several IdP clients MAY map to one registration at a RAS, such as the
+   dedicated clients of one platform's agents, or one client registered
+   at several IdPs.  The RAS then cannot tell those clients apart: its
+   client policy, its audit, and any restriction keyed on client_id
+   apply to all of them, while a restriction of an agent follows the
+   agent (Section 6.3).  Every holder of that registration's credentials
+   can redeem a grant that names it, so only a grant bound under
+   Section 4.4 stays with the key that obtained it.
 
 5.2.  Token Exchange Request
 
@@ -1707,17 +1742,21 @@ Table of Contents
    [ID-JAG] and the common claims of Section 5.5, and additionally
    satisfy:
 
-     +=======+======================================================+
-     | Claim | Required result                                      |
-     +=======+======================================================+
-     | sub   | Same user as the validated subject credential,       |
-     |       | expressed in the IdP's subject namespace for the RAS |
-     +-------+------------------------------------------------------+
-     | act   | Agent Principal actor constructed under              |
-     |       | Section 5.6.4                                        |
-     +-------+------------------------------------------------------+
+     +========+======================================================+
+     | Claim  | Required result                                      |
+     +========+======================================================+
+     | sub    | Same user as the validated subject credential,       |
+     |        | expressed in the IdP's subject namespace for the RAS |
+     +--------+------------------------------------------------------+
+     | act    | Agent Principal actor constructed under              |
+     |        | Section 5.6.4                                        |
+     +--------+------------------------------------------------------+
+     | tenant | At a multi-tenant issuer, the user's tenant          |
+     |        | (Section 6.1 of [ID-JAG]), which is also the agent's |
+     |        | Governance Tenant (Section 3.3)                      |
+     +--------+------------------------------------------------------+
 
-                Table 10: ID-JAG subject and actor claims
+             Table 10: ID-JAG subject, actor, and tenant claims
 
    *Unambiguous context:* The IdP MUST NOT issue a grant if it cannot
    determine an unambiguous user, actor, downstream client, or tenant
@@ -1830,17 +1869,21 @@ Table of Contents
    aligned with the claim set of that section: the common claims of
    Section 5.5 and the following:
 
-   +=======+==========================================================+
-   | Claim | Value                                                    |
-   +=======+==========================================================+
-   | iss   | The IdP issuer identifier                                |
-   +-------+----------------------------------------------------------+
-   | sub   | The Agent Principal identifier from the Identity Binding |
-   +-------+----------------------------------------------------------+
-   | aud   | The target RAS issuer identifier                         |
-   +-------+----------------------------------------------------------+
+   +========+==========================================================+
+   | Claim  | Value                                                    |
+   +========+==========================================================+
+   | iss    | The IdP issuer identifier                                |
+   +--------+----------------------------------------------------------+
+   | sub    | The Agent Principal identifier from                      |
+   |        | the Identity Binding                                     |
+   +--------+----------------------------------------------------------+
+   | aud    | The target RAS issuer identifier                         |
+   +--------+----------------------------------------------------------+
+   | tenant | At a multi-tenant issuer, the agent's                    |
+   |        | Governance Tenant (Section 3.3)                          |
+   +--------+----------------------------------------------------------+
 
-            Table 12: WAG issuer, subject, and audience claims
+         Table 12: WAG issuer, subject, audience, and tenant claims
 
    The WAG MUST NOT contain act.  A nickname claim, if present, is for
    display only; it is not an input to agent correlation or
@@ -1881,41 +1924,51 @@ Table of Contents
 
                           Table 13: Request errors
 
-   +=============================================+====================+
-   | Failure                                     | Error              |
-   +=============================================+====================+
-   | Invalid subject or agent-resolution         | invalid_request    |
-   | credential, or disallowed inbound actor     |                    |
-   | chain                                       |                    |
-   +---------------------------------------------+--------------------+
-   | Absent, disabled, or ambiguous Identity     | invalid_grant      |
-   | Binding, or no active Agent Principal can   |                    |
-   | be resolved                                 |                    |
-   +---------------------------------------------+--------------------+
-   | Governance Tenant cannot be resolved        | invalid_grant      |
-   | unambiguously from trusted identity and     |                    |
-   | configuration context                       |                    |
-   +---------------------------------------------+--------------------+
-   | Resolved Agent Principal, but no Client     | actor_unauthorized |
-   | Association permits the selected binding    | under Actor        |
-   | for delegated issuance                      | Profile, with HTTP |
-   |                                             | 400                |
-   +---------------------------------------------+--------------------+
-   | No applicable Delegation Authorization      | actor_unauthorized |
-   | covers the agent, user, client, and target, |                    |
-   | or policy categorically prohibits the agent |                    |
-   | for the requested scope (Section 5.4)       |                    |
-   +---------------------------------------------+--------------------+
-   | An applicable Delegation Authorization's    | invalid_scope      |
-   | scope ceiling excludes the requested scope  |                    |
-   +---------------------------------------------+--------------------+
-   | Approval requires a downstream lifetime     | actor_unauthorized |
-   | condition that the selected composition     |                    |
-   | cannot enforce, in delegated issuance       |                    |
-   | (Section 5.4)                               |                    |
-   +---------------------------------------------+--------------------+
+   +==============================================+====================+
+   | Failure                                      | Error              |
+   +==============================================+====================+
+   | Invalid subject or agent-resolution          | invalid_request    |
+   | credential, or disallowed inbound actor      |                    |
+   | chain                                        |                    |
+   +----------------------------------------------+--------------------+
+   | Absent, disabled, or ambiguous Identity      | invalid_grant      |
+   | Binding, or no active Agent Principal can    |                    |
+   | be resolved                                  |                    |
+   +----------------------------------------------+--------------------+
+   | Governance Tenant cannot be resolved         | invalid_grant      |
+   | unambiguously from trusted identity and      |                    |
+   | configuration context                        |                    |
+   +----------------------------------------------+--------------------+
+   | Resolved Agent Principal, but no Client      | actor_unauthorized |
+   | Association permits the selected binding     | under Actor        |
+   | for delegated issuance                       | Profile, with HTTP |
+   |                                              | 400                |
+   +----------------------------------------------+--------------------+
+   | No applicable Delegation Authorization       | actor_unauthorized |
+   | covers the agent, user, client, and target,  |                    |
+   | or policy categorically prohibits the agent  |                    |
+   | for the requested scope (Section 5.4)        |                    |
+   +----------------------------------------------+--------------------+
+   | Policy does not authorize the agent's        | actor_unauthorized |
+   | Governance Tenant for the Target Tenant      |                    |
+   | (Section 5.4), a relationship local policy   |                    |
+   | prohibits (Section 6.6.2 of                  |                    |
+   | [ACTOR-PROFILE])                             |                    |
+   +----------------------------------------------+--------------------+
+   | At a multi-tenant issuer, the agent's        | actor_unauthorized |
+   | Governance Tenant is not the user's tenant   |                    |
+   | (Section 3.3)                                |                    |
+   +----------------------------------------------+--------------------+
+   | An applicable Delegation Authorization's     | invalid_scope      |
+   | scope ceiling excludes the requested scope   |                    |
+   +----------------------------------------------+--------------------+
+   | Approval requires a downstream lifetime      | actor_unauthorized |
+   | condition that the selected composition      |                    |
+   | cannot enforce, in delegated issuance        |                    |
+   | (Section 5.4)                                |                    |
+   +----------------------------------------------+--------------------+
 
-           Table 14: Identity resolution and delegation errors
+            Table 14: Identity resolution and delegation errors
 
    Subject and agent-resolution credential failures use invalid_request,
    as Section 2.2.2 of [RFC8693] requires and Section 4.3.4.3 of
@@ -1925,31 +1978,36 @@ Table of Contents
 
    Self-acting issuance adds these errors:
 
-    +=====================================+===========================+
-    | Failure                             | Error                     |
-    +=====================================+===========================+
-    | Actor-token parameters present in a | invalid_request           |
-    | self-acting exchange                |                           |
-    +-------------------------------------+---------------------------+
-    | Subject token is not byte-identical | invalid_request           |
-    | to the authentication credential in |                           |
-    | authentication-context resolution   |                           |
-    +-------------------------------------+---------------------------+
-    | Resolved Agent Principal, but no    | unauthorized_client, not  |
-    | Client Association permits self-    | actor_unauthorized, since |
-    | acting issuance for the binding     | no actor is asserted      |
-    +-------------------------------------+---------------------------+
-    | Agent not authorized for the        | invalid_target            |
-    | requested RAS or resource           |                           |
-    +-------------------------------------+---------------------------+
-    | Agent not authorized for the        | invalid_scope             |
-    | requested authority                 |                           |
-    +-------------------------------------+---------------------------+
-    | Approval requires a downstream      | invalid_target            |
-    | lifetime condition that the         |                           |
-    | selected composition cannot enforce |                           |
-    | (Section 5.4)                       |                           |
-    +-------------------------------------+---------------------------+
+   +=========================================+=========================+
+   | Failure                                 | Error                   |
+   +=========================================+=========================+
+   | Actor-token parameters present          | invalid_request         |
+   | in a self-acting exchange               |                         |
+   +-----------------------------------------+-------------------------+
+   | Subject token is not byte-              | invalid_request         |
+   | identical to the authentication         |                         |
+   | credential in authentication-           |                         |
+   | context resolution                      |                         |
+   +-----------------------------------------+-------------------------+
+   | Resolved Agent Principal, but no        | unauthorized_client,    |
+   | Client Association permits self-        | not actor_unauthorized, |
+   | acting issuance for the binding         | since no actor is       |
+   |                                         | asserted                |
+   +-----------------------------------------+-------------------------+
+   | Agent not authorized for the            | invalid_target          |
+   | requested RAS or resource,              |                         |
+   | including when policy does not          |                         |
+   | authorize its Governance Tenant         |                         |
+   | for the resource's Target Tenant        |                         |
+   +-----------------------------------------+-------------------------+
+   | Agent not authorized for the            | invalid_scope           |
+   | requested authority                     |                         |
+   +-----------------------------------------+-------------------------+
+   | Approval requires a downstream          | invalid_target          |
+   | lifetime condition that the             |                         |
+   | selected composition cannot             |                         |
+   | enforce (Section 5.4)                   |                         |
+   +-----------------------------------------+-------------------------+
 
                    Table 15: Self-acting issuance errors
 
@@ -2052,8 +2110,9 @@ Table of Contents
    Where the RAS requires a local agent record and none exists for the
    qualified pair in the authorized Target Tenant, resource policy MAY
    permit the RAS to create one from a validated grant.  The policy is
-   disabled by default and enabled per governing issuer and Target
-   Tenant.  When it applies, the RAS:
+   disabled by default and enabled per governing issuer, or per issuer
+   and tenant at a multi-tenant issuer (Section 3.3), and Target Tenant.
+   When it applies, the RAS:
 
    *  MUST key the created record by that exact pair;
 
@@ -2085,7 +2144,8 @@ Table of Contents
    1.  *Actor:* Require a single act object under Actor Profile's rules,
        with non-empty iss and sub and no nested act.  Require act.iss to
        equal the ID-JAG issuer and configured trust to authorize
-       assertion of that namespace.
+       assertion of that namespace, in the grant's tenant at a multi-
+       tenant issuer (Section 3.3).
 
    2.  *Proof and client:* Apply the proof and client checks of
        Section 6.2.
@@ -2108,7 +2168,8 @@ Table of Contents
    bindings, the RAS MUST:
 
    *  Resolve exactly one local user in the authorized Target Tenant,
-      qualifying sub by the validated IdP issuer and tenant
+      qualifying sub by the validated IdP issuer, by tenant at a multi-
+      tenant issuer (Section 6.3 of [ID-JAG]), and by the tenant
       relationship; IdP and RAS tenant identifiers are not
       interchangeable.
 
@@ -2158,8 +2219,9 @@ Table of Contents
        Section 5.7.2.  Require the JWT typ header parameter oauth-
        wag+jwt (Section 6.1 of [WAG]), so that an ID-JAG or another JWT
        from the same issuer cannot be accepted as a WAG.  Require iss to
-       be a configured governing IdP for the asserted agent namespace.
-       Reject a WAG that contains act with invalid_grant.
+       be a configured governing IdP for the asserted agent namespace,
+       and at a multi-tenant issuer apply the tenant rule of
+       Section 3.3.  Reject a WAG that contains act with invalid_grant.
 
    2.  *Proof and client:* Apply the proof and client checks of
        Section 6.2.
@@ -2660,10 +2722,11 @@ Table of Contents
        binding under RFC 9449 or RFC 8705.  Dropping or replacing a
        sender binding requires a new grant.
 
-   2.  *Authorization context:* Preserve the user, qualified actor,
-       Target Tenant, resource, and authorization ceiling, including
-       authorization_details.  Apply current local user and actor policy
-       and Section 6 of [RFC9396].
+   2.  *Authorization context:* Preserve the user, qualified actor, the
+       grant's tenant at a multi-tenant issuer, Target Tenant, resource,
+       and authorization ceiling, including authorization_details.
+       Apply current trust in the issuer and that tenant (Section 3.3),
+       current local user and actor policy, and Section 6 of [RFC9396].
 
    3.  *Profile:* Enforce current minimum-profile policy against the
        profile under which the grant was accepted.  Reject with
@@ -4266,6 +4329,15 @@ B.1.  Differences from Base Specifications
    |                        | registration association    |Section 6.3,|
    |                        |                             |Section 5.1 |
    +------------------------+-----------------------------+------------+
+   | Multi-tenant issuers   | tenant also names the       |Section 3.3 |
+   |                        | agent's Governance Tenant:  |            |
+   |                        | no ID-JAG for an agent of   |            |
+   |                        | a tenant other than the     |            |
+   |                        | user's, tenant in every     |            |
+   |                        | WAG, and the RAS's tenant   |            |
+   |                        | rule of Section 4.4.1 of    |            |
+   |                        | [ID-JAG] applied to a WAG   |            |
+   +------------------------+-----------------------------+------------+
    | Grant narrowing        | One resource URI (a         |Section 5.5,|
    |                        | string; singleton arrays    |Section     |
    |                        | accepted), scope            |5.6.5,      |
@@ -4414,14 +4486,14 @@ B.1.  Differences from Base Specifications
     | unseen agents  | assertion              | correlation required  |
     |                |                        | (Section 6.3)         |
     +----------------+------------------------+-----------------------+
-    | Shared issuers | A claim registered for | Not defined: neither  |
-    |                | each Workload Identity | grant carries the     |
-    |                | Provider tells         | Governance Tenant     |
-    |                | providers sharing one  | (Section 3.3); open   |
-    |                | issuer apart;          | (Appendix B.2.1)      |
-    |                | dedicated issuers, or  |                       |
-    |                | else the ID-JAG tenant |                       |
-    |                | claim, are RECOMMENDED |                       |
+    | Shared issuers | A claim registered for | tenant, set to the    |
+    |                | each Workload Identity | agent's Governance    |
+    |                | Provider tells         | Tenant, required in a |
+    |                | providers sharing one  | WAG from a multi-     |
+    |                | issuer apart;          | tenant issuer; the    |
+    |                | dedicated issuers, or  | RAS trusts iss and    |
+    |                | else the ID-JAG tenant | tenant together       |
+    |                | claim, are RECOMMENDED | (Section 3.3)         |
     |                | (Section 6.3 of [WAG]) |                       |
     +----------------+------------------------+-----------------------+
     | Refresh tokens | Prohibited             | Prohibited            |
@@ -4477,9 +4549,6 @@ B.2.1.  WAG
    *  a token exchange in which the authenticated client is the subject
       without a subject token (Section 5.7.1), which would also give
       X.509-SVID authentication a self-acting path;
-
-   *  telling apart agents of Governance Tenants that share an issuer,
-      which Section 6.3 of [WAG] does with a registered claim;
 
    *  self-acting Client Associations ([AGENT-MANAGEMENT]); and
 
