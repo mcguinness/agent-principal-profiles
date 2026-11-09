@@ -824,44 +824,83 @@ def expect_error(resp, status, error):
 
 
 def expect_challenge(ctx, resp, status, error):
-    """The status, the DPoP scheme, and the error code where the challenge carries one."""
+    """The status, a DPoP challenge, and its error code where it carries one."""
     challenge = challenge_of(resp)
-    check(resp.status == status and challenge.startswith("DPoP"),
+    check(resp.status == status and has_challenge(challenge, "DPoP"),
           f"expected HTTP {status} with a DPoP challenge, got {resp} {challenge!r}")
-    if "error" in challenge_params(challenge):
-        check(challenge_params(challenge)["error"] == error,
-              f"expected error {error}, got {challenge!r}")
+    params = challenge_params(challenge, "DPoP")
+    if "error" in params:
+        check(params["error"] == error, f"expected error {error}, got {challenge!r}")
     else:
         ctx.notes.append(f"challenge carries no error parameter; {error} expected "
                          "(RFC 9449 Section 7.1 SHOULD)")
 
 
 def challenge_of(resp):
-    return resp.headers.get("WWW-Authenticate", "") if resp.headers else ""
+    """Every WWW-Authenticate field as one list: a server can send several challenges
+    in one field or in several (RFC 9110 Section 11.6.1; RFC 9449 Section 7.2)."""
+    if not resp.headers:
+        return ""
+    return ", ".join(resp.headers.get_all("WWW-Authenticate") or [])
 
 
-def challenge_params(challenge):
-    """A challenge's auth-params (RFC 9110 Section 11.2): names lowercased, values unquoted."""
-    params = {}
-    for name, value in re.findall(r'([!#$%&\'*+.^_`|~0-9A-Za-z-]+)[ \t]*=[ \t]*'
-                                  r'("(?:[^"\\]|\\.)*"|[^\s,]+)', challenge):
-        if value.startswith('"'):
-            value = re.sub(r'\\(.)', r'\1', value[1:-1])
-        params.setdefault(name.lower(), value)
-    return params
+TOKEN = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
+
+
+def challenges(challenge):
+    """The challenges in a WWW-Authenticate list, in order, as (scheme, auth-params):
+    schemes and parameter names lowercased, values unquoted (RFC 9110 Section 11.2).
+
+    A list element that begins with a token not followed by "=" starts a new
+    challenge; an element "name=value" continues the current one.
+    """
+    elements = re.findall(r'(?:[^,"]|"(?:[^"\\]|\\.)*")+', challenge)
+    found = []
+    for element in (e.strip() for e in elements):
+        if not element:
+            continue
+        if not re.match(rf'{TOKEN}[ \t]*=', element):
+            scheme, element = re.match(rf'({TOKEN})[ \t]*(.*)$', element, re.S).groups()
+            found.append((scheme.lower(), {}))
+        param = re.match(rf'({TOKEN})[ \t]*=[ \t]*("(?:[^"\\]|\\.)*"|[^\s,]*)$', element)
+        if found and param:
+            name, value = param.groups()
+            if value.startswith('"'):
+                value = re.sub(r'\\(.)', r'\1', value[1:-1])
+            found[-1][1].setdefault(name.lower(), value)
+    return found
+
+
+def has_challenge(challenge, scheme):
+    """Whether the list has a challenge in this scheme, compared case-insensitively."""
+    return any(name == scheme.lower() for name, _ in challenges(challenge))
+
+
+def challenge_params(challenge, scheme=None):
+    """The auth-params of the first challenge in this scheme, or of the first
+    challenge where no scheme is named; empty if there is none."""
+    for name, params in challenges(challenge):
+        if scheme is None or name == scheme.lower():
+            return params
+    return {}
 
 
 def nonce_demanded(resp):
-    """A use_dpop_nonce error: HTTP 400 at a token endpoint, 401 at a resource server."""
+    """A use_dpop_nonce error: HTTP 400 at a token endpoint, 401 with a DPoP challenge
+    at a resource server."""
     if resp.status == 400:
         return resp.json().get("error") == "use_dpop_nonce"
     return resp.status == 401 and \
-        challenge_params(challenge_of(resp)).get("error") == "use_dpop_nonce"
+        challenge_params(challenge_of(resp), "DPoP").get("error") == "use_dpop_nonce"
 
 
-def challenge_error(resp):
-    """The challenge's error attribute, or else the body's error member."""
-    return challenge_params(challenge_of(resp)).get("error") or resp.json().get("error")
+def challenge_error(resp, scheme=None):
+    """The error attribute of the first challenge that has one, in this scheme where
+    one is named, or else the body's error member."""
+    for name, params in challenges(challenge_of(resp)):
+        if (scheme is None or name == scheme.lower()) and "error" in params:
+            return params["error"]
+    return resp.json().get("error")
 
 
 def expect_denial_code(ctx, resp, error):
@@ -873,10 +912,11 @@ def expect_denial_code(ctx, resp, error):
     error attribute or, where the challenge has none, in the body.
     """
     challenge = challenge_of(resp)
-    check(resp.status == 403 and challenge.startswith("DPoP"),
+    check(resp.status == 403 and has_challenge(challenge, "DPoP"),
           f"expected HTTP 403 with a DPoP challenge, got {resp} {challenge!r}")
-    check(challenge_error(resp) == error,
-          f"expected {error}, got {challenge_error(resp)!r} in {challenge!r} and the body")
+    check(challenge_error(resp, "DPoP") == error,
+          f"expected {error}, got {challenge_error(resp, 'DPoP')!r} in {challenge!r} and the "
+          "body")
 
 
 def expect_no_code_denial(ctx, resp, data):
@@ -887,10 +927,10 @@ def expect_no_code_denial(ctx, resp, data):
     file's data. The body is otherwise application-specific.
     """
     challenge = challenge_of(resp)
-    check(resp.status == 403 and challenge.startswith("DPoP"),
+    check(resp.status == 403 and has_challenge(challenge, "DPoP"),
           f"expected HTTP 403 with a DPoP challenge, got {resp} {challenge!r}")
     check(data not in resp.body, "the denial carried the file's data")
-    check("error" not in challenge_params(challenge),
+    check("error" not in challenge_params(challenge, "DPoP"),
           f"the challenge carries an error attribute: {challenge!r}")
     for code in ("actor_unauthorized", "insufficient_scope"):
         check(code not in challenge and code.encode() not in resp.body,
@@ -3146,9 +3186,9 @@ def bearer_claims(ctx, **overrides):
 def expect_bearer_challenge(resp, status, error, label):
     """The status, and a Bearer challenge with this error, or with none and a realm."""
     challenge = challenge_of(resp)
-    check(resp.status == status and challenge.startswith("Bearer"),
+    check(resp.status == status and has_challenge(challenge, "Bearer"),
           f"{label}: expected HTTP {status} with a Bearer challenge, got {resp} {challenge!r}")
-    params = challenge_params(challenge)
+    params = challenge_params(challenge, "Bearer")
     if error is None:
         check("error" not in params and "realm" in params,
               f"{label}: expected a Bearer challenge with realm and no error, got {challenge!r}")
