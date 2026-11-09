@@ -1,6 +1,6 @@
 ---
-title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
-abbrev: "Governed Agent Lifecycle"
+title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
+abbrev: "Agent Principal Lifecycle"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-lifecycle-latest
 submissiontype: IETF
@@ -53,7 +53,7 @@ normative:
   RFC8936:
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   FEDERATION:
-    title: "OAuth 2.0 Profile for Governed Agent Federation"
+    title: "OAuth 2.0 Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -73,7 +73,7 @@ normative:
   RFC7662:
 informative:
   AGENT-MANAGEMENT:
-    title: "SCIM Profile for Governed Agent Federation Management"
+    title: "SCIM Profile for Agent Principal Management"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -81,7 +81,7 @@ informative:
       Internet-Draft: draft-mcguinness-scim-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
   GUIDE:
-    title: "Implementer's Guide for Governed Agent Federation"
+    title: "Implementer's Guide for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -105,7 +105,7 @@ Current administrative state does not establish a history of revocation.
 
 # Introduction
 
-Governed Agent Federation {{FEDERATION}} separates agent identity,
+Agent Principal Federation {{FEDERATION}} separates agent identity,
 client authority, user delegation, and resource authorization. It
 identifies an Agent Principal by the pair (IdP issuer, agent
 identifier), independently of the client or workload credential used to

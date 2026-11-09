@@ -1,6 +1,6 @@
 ---
-title: "SCIM Profile for Governed Agent Federation Management"
-abbrev: "SCIM Agent Federation"
+title: "SCIM Profile for Agent Principal Management"
+abbrev: "SCIM Agent Principal Management"
 category: std
 docname: draft-mcguinness-scim-agent-federation-latest
 submissiontype: IETF
@@ -33,7 +33,7 @@ normative:
       Internet-Draft: draft-mcguinness-scim-oauth-client-management
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html
   FEDERATION:
-    title: "OAuth 2.0 Profile for Governed Agent Federation"
+    title: "OAuth 2.0 Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -46,7 +46,7 @@ normative:
   RFC7644:
   RFC6901:
   INPUTS:
-    title: "Agent Resolution Input Profiles for Governed Agent Federation"
+    title: "Agent Resolution Input Profiles for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-09
@@ -55,7 +55,7 @@ normative:
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   LIFECYCLE:
-    title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -63,7 +63,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
   GUIDE:
-    title: "Implementer's Guide for Governed Agent Federation"
+    title: "Implementer's Guide for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -89,7 +89,7 @@ revoke previously issued downstream authorization.
 
 # Introduction
 
-Governed Agent Federation {{FEDERATION}} separates the identity of an
+Agent Principal Federation {{FEDERATION}} separates the identity of an
 Agent Principal from its resolution inputs, permitted OAuth clients,
 user delegations, and resource permissions. Its token protocol assumes
 that the corresponding administrative relationships already exist. This

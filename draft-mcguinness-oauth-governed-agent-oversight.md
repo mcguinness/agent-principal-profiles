@@ -1,6 +1,6 @@
 ---
-title: "Human Oversight Profile for Governed Agent Federation"
-abbrev: "Governed Agent Oversight"
+title: "Human Oversight Profile for Agent Principal Federation"
+abbrev: "Agent Principal Oversight"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-oversight-latest
 submissiontype: IETF
@@ -27,7 +27,7 @@ author:
    email: public@karlmcguinness.com
 normative:
   FEDERATION:
-    title: "OAuth 2.0 Profile for Governed Agent Federation"
+    title: "OAuth 2.0 Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -35,7 +35,7 @@ normative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
   CONTINUATION:
-    title: "Identity Continuation Profile for Governed Agent Federation"
+    title: "Identity Continuation Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -49,7 +49,7 @@ normative:
   RFC9449:
 informative:
   AGENT-LIFECYCLE:
-    title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     author:
       - name: Karl McGuinness
     date: false
@@ -112,7 +112,7 @@ informative:
 
 --- abstract
 
-The OAuth 2.0 Profile for Governed Agent Federation decides which
+The OAuth 2.0 Profile for Agent Principal Federation decides which
 governed agent acts, for whom, and under what authorization, and an
 identity provider issues the resulting grant without a person present.
 It bounds what an external approval can do but leaves asynchronous

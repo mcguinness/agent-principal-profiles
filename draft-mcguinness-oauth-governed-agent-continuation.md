@@ -1,6 +1,6 @@
 ---
-title: "Identity Continuation Profile for Governed Agent Federation"
-abbrev: "Governed Agent Continuation"
+title: "Identity Continuation Profile for Agent Principal Federation"
+abbrev: "Agent Principal Continuation"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-continuation-latest
 submissiontype: IETF
@@ -27,7 +27,7 @@ author:
    email: public@karlmcguinness.com
 normative:
   FEDERATION:
-    title: "OAuth 2.0 Profile for Governed Agent Federation"
+    title: "OAuth 2.0 Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-09
@@ -46,7 +46,7 @@ normative:
   RFC9396:
 informative:
   OVERSIGHT:
-    title: "Human Oversight Profile for Governed Agent Federation"
+    title: "Human Oversight Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -54,14 +54,14 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   AGENT-LIFECYCLE:
-    title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
   AGENT-MANAGEMENT:
-    title: "SCIM Profile for Governed Agent Federation Management"
+    title: "SCIM Profile for Agent Principal Management"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -74,7 +74,7 @@ informative:
     author:
       - org: Model Context Protocol
   GUIDE:
-    title: "Implementer's Guide for Governed Agent Federation"
+    title: "Implementer's Guide for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -94,7 +94,7 @@ informative:
 --- abstract
 
 
-The OAuth 2.0 Profile for Governed Agent Federation carries a governed
+The OAuth 2.0 Profile for Agent Principal Federation carries a governed
 Agent Principal from an identity provider into one resource domain, as
 the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
 the subject of a Workload Authorization Grant (WAG). A gateway that
@@ -1231,7 +1231,7 @@ This document requests registration of the following value in the
 * Common Name: Grant profile identifier for a Resource Authorization
   Server that binds the `identity_continuation_handle` claim of
   governed ID-JAGs and WAGs to authorization state under the Identity
-  Continuation Profile for Governed Agent Federation
+  Continuation Profile for Agent Principal Federation
 * Change Controller: IETF
 * Specification Document: {{metadata}} of this document.
 
