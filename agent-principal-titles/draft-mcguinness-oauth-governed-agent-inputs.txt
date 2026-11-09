@@ -8,7 +8,7 @@ Intended status: Standards Track                         9 November 2026
 Expires: 13 May 2027
 
 
-     Agent Resolution Input Profiles for Agent Principal Federation
+         Agent Resolution Inputs for Agent Principal Federation
           draft-mcguinness-oauth-governed-agent-inputs-latest
 
 Abstract
