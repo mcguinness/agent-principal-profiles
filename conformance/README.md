@@ -73,9 +73,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P5 | RAS | With unbound grants and a resource that permits DPoP or bearer, a redemption with no proof gets `token_type` Bearer and an access token without `cnf` | core: Access-Token Protection | Let the IdP issue, and the RAS accept, unbound grants; permit bearer for the resource |
 | P6 | API | That bearer token, presented with the `Bearer` scheme, reads the file | core: Access-Token Protection; Token Validation; RFC 6750 | As P5; permit bearer tokens at the API |
 | P7 | RAS | With the same configuration, a redemption with a valid proof gets `token_type` DPoP and an access token bound to the proof key | core: Access-Token Protection (DPoP or bearer) | As P5 |
-| P8 | IdP | With the IdP requiring DPoP nonces, the exchange gets `use_dpop_nonce` and a `DPoP-Nonce`, and the retry that carries the nonce gets the grant | RFC 9449 Section 8; core: Grant Protection | Require nonces at the IdP |
-| P9 | RAS | With the RAS requiring DPoP nonces, the redemption's retry with the nonce gets the access token | RFC 9449 Section 8; core: Access-Token Protection | Require nonces at the RAS |
-| P10 | API | With the API requiring DPoP nonces, the read gets HTTP 401 with `use_dpop_nonce`, and the retry with the nonce is served | RFC 9449 Section 9; core: Token Validation | Require nonces at the API |
+| P8 | IdP | With the IdP requiring DPoP nonces, an exchange whose proof carries a nonce the IdP never provided gets `use_dpop_nonce` and a `DPoP-Nonce`, and the retry that carries that nonce gets the grant | RFC 9449 Sections 4.3 and 8; core: Grant Protection | Require nonces at the IdP |
+| P9 | RAS | With the RAS requiring DPoP nonces, a redemption whose proof carries a nonce the RAS never provided gets `use_dpop_nonce`, and the retry with the RAS's nonce gets the access token | RFC 9449 Sections 4.3 and 8; core: Access-Token Protection | Require nonces at the RAS |
+| P10 | API | With the API requiring DPoP nonces, a read whose proof carries a nonce the API never provided gets HTTP 401 with `use_dpop_nonce`, and the retry with the API's nonce is served | RFC 9449 Sections 4.3 and 9; core: Token Validation | Require nonces at the API |
 | P16 | IdP | For an ID Token that expires in 90 s, the grant expires no later than the ID Token | core: Grant Issuance (the subject credential's expiration) | ID Token with chosen claims |
 | P11 | IdP | The shared client `platform-client` presents a platform JWT for `workload-43` as `actor_token`; the grant names `agent-43` in `act` and the shared client's RAS registration, `platform-api`, as `client_id` | core: Conformance Claims (generic shared-client interoperability); Existing Platform JWT | A shared client configured |
 | P12 | IdP | With a platform JWT that expires in 90 s, the grant expires no later than that evidence deadline | core: Existing Platform JWT (Validation); Common Grant Claims | A shared client configured |
@@ -230,15 +230,16 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2, P7, P12, P13, P16 and D02, name the
+Every negative case but N32, and P2, P7 to P10, P12, P13, P16 and D02, name the
 reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
 With `--vacuity`, each of these 112 cases runs once for each check it
 names, with that check switched off; eight S cases and N40 name two
 checks, so there are 121 runs, and every run fails. Forty-two N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
-token, P12 and P16 because the grant then outlives the platform JWT or
-the ID Token, and P13 because the disabled agent's grant is then
+token, P8 to P10 because the server then accepts a nonce it never
+provided, P12 and P16 because the grant then outlives the platform JWT
+or the ID Token, and P13 because the disabled agent's grant is then
 redeemed. N36
 fails because the IdP then falls back to the shared client's own
 authentication, which resolves no agent (`invalid_grant`). N11 fails because the RAS's

@@ -1105,37 +1105,51 @@ def p7(ctx):
               "the access token is not bound to the redemption proof key")
 
 
+def stale_nonce(ctx, url):
+    """Have the client's next proof to url carry a nonce the server never provided."""
+    host = urlsplit(url).netloc
+    ctx.client.nonces[host] = "stale-" + uuid.uuid4().hex
+    return host
+
+
 @case("P8", "IdP", "Issues the grant after demanding a DPoP nonce, to the retry that carries it",
-      "RFC 9449 Section 8; core: Grant Protection", needs=("set:idp.dpop_nonce",))
+      "RFC 9449 Sections 4.3 and 8; core: Grant Protection", needs=("set:idp.dpop_nonce",),
+      defeats=("idp.nonce_match",))
 def p8(ctx):
+    # The first proof carries a nonce the IdP never provided, which RFC
+    # 9449 Section 4.3 requires it to refuse with a demand for its own.
     ctx.adapter.set("idp", "dpop_nonce", True)
+    host = stale_nonce(ctx, ctx.cfg.idp.token_endpoint)
     resp = ctx.client.exchange(ctx.id_token())
     check(resp.status == 200, f"exchange failed: {resp}")
-    check(urlsplit(ctx.cfg.idp.token_endpoint).netloc in ctx.client.nonce_demands,
-          "setup: the IdP did not demand a nonce")
+    check(host in ctx.client.nonce_demands,
+          "the IdP accepted a DPoP nonce it never provided")
 
 
 @case("P9", "RAS", "Issues the access token after demanding a DPoP nonce, to the retry that carries "
-      "it", "RFC 9449 Section 8; core: Access-Token Protection",
-      needs=("set:ras.dpop_nonce",))
+      "it", "RFC 9449 Sections 4.3 and 8; core: Access-Token Protection",
+      needs=("set:ras.dpop_nonce",), defeats=("ras.nonce_match",))
 def p9(ctx):
     grant = ctx.grant()
     ctx.adapter.set("ras", "dpop_nonce", True)
+    host = stale_nonce(ctx, ctx.cfg.ras.token_endpoint)
     resp = ctx.client.redeem(grant)
     check(resp.status == 200, f"redemption failed: {resp}")
-    check(urlsplit(ctx.cfg.ras.token_endpoint).netloc in ctx.client.nonce_demands,
-          "setup: the RAS did not demand a nonce")
+    check(host in ctx.client.nonce_demands,
+          "the RAS accepted a DPoP nonce it never provided")
 
 
 @case("P10", "API", "Serves the read after demanding a DPoP nonce, to the retry that carries it",
-      "RFC 9449 Section 9; core: Token Validation", needs=("set:api.dpop_nonce",))
+      "RFC 9449 Sections 4.3 and 9; core: Token Validation", needs=("set:api.dpop_nonce",),
+      defeats=("api.nonce_match",))
 def p10(ctx):
     token = ctx.access_token()
     ctx.adapter.set("api", "dpop_nonce", True)
+    host = stale_nonce(ctx, ctx.cfg.api_base)
     resp = ctx.client.get(ctx.cfg.read_path, token)
     check(resp.status == 200, f"read failed: {resp}")
-    check(urlsplit(ctx.cfg.api_base).netloc in ctx.client.nonce_demands,
-          "setup: the API did not demand a nonce")
+    check(host in ctx.client.nonce_demands,
+          "the API accepted a DPoP nonce it never provided")
 
 
 @case("P16", "IdP", "Expires the grant no later than the ID Token",

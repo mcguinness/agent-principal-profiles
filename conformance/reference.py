@@ -107,6 +107,7 @@ CHECKS = {
     "idp.client_assertion_replay": "client assertion jti is not reused",
     "idp.client_assertion_time": "client assertion iat and nbf are not in the future",
     "idp.require_dpop": "bound profile requires a DPoP proof at issuance",
+    "idp.nonce_match": "a DPoP proof carries the nonce the IdP provided",
     "idp.single_resource": "exactly one resource parameter",
     "idp.id_token_audience": "ID Token audience is the authenticated client",
     "idp.id_token_time": "ID Token iat and nbf are not in the future",
@@ -161,6 +162,7 @@ CHECKS = {
     "ras.bind_when_proven": "where DPoP or bearer is permitted, the access token is bound to a "
                             "valid proof presented at redemption",
     "ras.proof_replay": "a DPoP proof jti is not reused at the RAS",
+    "ras.nonce_match": "a DPoP proof carries the nonce the RAS provided",
     "ras.approval_gate": "a redemption RAS policy requires approval for issues nothing without one",
     "ras.absolute_expiration": "the absolute authorization expiration set at receipt bounds "
                                "expires_in and every token",
@@ -185,6 +187,7 @@ CHECKS = {
     "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
     "ras.refresh_ends": "a refresh rejected on re-evaluation ends the refresh authorization",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
+    "api.nonce_match": "a DPoP proof carries the nonce the API provided",
     "api.bound_token_scheme": "a DPoP-bound access token presented with the Bearer scheme is "
                               "rejected",
     "api.challenge_scheme": "every challenge uses the request's scheme: Bearer, with a realm, "
@@ -440,7 +443,11 @@ class Server:
             raise bad
         if access_token is not None and payload.get("ath") != jws.ath(access_token):
             raise bad
-        if self.require_nonce and payload.get("nonce") != self.nonce:
+        # With the role's nonce_match check off, any nonce passes, which no
+        # conforming server accepts (RFC 9449 Section 4.3, step 10).
+        nonce_ok = payload.get("nonce") == self.nonce if self.on(f"{self.role}.nonce_match") \
+            else payload.get("nonce") is not None
+        if self.require_nonce and not nonce_ok:
             # A token endpoint answers HTTP 400 (RFC 9449 Section 8), a
             # resource server HTTP 401 with a challenge (Section 9).
             raise OAuthError("use_dpop_nonce", status, "DPoP nonce required",
@@ -459,6 +466,8 @@ class IdP(Server):
     (core: Existing Platform JWT), with one credential class: a dedicated
     platform issuer, configured with that client.
     """
+
+    role = "idp"
 
     def __init__(self, client_keys, platform_key=None):
         self.issuer, self.token_endpoint = IDP_ISSUER, IDP_ISSUER + "token"
@@ -915,6 +924,7 @@ class RAS(Server):
     HTTP Basic (RFC 6749 Section 2.3.1).
     """
 
+    role = "ras"
     ARS_OPS = ("tasks", "approve", "deny", "revoke", "shorten", "substitute")
 
     def __init__(self, client_keys, idp_public_key, introspection_clients=None):
@@ -1854,6 +1864,8 @@ class API(Server):
     trusted client and resource configuration: a delegated population and,
     for a separate registration, a self-acting one.
     """
+
+    role = "api"
 
     def __init__(self, ras_public_key):
         self.ras_public_key = ras_public_key
