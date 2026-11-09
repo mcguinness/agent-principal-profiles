@@ -1,6 +1,6 @@
 # Governing Agents: A Playbook for Identity Teams
 
-This playbook is non-normative. It turns the governed agent profiles
+This playbook is non-normative. It turns the Agent Principal Profiles
 into the work an enterprise identity team does: choosing a pilot,
 assigning owners, configuring and validating an integration, requiring
 evidence from vendors, stopping and restoring an agent, and showing an

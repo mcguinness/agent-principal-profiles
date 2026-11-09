@@ -1,6 +1,6 @@
 # Conformance Claim Template
 
-A form for stating what an implementation of the governed agent profiles
+A form for stating what an implementation of the Agent Principal Profiles
 claims. It adds no requirement: each line points to the draft text that
 defines the claim. The core's Conformance Claims section requires a
 claim to identify the profile by its URI, the realization, the role,

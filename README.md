@@ -1,15 +1,23 @@
 <!-- regenerate: off (set to off if you edit this file) -->
 
-# Governed Agent Profiles
+# Agent Principal Profiles
 
-Internet-Drafts for governing agents across the platforms that run them
-and the resource domains they reach. An enterprise identity provider
-(IdP) resolves each agent's execution identity, its OAuth client or
-workload credential, to a governed Agent Principal. Resource domains
+Profiles for enterprise-governed agent identity across platforms and
+resource domains.
+
+These Internet-Drafts let an enterprise identify and authorize an agent
+independently of the platform, workload credential, or OAuth client it
+uses. An enterprise identity provider (IdP) resolves each agent's
+execution identity, its OAuth client or workload credential, to a
+governed Agent Principal. Resource domains
 recognize, authorize, and audit that principal without knowing the
 platform. Today's common alternative, one shared OAuth client per
 platform, makes every agent behind it look the same: attribution is lost
 and revocation is all or nothing.
+
+The family covers federation, agent resolution inputs, identity
+continuation, human oversight, lifecycle, and SCIM management of agents
+and OAuth clients, for agents acting for users and for themselves.
 
 ## How it works
 
@@ -71,7 +79,7 @@ overview shows [how they all connect](ARCHITECTURE.md#how-they-connect).
 
 ## The drafts
 
-Start with the [OAuth 2.0 Profile for Governed Agent Federation][core]
+Start with the [OAuth 2.0 Profile for Agent Principal Federation][core]
 ([source](draft-mcguinness-oauth-governed-agent-federation.md), OAuth
 working group). A client, IdP, RAS, and API can implement
 dedicated-client federation, one OAuth client per agent, from it alone.
@@ -83,9 +91,9 @@ addresses:
 |---|---|---|
 | SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] ([source](draft-mcguinness-oauth-governed-agent-inputs.md)) | OAuth |
 | A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] ([source](draft-mcguinness-oauth-governed-agent-continuation.md)) | OAuth |
-| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | SCIM |
+| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Agent Principal Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | SCIM |
 | OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] ([source](draft-mcguinness-scim-oauth-client-management.md)) | SCIM |
-| Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | SCIM |
+| Resource domains provisioned with agents and their disablement | [Agent Principal Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | SCIM |
 | A person to approve, or to observe and end, an agent's grants, redemptions, and actions | [Human Oversight Profile][oversight] ([source](draft-mcguinness-oauth-governed-agent-oversight.md)) | OAuth |
 
 The draft names link to the editor's copies. All seven are individual

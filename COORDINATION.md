@@ -1,4 +1,4 @@
-# Coordination Notes for OAuth 2.0 Profile for Governed Agent Federation
+# Coordination Notes for OAuth 2.0 Profile for Agent Principal Federation
 
 This file keeps the full coordination notes that the draft's
 "Differences, Dependencies, and Excluded Compositions" appendix
