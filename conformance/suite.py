@@ -3183,15 +3183,23 @@ def bearer_claims(ctx, **overrides):
     return claims
 
 
-def expect_bearer_challenge(resp, status, error, label):
-    """The status, and a Bearer challenge with this error, or with none and a realm."""
+def expect_bearer_challenge(ctx, resp, status, error, label):
+    """The status, and a Bearer challenge with this error, or with none.
+
+    A challenge without an error is noted if it has no realm: the core's
+    Error Responses describes a Bearer challenge with realm, but no keyword
+    requires one, and RFC 6750 Section 3 makes realm optional.
+    """
     challenge = challenge_of(resp)
     check(resp.status == status and has_challenge(challenge, "Bearer"),
           f"{label}: expected HTTP {status} with a Bearer challenge, got {resp} {challenge!r}")
     params = challenge_params(challenge, "Bearer")
     if error is None:
-        check("error" not in params and "realm" in params,
-              f"{label}: expected a Bearer challenge with realm and no error, got {challenge!r}")
+        check("error" not in params,
+              f"{label}: expected a Bearer challenge with no error, got {challenge!r}")
+        if "realm" not in params:
+            ctx.notes.append(f"{label}: the Bearer challenge has no realm (core: Error "
+                             "Responses describes one with realm)")
     else:
         check(params.get("error") == error,
               f"{label}: expected error {error}, got {challenge!r}")
@@ -3234,20 +3242,20 @@ def s39(ctx):
     resp = ctx.client.get_bearer(cfg.read_path, token)
     check(resp.status == 200, f"setup: bearer read failed: {resp}")
     expired = ctx.adapter.mint_access_token(bearer_claims(ctx, iat=now - 7200, exp=now - 3600))
-    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, expired), 401,
+    expect_bearer_challenge(ctx, ctx.client.get_bearer(cfg.read_path, expired), 401,
                             "invalid_token", "expired token")
-    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, token, query=BAD_VERSION),
+    expect_bearer_challenge(ctx, ctx.client.get_bearer(cfg.read_path, token, query=BAD_VERSION),
                             400, "invalid_request", "invalid argument")
     narrow = ctx.adapter.mint_access_token(bearer_claims(ctx, scope=cfg.extra_scope))
-    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, narrow), 403,
+    expect_bearer_challenge(ctx, ctx.client.get_bearer(cfg.read_path, narrow), 403,
                             "insufficient_scope", "token authority")
     other = ctx.adapter.mint_access_token({
         "sub": OTHER_SELF_ACTING, "aud": cfg.resource, "client_id": cfg.self_acting_client_id,
         "scope": cfg.scope})
-    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, other), 403, None,
+    expect_bearer_challenge(ctx, ctx.client.get_bearer(cfg.read_path, other), 403, None,
                             "other denial")
     ctx.adapter.set("api", "actor_gate", False)
-    expect_bearer_challenge(ctx.client.get_bearer(cfg.read_path, token), 403,
+    expect_bearer_challenge(ctx, ctx.client.get_bearer(cfg.read_path, token), 403,
                             "actor_unauthorized", "actor gate")
 
 
