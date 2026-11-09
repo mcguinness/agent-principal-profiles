@@ -139,6 +139,8 @@ Continuous integration also runs:
 * the conformance suite with its vacuity check, in full and RAS-only
   modes (`conformance/run.py --vacuity`, with and without `--ras-only`;
   setup in [conformance/README.md](conformance/README.md));
+* the [shared-issuer experiment](experiments/shared-issuer/README.md),
+  which fails if an outcome differs from the one it records;
 * `tools/check_examples.py`, which checks the messages EXAMPLES.md copies
   from the drafts; and
 * `tools/check_citations.py`, which fails when an Internet-Draft
@@ -152,7 +154,12 @@ prints: it records the heading of each newly cited section at the
 referenced revision, and `--fetch` alone compares every recorded heading
 with that revision's text. The check finds renumbered, missing and
 unverified sections; it cannot tell that a real section does not
-support the sentence citing it.
+support the sentence citing it. It reads only citations written as
+`{{Section N of REF}}` of IETF documents: a prose citation such as
+"Section 2.3 of {{WISE}}", and the references the drafts define inline,
+such as the OpenID specifications, are not checked. Nor does it notice
+that a pinned Internet-Draft has been published as an RFC; idnits
+reports that.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
