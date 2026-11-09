@@ -95,7 +95,8 @@ class Config:
     extra_scope: str = "files.write"
     # Error codes (N25 to N28): an agent the RAS has no correlation for. N25
     # and N28 also use extra_scope, as a scope the IdP can be configured to
-    # exclude from the delegation or to prohibit for the agent.
+    # exclude from the delegation or to prohibit for the agent. N34 and N47
+    # to N49 have the RAS correlate the agent just in time.
     uncorrelated_agent: str = "agent-99"
     # A user the IdP has no record of (N32).
     unknown_user: str = "carol"
@@ -129,7 +130,8 @@ class Config:
     # Issuer-qualified agents (S36, S37): a second issuer whose agents the
     # API trusts the RAS to assert, and an issuer the API does not trust for
     # agents. Both name an agent with the same sub as expect["agent"]; the
-    # API's actor gate has no entry for the partner issuer's.
+    # API's actor gate has no entry for the partner issuer's. N49 has the
+    # RAS trust the partner issuer too, for WAGs naming uncorrelated_agent.
     partner_agent_iss: str = "https://partner-idp.example/"
     untrusted_agent_iss: str = "https://untrusted-idp.example/"
     # A shared client presenting platform JWTs; None leaves P11, P12 and
@@ -390,10 +392,23 @@ class Adapter:
                                           user]: links that subject to the
                                           local user),
                                           jit (just-in-time correlation for
-                                          the IdP's agents in `tenant`),
+                                          the IdP's agents in `tenant`, or
+                                          with [issuer, on] for another
+                                          trusted issuer's),
+                                          jit_eligible (whether a record
+                                          created just in time is eligible;
+                                          set before the request that
+                                          creates it),
                                           self_acting_rule (RAS policy
                                           granting every agent of the IdP
-                                          `scope` for itself in `tenant`),
+                                          `scope` for itself in `tenant`,
+                                          or with [issuer, on] every agent
+                                          of another trusted issuer),
+                                          trusted_issuer ([issuer,
+                                          trusted]: trusts another
+                                          single-tenant issuer of agents,
+                                          whose grants mint_wag signs when
+                                          claims name it as iss),
                                           resource_protection ("dpop", or
                                           "dpop_or_bearer" for a resource
                                           that permits bearer tokens),
@@ -432,6 +447,10 @@ class Adapter:
                                           authorization)
     mint_grant(claims)             an ID-JAG the IdP signs with these claims
     mint_wag(claims)               a WAG the IdP signs with these claims
+    agent_record(iss, sub)         the RAS's local agent record for the pair:
+                                   local (its local principal) and active
+                                   (whether it is eligible); None if the
+                                   RAS has none
     mint_access_token(claims, typ="at+jwt")
                                    an access token the RAS signs with these
                                    claims and this typ
@@ -532,6 +551,9 @@ class Adapter:
         raise NotImplementedError
 
     def mint_access_token(self, claims, typ="at+jwt"):
+        raise NotImplementedError
+
+    def agent_record(self, iss, sub):
         raise NotImplementedError
 
     def disable_check(self, role, name):
@@ -671,6 +693,9 @@ class ReferenceAdapter(Adapter):
     def mint_access_token(self, claims, typ="at+jwt"):
         return self._call("ras", "mint_access_token",
                           {"claims": claims, "typ": typ})["access_token"]
+
+    def agent_record(self, iss, sub):
+        return self._call("ras", "agent_record", {"iss": iss, "sub": sub})["record"]
 
     def disable_check(self, role, name):
         self._call(role, "disable_check", {"name": name})
@@ -1752,29 +1777,98 @@ def n46(ctx):
         check("access_token" not in resp.json(), "an error response carried a token")
 
 
+def unseen_wag(ctx, iss=None):
+    """A WAG for uncorrelated_agent, from the IdP's issuer or another trusted issuer."""
+    cfg = ctx.cfg
+    claims = wag_claims(ctx, sub=cfg.uncorrelated_agent)
+    if iss is not None and iss != cfg.expect["agent_iss"]:
+        claims["iss"] = iss
+        claims.pop("tenant", None)   # another issuer is single-tenant
+    return ctx.adapter.mint_wag(claims)
+
+
+def created_principal(ctx, iss, claims):
+    """The local principal of the RAS's record for (iss, uncorrelated_agent), which
+    the access token's sub must name."""
+    record = ctx.adapter.agent_record(iss, ctx.cfg.uncorrelated_agent)
+    check(record is not None, f"the RAS holds no record for {iss}'s agent")
+    check(claims.get("sub") == record["local"],
+          f"sub {claims.get('sub')!r} is not the record's local principal {record['local']!r}")
+    check("act" not in claims, f"a self-acting token carries act: {claims.get('act')}")
+    return record["local"]
+
+
 @case("N47", "RAS", "Correlates a WAG's previously unseen agent just in time without "
-      "authorizing it; RAS policy can then admit it",
-      "core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG",
-      needs=("self_acting", "mint_wag", "set:ras.jit", "set:ras.self_acting_rule"),
+      "authorizing it; RAS policy can then admit it as the created local principal",
+      "core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG; Redemption Errors",
+      needs=("self_acting", "mint_wag", "agent_record", "set:ras.jit", "set:ras.jit_eligible",
+             "set:ras.self_acting_rule"),
       defeats=("ras.jit_correlation_only",))
 def n47(ctx):
-    # With just-in-time correlation on, the RAS creates a record for an
-    # agent it has not seen, which grants nothing: RAS policy refuses the
-    # WAG (invalid_target), or local policy creates the record ineligible
-    # (invalid_grant). A self-acting rule then admits the agent, as WAG's
-    # registration-level policy would.
+    # With just-in-time correlation on and created records eligible, the
+    # RAS creates a record for an agent it has not seen, which grants
+    # nothing: RAS policy refuses the WAG. A self-acting rule then admits
+    # the agent, as WAG's registration-level policy would, and the token
+    # names the created record's local principal.
     cfg = self_acting(ctx)
     ctx.adapter.set("ras", "jit", True)
-
-    def unseen():
-        return ctx.adapter.mint_wag(wag_claims(ctx, sub=cfg.uncorrelated_agent))
-
-    expect_error(ctx.client.redeem(unseen(), as_self_acting=True), 400,
-                 ("invalid_target", "invalid_grant"))
+    ctx.adapter.set("ras", "jit_eligible", True)
+    expect_error(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True), 400, "invalid_target")
     ctx.adapter.set("ras", "self_acting_rule", True)
-    body, claims = expect_token(ctx.client.redeem(unseen(), as_self_acting=True))
-    check(claims.get("sub") != cfg.uncorrelated_agent and "act" not in claims,
-          f"the token names the agent's local principal, with no act: {claims}")
+    _, claims = expect_token(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True))
+    created_principal(ctx, cfg.expect["agent_iss"], claims)
+
+
+@case("N48", "RAS", "Denies a WAG whose agent's just-in-time record is created ineligible, "
+      "and still denies it once RAS policy permits the agent",
+      "core: Optional Just-in-Time Correlation; Redemption Errors",
+      needs=("self_acting", "mint_wag", "agent_record", "set:ras.jit", "set:ras.jit_eligible",
+             "set:ras.self_acting_rule"),
+      defeats=("ras.agent_eligibility",))
+def n48(ctx):
+    # Initial eligibility is local policy. A record created ineligible
+    # denies the request that creates it, and permission is not
+    # eligibility: a self-acting rule leaves the agent denied.
+    cfg = self_acting(ctx)
+    ctx.adapter.set("ras", "jit", True)
+    ctx.adapter.set("ras", "jit_eligible", False)
+    expect_error(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True), 400, "invalid_grant")
+    check(ctx.adapter.agent_record(cfg.expect["agent_iss"], cfg.uncorrelated_agent) is not None,
+          "the RAS created no record for the unseen agent")
+    ctx.adapter.set("ras", "self_acting_rule", True)
+    expect_error(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True), 400, "invalid_grant")
+
+
+@case("N49", "RAS", "Gives one agent identifier asserted by two issuers separate just-in-time "
+      "records and local principals, each admitted only by its own issuer's policy",
+      "core: Optional Just-in-Time Correlation; Agent Principal Correlation; Self-Acting "
+      "Redemption: WAG",
+      needs=("self_acting", "mint_wag", "agent_record", "set:ras.trusted_issuer", "set:ras.jit",
+             "set:ras.jit_eligible", "set:ras.self_acting_rule"),
+      defeats=("ras.jit_qualified_principal",))
+def n49(ctx):
+    # The RAS trusts a second issuer and correlates both issuers' agents
+    # just in time; each asserts uncorrelated_agent. The records are keyed
+    # by the exact pair, so RAS policy for one issuer's agents does not
+    # admit the other's, and each token names its own record's local
+    # principal. Distinct principals keep the API's permissions apart.
+    cfg = self_acting(ctx)
+    home, partner = cfg.expect["agent_iss"], cfg.partner_agent_iss
+    ctx.adapter.set("ras", "trusted_issuer", [partner, True])
+    for iss in (home, partner):
+        ctx.adapter.set("ras", "jit", [iss, True])
+    ctx.adapter.set("ras", "jit_eligible", True)
+    ctx.adapter.set("ras", "self_acting_rule", [home, True])
+    _, home_claims = expect_token(ctx.client.redeem(unseen_wag(ctx, home), as_self_acting=True))
+    expect_error(ctx.client.redeem(unseen_wag(ctx, partner), as_self_acting=True), 400,
+                 "invalid_target")
+    ctx.adapter.set("ras", "self_acting_rule", [partner, True])
+    _, partner_claims = expect_token(
+        ctx.client.redeem(unseen_wag(ctx, partner), as_self_acting=True))
+    home_local = created_principal(ctx, home, home_claims)
+    partner_local = created_principal(ctx, partner, partner_claims)
+    check(home_local != partner_local,
+          f"both issuers' agents are the local principal {home_local!r}")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

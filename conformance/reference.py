@@ -150,6 +150,8 @@ CHECKS = {
     "ras.restriction_follows_agent": "an agent disabled at the RAS is refused through every "
                                      "client, not only those the RAS knows it through",
     "ras.jit_correlation_only": "a just-in-time correlation record carries no authorization",
+    "ras.jit_qualified_principal": "a just-in-time record's local principal is allocated for "
+                                   "its qualified pair, not derived from sub alone",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
     "ras.bind_when_proven": "where DPoP or bearer is permitted, the access token is bound to a "
@@ -291,6 +293,13 @@ def _typ_is(header, media_type):
     """typ names the media type, with or without "application/" (RFC 7515 Section 4.1.9)."""
     value = header.get("typ")
     return isinstance(value, str) and value.lower() in (media_type, "application/" + media_type)
+
+
+def _issuer_switch(value):
+    """A test-control value: a bool for the IdP's issuer, or [issuer, bool]."""
+    if isinstance(value, list):
+        return value[0], bool(value[1])
+    return IDP_ISSUER, bool(value)
 
 
 def _single_audience(aud, expected):
@@ -959,6 +968,9 @@ class RAS(Server):
         # The issuer's one trusted tenant per Target Tenant stands for the
         # issuer and tenant that the core enables it for.
         self.jit = set()
+        # The initial eligibility of a record created just in time, which
+        # the core leaves to local policy.
+        self.jit_eligible = True
         self.accepted_grants = {}
         # Deferred redemption (oversight: Deferred Redemption).
         self.approval_required = set()   # scopes whose redemption RAS policy holds for approval
@@ -989,11 +1001,20 @@ class RAS(Server):
                 entry = ("user-108", IDP_ISSUER, "agent-42", "acme-data")
                 (self.actor_gate.add if value else self.actor_gate.discard)(entry)
             elif what == "self_acting_rule":
-                rule = (IDP_ISSUER, "acme-data")
-                if value:
-                    self.self_acting_rules[rule] = {"files.read"}
+                # value: true or false for the IdP's issuer, or [issuer, bool].
+                issuer, on = _issuer_switch(value)
+                if on:
+                    self.self_acting_rules[(issuer, "acme-data")] = {"files.read"}
                 else:
-                    self.self_acting_rules.pop(rule, None)
+                    self.self_acting_rules.pop((issuer, "acme-data"), None)
+            elif what == "trusted_issuer":
+                # value: [issuer, trusted]: trusts another single-tenant
+                # issuer of agents, with the key that signs the IdP's grants,
+                # which mint_wag uses for any iss.
+                if value[1]:
+                    self.trusted_idps[value[0]] = self.idp_public_key
+                elif value[0] != IDP_ISSUER:
+                    self.trusted_idps.pop(value[0], None)
             elif what == "actor_gate_rule":
                 rule = (IDP_ISSUER, "acme-data")
                 (self.actor_gate_rules.add if value else self.actor_gate_rules.discard)(rule)
@@ -1002,8 +1023,11 @@ class RAS(Server):
                 trusted = self.trusted_tenants.setdefault((IDP_ISSUER, value[1]), set())
                 (trusted.add if value[2] else trusted.discard)(value[0])
             elif what == "jit":
-                scope = (IDP_ISSUER, "acme-data")
-                (self.jit.add if value else self.jit.discard)(scope)
+                # value: true or false for the IdP's issuer, or [issuer, bool].
+                issuer, on = _issuer_switch(value)
+                (self.jit.add if on else self.jit.discard)((issuer, "acme-data"))
+            elif what == "jit_eligible":
+                self.jit_eligible = bool(value)
             elif what == "user_link":
                 # value: [issuer tenant, sub, local user]: links the IdP's
                 # subject in that tenant to a local user in acme-data.
@@ -1039,6 +1063,12 @@ class RAS(Server):
             else:
                 raise OAuthError("invalid_request", 404, "unknown setting")
             return {}
+        if op == "agent_record":
+            # The local agent record for (iss, sub): its local principal and
+            # whether it is eligible.
+            record = self.agents.get((body["iss"], body["sub"]))
+            return {"record": record and {"local": record["local"],
+                                          "active": record["active"]}}
         if op == "mint_opaque_token":
             # An opaque access token and the members introspection returns for
             # it. A record minted with active false is returned as stored, with
@@ -1564,12 +1594,19 @@ class RAS(Server):
 
         Creating the record is correlation, not authorization: the actor
         gate, or for a WAG the RAS's self-acting policy, still applies.
-        Initial eligibility is local policy; here, eligible. With
+        Initial eligibility is local policy; here, test control sets it,
+        eligible by default. The local principal is a new identifier, so
+        agents of two issuers with one sub get separate principals. With
         ras.jit_correlation_only switched off, creation also opens the
         actor gate, or grants a WAG's agent its requested scope, which no
         conforming RAS does.
         """
-        record = {"local": "jit-" + agent_key[1], "active": True}
+        local = "jit-" + uuid.uuid4().hex[:12]
+        if not self.on("ras.jit_qualified_principal"):
+            # Non-conforming: the principal is derived from sub alone, so
+            # one issuer's agent shares another's.
+            local = "jit-" + agent_key[1]
+        record = {"local": local, "active": self.jit_eligible}
         self.agents[agent_key] = record
         if not self.on("ras.jit_correlation_only"):
             if user is None:

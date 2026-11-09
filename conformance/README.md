@@ -127,7 +127,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | N44 | IdP | Without the Client Association for self-acting issuance, the self-acting exchange fails with `unauthorized_client` | core: Self-Acting Issuance: WAG; Issuance Errors | Remove the self-acting Client Association |
 | N45 | IdP | With policy no longer authorizing (`acme`, `acme-data`), the self-acting exchange fails with `invalid_target` | core: Issuance Authorization; Issuance Errors | Set a tenant pair |
 | N46 | RAS | A WAG from the multi-tenant issuer naming `beta`, which the RAS does not trust for `acme-data`, or naming no tenant, fails with `invalid_grant` | core: Canonical Identity and Tenant Boundaries; Self-Acting Redemption: WAG | Mint a WAG; a multi-tenant issuer |
-| N47 | RAS | With just-in-time correlation on, a WAG naming `agent-99`, which the RAS has not seen, fails with `invalid_target` or `invalid_grant`: the created record authorizes nothing. With a self-acting rule granting the issuer's agents `files.read` in `acme-data`, the next such WAG redeems for a token naming the created local principal | core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG | Turn on just-in-time correlation; set a self-acting rule; mint a WAG |
+| N47 | RAS | With just-in-time correlation on and created records eligible, a WAG naming `agent-99`, which the RAS has not seen, fails with `invalid_target`: the created record authorizes nothing. With a self-acting rule granting the issuer's agents `files.read` in `acme-data`, the next such WAG redeems for a token whose `sub` is the created record's local principal, as test control reads it back | core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG; Redemption Errors | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; mint a WAG; read the agent record |
+| N48 | RAS | With just-in-time correlation on and created records ineligible, a WAG naming `agent-99` fails with `invalid_grant` and leaves a record for the pair. With a self-acting rule set, the next such WAG still fails with `invalid_grant`: permission does not make the record eligible | core: Optional Just-in-Time Correlation; Redemption Errors | Turn on just-in-time correlation; make created records ineligible; set a self-acting rule; mint a WAG; read the agent record |
+| N49 | RAS | With the RAS also trusting `https://partner-idp.example/` and correlating both issuers' agents just in time, a WAG for `agent-99` from the IdP's issuer redeems under a self-acting rule for that issuer, and one from the partner issuer fails with `invalid_target`. With a rule for the partner issuer too, its WAG redeems. Each token's `sub` is its own record's local principal, and the two differ | core: Optional Just-in-Time Correlation; Agent Principal Correlation; Self-Acting Redemption: WAG | Trust a second issuer; turn on just-in-time correlation for both issuers; make created records eligible; set self-acting rules; mint WAGs for both issuers; read the agent records |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -226,9 +228,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7, P12, P13 and D02, name the
 reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
-With `--vacuity`, each of these 110 cases runs once for each check it
+With `--vacuity`, each of these 112 cases runs once for each check it
 names, with that check switched off; eight S cases and N40 name two
-checks, so there are 119 runs, and every run fails. Forty-two N cases fail because
+checks, so there are 121 runs, and every run fails. Forty-two N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, P12 because the grant then outlives the platform JWT, and P13
@@ -247,7 +249,10 @@ because the IdP then looks the malformed `sub` up as a user and
 reports `invalid_grant`, the code for a valid credential that resolves
 no user. N32 names no check: the reference resolves users in two
 steps, and with both removed the request fails at the Delegation
-Authorization with `actor_unauthorized` instead.
+Authorization with `actor_unauthorized` instead. N48 fails because the
+RAS then refuses the ineligible record's agent on policy
+(`invalid_target`), and N49 because both issuers' agents then get one
+local principal.
 
 The D cases fail without their check in these ways:
 
@@ -555,7 +560,7 @@ The suite tests nothing outside the path above, including:
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
   presentation; and the inputs of the inputs draft;
-* WAG issuance and redemption beyond P14, P15 and N44 to N47: presented
+* WAG issuance and redemption beyond P14, P15 and N44 to N49: presented
   evidence, the byte-identical subject token, the Agent Authorization's
   scope ceiling, deferred WAG redemption, and the other WAG rows of
   Redemption Errors; S08 and S09 use minted self-acting tokens;
@@ -614,14 +619,17 @@ another IdP, RAS or API:
    `mint_grant`, `other_tenant_sub`, a subject of that tenant, and
    `set:ras.user_link`; N43 also needs `set:ras.tenant_trust`. D25 and
    D26 also run only where `multi_tenant_issuer` is set, and need
-   `set:ras.tenant_trust`. P14, P15 and N44 to N46 need
+   `set:ras.tenant_trust`. P14, P15 and N44 to N49 need
    `self_acting_client_key`, the key of the RAS registration the IdP
    names in the client's WAGs (`self_acting_client_id`, which is
    `ras_client_id` where a deployment keeps one registration); N44 also
    needs `set:idp.self_acting_association`, N45 `set:idp.tenant_pair`,
-   and N46 `mint_wag` and `multi_tenant_issuer`. N47 needs `mint_wag`,
-   `uncorrelated_agent`, `set:ras.jit` and `set:ras.self_acting_rule`. D10 and D11 need `second_agent`, another agent the RAS
-   correlates and lets act for the user; D12 needs `extra_scope`, a
+   and N46 `mint_wag` and `multi_tenant_issuer`. N47 to N49 need
+   `mint_wag`, `uncorrelated_agent`, `agent_record`, `set:ras.jit`,
+   `set:ras.jit_eligible` and `set:ras.self_acting_rule`; N49 also needs
+   `partner_agent_iss` and `set:ras.trusted_issuer`. D10 and D11 need
+   `second_agent`, another agent the RAS correlates and lets act for
+   the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
    use it as a scope the IdP can exclude from the delegation or prohibit
    for the agent. The S cases
