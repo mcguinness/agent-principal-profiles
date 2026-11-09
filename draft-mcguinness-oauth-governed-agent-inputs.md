@@ -45,10 +45,12 @@ normative:
 --- abstract
 
 This document defines optional agent-resolution input profiles for the
-OAuth 2.0 Profile for Agent Principal Federation: SPIFFE JWT-SVIDs,
-WIT-SVIDs, and X.509-SVIDs, and OAuth Attestation-Based Client
-Authentication, including resolution of managed installations by client
-instance identifier. Each profile satisfies the federation profile's
+OAuth 2.0 Profile for Agent Principal Federation, with which an
+enterprise identity provider resolves an authenticated client or
+workload identity to an enterprise-governed Agent Principal. The inputs
+are SPIFFE JWT-SVIDs, WIT-SVIDs, and X.509-SVIDs, and OAuth
+Attestation-Based Client Authentication, including resolution of managed
+installations by client instance identifier. Each profile satisfies the federation profile's
 agent-resolution input contract and is claimed separately.
 
 --- middle

@@ -113,8 +113,9 @@ informative:
 --- abstract
 
 The OAuth 2.0 Profile for Agent Principal Federation decides which
-governed agent acts, for whom, and under what authorization, and an
-identity provider issues the resulting grant without a person present.
+enterprise-governed agent acts, for whom, and under what authorization,
+and an identity provider issues the resulting grant without a person
+present.
 It bounds what an external approval can do but leaves asynchronous
 approval undefined.
 

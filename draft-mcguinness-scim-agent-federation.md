@@ -71,8 +71,9 @@ informative:
 --- abstract
 
 This document profiles the System for Cross-domain Identity Management
-(SCIM) for platform-to-identity-provider management of Agent Principals,
-Identity Bindings, and Client Associations. It extends the SCIM Agent
+(SCIM) for platform-to-identity-provider management of
+enterprise-governed Agent Principals, Identity Bindings, and Client
+Associations. It extends the SCIM Agent
 resource with the principal's issuer-qualified identity and defines
 resources for identity and client-use relationships. A dedicated-client
 binding administers both decisions together; shared-client permissions

@@ -90,9 +90,9 @@ informative:
   WAG: I-D.carleton-workload-authz-grant-02
 --- abstract
 
-This document profiles SCIM for provisioning issuer-qualified Agent
-Principals into a resource domain and applying administrative disablement
-to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
+This document profiles SCIM for provisioning issuer-qualified,
+enterprise-governed Agent Principals into a resource domain and applying
+administrative disablement to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
 existing session-revocation events can invalidate identified authorization
 sessions independently of principal state.
 

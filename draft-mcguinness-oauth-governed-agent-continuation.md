@@ -94,9 +94,9 @@ informative:
 --- abstract
 
 
-The OAuth 2.0 Profile for Agent Principal Federation carries a governed
-Agent Principal from an identity provider into one resource domain, as
-the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
+The OAuth 2.0 Profile for Agent Principal Federation carries an
+enterprise-governed Agent Principal from an identity provider into one
+resource domain, as the actor of an Identity Assertion JWT Authorization Grant (ID-JAG) or
 the subject of a Workload Authorization Grant (WAG). A gateway that
 receives such an agent's request and calls resources in other domains
 for it holds neither the user's credential nor the agent's.
