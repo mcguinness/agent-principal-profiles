@@ -1,6 +1,6 @@
 ---
-title: "Agent Resolution Input Profiles for Governed Agent Federation"
-abbrev: "Governed Agent Inputs"
+title: "Agent Resolution Inputs for Agent Principal Federation"
+abbrev: "Agent Principal Inputs"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-inputs-latest
 submissiontype: IETF
@@ -27,7 +27,7 @@ author:
    email: public@karlmcguinness.com
 normative:
   FEDERATION:
-    title: "OAuth 2.0 Profile for Governed Agent Federation"
+    title: "OAuth 2.0 Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-09
@@ -45,10 +45,12 @@ normative:
 --- abstract
 
 This document defines optional agent-resolution input profiles for the
-OAuth 2.0 Profile for Governed Agent Federation: SPIFFE JWT-SVIDs,
-WIT-SVIDs, and X.509-SVIDs, and OAuth Attestation-Based Client
-Authentication, including resolution of managed installations by client
-instance identifier. Each profile satisfies the federation profile's
+OAuth 2.0 Profile for Agent Principal Federation, with which an
+enterprise identity provider resolves an authenticated client or
+workload identity to an enterprise-governed Agent Principal. The inputs
+are SPIFFE JWT-SVIDs, WIT-SVIDs, and X.509-SVIDs, and OAuth
+Attestation-Based Client Authentication, including resolution of managed
+installations by client instance identifier. Each profile satisfies the federation profile's
 agent-resolution input contract and is claimed separately.
 
 --- middle

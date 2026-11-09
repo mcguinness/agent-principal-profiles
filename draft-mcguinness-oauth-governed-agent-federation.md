@@ -1,6 +1,6 @@
 ---
-title: "OAuth 2.0 Profile for Governed Agent Federation"
-abbrev: "Governed Agent Federation"
+title: "OAuth 2.0 Profile for Agent Principal Federation"
+abbrev: "Agent Principal Federation"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-federation-latest
 submissiontype: IETF
@@ -65,7 +65,7 @@ normative:
   RFC9449:
   RFC9700:
   INPUTS:
-    title: "Agent Resolution Input Profiles for Governed Agent Federation"
+    title: "Agent Resolution Inputs for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-09
@@ -74,7 +74,7 @@ normative:
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   AGENT-MANAGEMENT:
-    title: "SCIM Profile for Governed Agent Federation Management"
+    title: "SCIM Profile for Agent Principal Management"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -83,7 +83,7 @@ informative:
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
   AIMS: I-D.ietf-wimse-aims-01
   AGENT-LIFECYCLE:
-    title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness
@@ -117,7 +117,7 @@ informative:
   ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   ID-CHAINING: I-D.ietf-oauth-identity-chaining-17
   OVERSIGHT:
-    title: "Human Oversight Profile for Governed Agent Federation"
+    title: "Human Oversight Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
@@ -125,7 +125,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   CONTINUATION:
-    title: "Identity Continuation Profile for Governed Agent Federation"
+    title: "Identity Continuation Profile for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: 2026-10-14
@@ -143,7 +143,7 @@ informative:
       - org: SPIFFE
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles-02
   GUIDE:
-    title: "Implementer's Guide for Governed Agent Federation"
+    title: "Implementer's Guide for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false

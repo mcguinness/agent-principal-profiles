@@ -1,11 +1,11 @@
-# Implementer's Guide for Governed Agent Federation
+# Implementer's Guide for Agent Principal Federation
 
 This guide is non-normative. It accompanies [OAuth 2.0 Profile for
-Governed Agent Federation][core] (the core profile), [Agent Resolution
-Input Profiles for Governed Agent Federation][INPUTS], [Identity
-Continuation Profile for Governed Agent Federation][CONTINUATION],
-[Human Oversight Profile for Governed Agent Federation][OVERSIGHT], and
-[Governed Agent Lifecycle Profile for SCIM and OAuth][AGENT-LIFECYCLE].
+Agent Principal Federation][core] (the core profile), [Agent Resolution
+Inputs for Agent Principal Federation][INPUTS], [Identity
+Continuation Profile for Agent Principal Federation][CONTINUATION],
+[Human Oversight Profile for Agent Principal Federation][OVERSIGHT], and
+[Agent Principal Lifecycle Profile for SCIM and OAuth][AGENT-LIFECYCLE].
 Those documents define every requirement, and they govern wherever this
 guide differs
 from them. Nothing here is needed to implement them; the guide explains

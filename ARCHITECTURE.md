@@ -1,4 +1,4 @@
-# Governed Agent Profiles: Architecture Overview
+# Agent Principal Profiles: Architecture Overview
 
 This overview is non-normative. A reader should finish it able to
 explain the system, choose a deployment model, and understand its
@@ -843,7 +843,7 @@ compose:
   OAuth client is calling, not which agent a shared client is acting
   for.
 
-**Start with the core.** The [OAuth 2.0 Profile for Governed Agent
+**Start with the core.** The [OAuth 2.0 Profile for Agent Principal
 Federation][core] is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. A client,
 IdP, RAS, and API can implement dedicated-client federation, one OAuth
@@ -893,11 +893,11 @@ flowchart LR
 
 | Connection | Defined in |
 |---|---|
-| Token exchange, grant, redemption, call | OAuth 2.0 Profile for Governed Agent Federation (the core) |
-| Workload evidence | The core (dedicated client, platform JWT); Agent Resolution Input Profiles (SPIFFE, Client Attestation) |
-| Register agents and relationships | SCIM Profile for Governed Agent Federation Management, with OAuth clients from the SCIM Profile for OAuth 2.0 Client Management |
-| Provision, disable, revoke | Governed Agent Lifecycle Profile for SCIM and OAuth |
-| Continuation exchange, onward grant | Identity Continuation Profile for Governed Agent Federation |
+| Token exchange, grant, redemption, call | OAuth 2.0 Profile for Agent Principal Federation (the core) |
+| Workload evidence | The core (dedicated client, platform JWT); Agent Resolution Inputs (SPIFFE, Client Attestation) |
+| Register agents and relationships | SCIM Profile for Agent Principal Management, with OAuth clients from the SCIM Profile for OAuth 2.0 Client Management |
+| Provision, disable, revoke | Agent Principal Lifecycle Profile for SCIM and OAuth |
+| Continuation exchange, onward grant | Identity Continuation Profile for Agent Principal Federation |
 
 What each draft needs from the specifications it depends on is in
 [COORDINATION.md](COORDINATION.md).
