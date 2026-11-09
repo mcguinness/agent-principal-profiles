@@ -750,9 +750,9 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Choice | The reference's choice | Drafts' text |
 |---|---|---|
 | How the API tells the governed delegated population apart | Trusted configuration keyed by the access token's `client_id` and audience | core: Profile Applicability ("no in-band discriminator") |
-| How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; the RAS mints its tokens through test control | core: Profile Applicability (separate client registrations) |
+| How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; P15 redeems a WAG the IdP issues for it, and S08 and S09 mint its tokens through test control | core: Profile Applicability (separate client registrations) |
 | Where the tenant is carried | The tenant-specific resource URI, as the access token's audience | core: Access Token Issuance and Response (the default) |
-| Client registration association | One RAS registration for each IdP client: `analysis-api` for the dedicated client `analysis-client`, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
+| Client registration association | One RAS registration for each IdP client and acting relationship: `analysis-api` for the dedicated client `analysis-client`'s delegated grants and `analysis-agent-client` for its self-acting grants, and `platform-api` for the shared client `platform-client` | core: Issuance Prerequisites |
 | Platform JWT credential class | A dedicated issuer, `https://platform.example/`, configured with `platform-client`; `ES256`; accepted audience `https://idp.example/`; evidence deadline from `exp`, with no maximum age; `workload-43` bound exactly to `agent-43` | core: Existing Platform JWT (Configuration) |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API; at the RAS, a rule admitting every agent of an issuer for a tenant only under test control | core: Delegated Actor Authorization ("not a protocol object"); RAS and API implementation considerations ("another explicit rule") |
 | Governance Tenants | The IdP's issuer is multi-tenant, with tenants `acme` and `beta`; Alice and both agents are in `acme`, and every grant names `acme` in `tenant`. Policy authorizes only (`acme`, `acme-data`) for issuance, and a refused pair gets `actor_unauthorized`. The RAS trusts the issuer's tenant `acme` for `acme-data`, and keys user links by issuer, issuer tenant, Target Tenant and subject | core: Canonical Identity and Tenant Boundaries; Issuance Authorization; Issuance Errors |
@@ -827,7 +827,8 @@ that settled it.
    map to one registration, and states the consequences: the RAS cannot
    tell those clients apart, a restriction of an agent still follows
    the agent, and only a bound grant stays with the key that obtained
-   it. The reference keeps a registration per IdP client; P13 maps
-   `platform-client` to `analysis-api` through test control.
+   it. The reference keeps a registration per IdP client and acting
+   relationship; P13 maps `platform-client` to `analysis-api` through
+   test control.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

@@ -332,7 +332,7 @@ suite](conformance/README.md) and how far they go:
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
-| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api`, and its self-acting grants to `analysis-agent-client` | No | Direct: N13. A shared registration: P13. A separate self-acting registration: P14 |
+| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api`; in the reference, its self-acting grants to `analysis-agent-client` | No | Direct: N13. A shared registration: P13. A separate self-acting registration: P14 |
 | The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
 | Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 for a disabled agent and N27 for an uncorrelated one, both `invalid_grant` |
 | What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |
@@ -353,7 +353,7 @@ suite](conformance/README.md) and how far they go:
 |---|---|---|---|---|
 | RAS issuer and access-token signing keys | RAS | `https://ras.example/`; JWT access tokens validated offline | Yes (`jwks_uri`) | Positive path: P3, P4 |
 | Which IdP namespaces the RAS may assert in `act` ([Access at the Resource Server][api-processing]) | API trust configuration | Agents of `https://idp.example/` | No | Direct: S36, where the reference also trusts a partner issuer: an untrusted issuer gets `invalid_token`, and the partner's agent with the same `sub` is another agent |
-| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18. Positive path for a separate self-acting registration, with minted tokens: S08 |
+| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18. Positive path for a separate self-acting registration: P15, and with minted tokens, S08 |
 | Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
 | Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope, against the reference's policy service: S07 (`insufficient_scope`) |
 | How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 and S36 at the API, N16 at the RAS |
@@ -378,7 +378,7 @@ names neither choice:
 
 | Choice | What the drafts allow | The example and the reference |
 |---|---|---|
-| Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | Separate configuration per client and audience |
+| Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | The example: one registration and audience for both, so the RAS and API need a bilateral contract (the playbook's self-acting recipe uses an introspection member). The reference: a separate registration, `analysis-agent-client`, for `analysis-client`'s self-acting grants |
 | Carrying the tenant | The tenant-specific resource as audience, a configured tenant claim, or authoritative token context | The resource as audience |
 | Re-redeeming a bound grant | Once, or again under explicit policy with a fresh proof | Once |
 | Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; nonces only under test control (P8 to P10) |
