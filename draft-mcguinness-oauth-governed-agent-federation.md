@@ -1786,12 +1786,18 @@ Tenant.
 When it applies, the RAS:
 
 * MUST key the created record by that exact pair;
+* MUST give the created record a local principal that no other
+  qualified pair maps to, so agents of two issuers with one identifier
+  remain two principals;
 * MUST NOT attach the pair to an existing record by name or other
   descriptive match;
 * MUST apply local restrictions, retained revocation state under
-  {{applied-changes}}, and local policy before issuance; and
+  {{applied-changes}} (which includes a correlation the RAS has
+  removed, so creating the record again does not undo a removal), and
+  local policy before issuance; and
 * sets the record's initial eligibility by local policy; a record
-  created ineligible denies the triggering request.
+  created ineligible denies the triggering request with
+  `invalid_grant` ({{redemption-errors}}).
 
 Creating the record is correlation, not authorization. Resource policy
 still applies, and for delegated access so does the actor gate
@@ -3360,7 +3366,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile; a bound WAG is redeemed with `jwt-dpop`, where {{Section 5 of WAG}} uses `jwt-bearer` ({{redemption-request}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
-| Previously unseen agents | Accepted on first assertion | Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair and authorizes nothing ({{jit-correlation}}) |
+| Previously unseen agents | Accepted on first assertion | Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair, has a local principal of its own, and authorizes nothing ({{jit-correlation}}) |
 | Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | `tenant`, set to the agent's Governance Tenant, required in a WAG from a multi-tenant issuer; the RAS trusts `iss` and `tenant` together ({{canonical-identity}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}
