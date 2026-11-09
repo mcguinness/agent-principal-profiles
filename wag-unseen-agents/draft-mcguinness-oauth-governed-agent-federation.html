@@ -3792,7 +3792,9 @@ single-use <code>jti</code> rule of <a href="#client-assertion-input" class="aut
 </li>
             <li class="normal" id="section-5.7.1-6.4">
               <p id="section-5.7.1-6.4.1">A client authenticated by X.509-SVID over mutual TLS presents no JWT
-and has no self-acting issuance under this profile (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>).<a href="#section-5.7.1-6.4.1" class="pilcrow">¶</a></p>
+and has no self-acting issuance under this profile; a SPIFFE workload
+that needs self-acting access can authenticate with a JWT-SVID
+(<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>).<a href="#section-5.7.1-6.4.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 </section>
@@ -7021,7 +7023,7 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
           <tbody>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">WAG</td>
-              <td class="text-left" rowspan="1" colspan="1">Alignment on protection and subject presentation (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Alignment on protection (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>)</td>
               <td class="text-left" rowspan="1" colspan="1">Generic WAG support does not imply the governed composition (<a href="#wag-flow" class="auto internal xref">Section 4.2</a>)</td>
             </tr>
             <tr>
@@ -7045,27 +7047,16 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
           </h4>
 <p id="appendix-B.2.1-1">In WAG terms, the IdP is the Workload Identity Provider that issues the
 grant (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-2" class="relref">Section 2</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>), and <a href="#wag-issuance" class="auto internal xref">Section 5.7</a> defines that issuance
-with the token exchange that <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> anticipates. Open
-items are:<a href="#appendix-B.2.1-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="appendix-B.2.1-2.1">
-              <p id="appendix-B.2.1-2.1.1">DPoP binding (<a href="#grant-protection" class="auto internal xref">Section 4.4</a>);<a href="#appendix-B.2.1-2.1.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-B.2.1-2.2">
-              <p id="appendix-B.2.1-2.2.1">a token exchange in which the authenticated client is the subject
-without a subject token (<a href="#wag-request" class="auto internal xref">Section 5.7.1</a>), which would also give
-X.509-SVID authentication a self-acting path;<a href="#appendix-B.2.1-2.2.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-B.2.1-2.3">
-              <p id="appendix-B.2.1-2.3.1">self-acting Client Associations (<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>); and<a href="#appendix-B.2.1-2.3.1" class="pilcrow">¶</a></p>
-</li>
-            <li class="normal" id="appendix-B.2.1-2.4">
-              <p id="appendix-B.2.1-2.4.1">a WAG lifecycle composition: <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> defines no WAG wire
-composition, and revoking one WAG is deployment-specific.<a href="#appendix-B.2.1-2.4.1" class="pilcrow">¶</a></p>
-</li>
-          </ul>
-<p id="appendix-B.2.1-3">Until these close, a self-acting claim has no management path for client
-use or lifecycle composition in this family to be tested against.<a href="#appendix-B.2.1-3" class="pilcrow">¶</a></p>
+with the token exchange that <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> anticipates. That
+section leaves how an Agent obtains a grant otherwise out of scope, so
+the issuance details of <a href="#wag-issuance" class="auto internal xref">Section 5.7</a> need no change to WAG. The open
+item with WAG is DPoP binding (<a href="#grant-protection" class="auto internal xref">Section 4.4</a>).<a href="#appendix-B.2.1-1" class="pilcrow">¶</a></p>
+<p id="appendix-B.2.1-2">Two items are open in this family: self-acting Client Associations
+(<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>), and a WAG lifecycle composition, since
+<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> defines no WAG wire composition and revoking one WAG
+is deployment-specific. Until these close, a self-acting claim has no
+management path for client use or lifecycle composition in this family
+to be tested against.<a href="#appendix-B.2.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

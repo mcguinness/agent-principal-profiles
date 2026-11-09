@@ -1870,8 +1870,9 @@ Table of Contents
       single-use jti rule of Section 5.3.2.
 
    *  A client authenticated by X.509-SVID over mutual TLS presents no
-      JWT and has no self-acting issuance under this profile
-      (Appendix B.2.1).
+      JWT and has no self-acting issuance under this profile; a SPIFFE
+      workload that needs self-acting access can authenticate with a
+      JWT-SVID ([INPUTS]).
 
 5.7.2.  Grant Claims
 
@@ -4547,9 +4548,9 @@ B.2.  Upstream Dependencies
    |               |                         | resolved               |
    +===============+=========================+========================+
    | WAG           | Alignment on protection | Generic WAG support    |
-   |               | and subject             | does not imply the     |
-   |               | presentation            | governed composition   |
-   |               | (Appendix B.2.1)        | (Section 4.2)          |
+   |               | (Appendix B.2.1)        | does not imply the     |
+   |               |                         | governed composition   |
+   |               |                         | (Section 4.2)          |
    +---------------+-------------------------+------------------------+
    | ID-JAG and    | One error for a bound   | Either error is        |
    | JWT DPoP      | grant redeemed without  | permitted              |
@@ -4576,23 +4577,17 @@ B.2.1.  WAG
 
    In WAG terms, the IdP is the Workload Identity Provider that issues
    the grant (Section 2 of [WAG]), and Section 5.7 defines that issuance
-   with the token exchange that Section 5 of [WAG] anticipates.  Open
-   items are:
+   with the token exchange that Section 5 of [WAG] anticipates.  That
+   section leaves how an Agent obtains a grant otherwise out of scope,
+   so the issuance details of Section 5.7 need no change to WAG.  The
+   open item with WAG is DPoP binding (Section 4.4).
 
-   *  DPoP binding (Section 4.4);
-
-   *  a token exchange in which the authenticated client is the subject
-      without a subject token (Section 5.7.1), which would also give
-      X.509-SVID authentication a self-acting path;
-
-   *  self-acting Client Associations ([AGENT-MANAGEMENT]); and
-
-   *  a WAG lifecycle composition: [AGENT-LIFECYCLE] defines no WAG wire
-      composition, and revoking one WAG is deployment-specific.
-
-   Until these close, a self-acting claim has no management path for
-   client use or lifecycle composition in this family to be tested
-   against.
+   Two items are open in this family: self-acting Client Associations
+   ([AGENT-MANAGEMENT]), and a WAG lifecycle composition, since
+   [AGENT-LIFECYCLE] defines no WAG wire composition and revoking one
+   WAG is deployment-specific.  Until these close, a self-acting claim
+   has no management path for client use or lifecycle composition in
+   this family to be tested against.
 
 B.3.  Excluded Compositions
 
