@@ -35,7 +35,7 @@ headings (`--fetch`, `--update`).
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Alignment on protection and subject presentation (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
+| WAG | Alignment on protection (`wag-gaps`) | Generic WAG support does not imply the governed composition (`wag-flow`) |
 | ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof (below) | Both errors are permitted |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
@@ -69,35 +69,37 @@ issuer are restated (`wag-claims`, `wag-redemption`,
 SHOULD restates Section 4.1 of RFC 7521, which reaches the core's grants
 without WAG, through RFC 7523 and JWT DPoP Grant (Renewal, below). The
 rest are recorded differences that need no change to WAG (below):
-client authentication, per-agent registration, unseen agents accepted
-only where policy permits, `resource` required, and `tenant` as the
-shared-issuer claim. The core uses the token type, media type and grant
+issuance details, client authentication, per-agent registration, unseen
+agents accepted only where policy permits, `resource` required, and
+`tenant` as the shared-issuer claim. The core uses the token type, media type and grant
 profile values that Section 11 of WAG registers; if WAG does not
 publish, those values are unregistered.
 
-Coordination is needed on:
+Coordination is needed on protection: WAG-02 is a bearer grant, and
+Section 9 of WAG lists proof of possession as open. This document
+proposes DPoP binding at issuance and redemption under
+`grant-protection`.
 
-* **Issuer metadata:** WAG defines no metadata for the issuer. The core
-  has the IdP advertise the WAG token type in
-  `identity_chaining_requested_token_types_supported`
-  (Section 7.1 of ID-JAG), a use that neither WAG nor ID-JAG defines
-  (`server-metadata`).
-* **Protection:** WAG-02 is a bearer grant; Section 9 of WAG lists proof
-  of possession as open. This document proposes DPoP binding at issuance and redemption
-  under `grant-protection`.
-* **Subject presentation:** A token exchange in which the authenticated
-  client is the subject, by permitting omission of `subject_token` in
-  that case or by registering a subject token type for authenticated
-  client context. That would simplify the presentation this document
-  defines, in which JWT-authenticated clients repeat their
-  authentication JWT as the subject token (`wag-request`), and would
-  give X.509-SVID authentication a self-acting path.
-* **Management:** `AGENT-MANAGEMENT` administers Client Associations
-  for delegated issuance only; self-acting permission needs a flow
-  dimension there.
+Open in this family, with no change to WAG: `AGENT-MANAGEMENT`
+administers Client Associations for delegated issuance only, so
+self-acting permission needs a flow dimension there; and
+`AGENT-LIFECYCLE` defines no WAG wire composition, so revoking one WAG
+is deployment-specific (`wag-gaps`).
 
 Recorded differences, which need no change to WAG:
 
+* **Issuance:** Section 5 of WAG names the token type for an issuer that
+  uses token exchange and leaves how an Agent obtains a grant otherwise
+  out of scope. Two details of the core's issuance follow from its own
+  composition, not from WAG. The IdP advertises the WAG token type in
+  `identity_chaining_requested_token_types_supported` (Section 7.1 of
+  ID-JAG), a use that neither WAG nor ID-JAG defines
+  (`server-metadata`). Because RFC 8693 requires `subject_token`, a
+  client authenticated with a JWT repeats that JWT as the subject token
+  (`wag-request`); a client authenticated by X.509-SVID has no
+  self-acting path and can authenticate with a JWT-SVID instead. A token
+  exchange that named the authenticated client as the subject would be
+  an RFC 8693 extension, not a WAG change.
 * **Shared issuers:** Section 6.3 of WAG, present since -01, tells
   Workload Identity Providers that share one issuer apart by a claim
   registered for each, and recommends dedicated issuers or the ID-JAG

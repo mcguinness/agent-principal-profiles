@@ -1619,7 +1619,9 @@ of {{actor-inputs}} apply. In this mode:
 * Carrying one assertion in both parameters does not violate the
   single-use `jti` rule of {{client-assertion-input}}.
 * A client authenticated by X.509-SVID over mutual TLS presents no JWT
-  and has no self-acting issuance under this profile ({{wag-gaps}}).
+  and has no self-acting issuance under this profile; a SPIFFE workload
+  that needs self-acting access can authenticate with a JWT-SVID
+  ({{INPUTS}}).
 
 ### Grant Claims {#wag-claims}
 
@@ -3358,7 +3360,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Alignment on protection and subject presentation ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
+| WAG | Alignment on protection ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
 | ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof: `invalid_grant` in {{Section 9.11.1.2.2 of ID-JAG}}, `invalid_dpop_proof` in {{Section 5 of JWT-DPOP-GRANT}} | Either error is permitted ({{grant-protection}}) |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
@@ -3367,19 +3369,17 @@ For self-acting access, this profile composes {{WAG}} as follows
 
 In WAG terms, the IdP is the Workload Identity Provider that issues the
 grant ({{Section 2 of WAG}}), and {{wag-issuance}} defines that issuance
-with the token exchange that {{Section 5 of WAG}} anticipates. Open
-items are:
+with the token exchange that {{Section 5 of WAG}} anticipates. That
+section leaves how an Agent obtains a grant otherwise out of scope, so
+the issuance details of {{wag-issuance}} need no change to WAG. The open
+item with WAG is DPoP binding ({{grant-protection}}).
 
-* DPoP binding ({{grant-protection}});
-* a token exchange in which the authenticated client is the subject
-  without a subject token ({{wag-request}}), which would also give
-  X.509-SVID authentication a self-acting path;
-* self-acting Client Associations ({{AGENT-MANAGEMENT}}); and
-* a WAG lifecycle composition: {{AGENT-LIFECYCLE}} defines no WAG wire
-  composition, and revoking one WAG is deployment-specific.
-
-Until these close, a self-acting claim has no management path for client
-use or lifecycle composition in this family to be tested against.
+Two items are open in this family: self-acting Client Associations
+({{AGENT-MANAGEMENT}}), and a WAG lifecycle composition, since
+{{AGENT-LIFECYCLE}} defines no WAG wire composition and revoking one WAG
+is deployment-specific. Until these close, a self-acting claim has no
+management path for client use or lifecycle composition in this family
+to be tested against.
 
 ## Excluded Compositions {#excluded-compositions}
 
