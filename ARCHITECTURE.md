@@ -51,7 +51,8 @@ nothing.
 at the IdP and at the RAS. The IdP derives the grant's `client_id` from
 a configured association between the two, never from the client's
 request. For a client that uses one identifier at both servers, such as
-a Client ID Metadata Document URL, that association is the identity
+a Client ID Metadata Document URL that both servers use and whose
+authentication method both accept, that association is the identity
 mapping.
 
 ### How it works

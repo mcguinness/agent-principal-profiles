@@ -199,7 +199,11 @@ configuration object types are prescribed.
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
   Client Identifier URL provides one identifier at both servers when
-  both servers use the document. Several clients can map to one
+  both servers use the document and accept the authentication method it
+  names. Otherwise the client registers separately at the RAS, and a
+  server rejects requests under a document naming a method it does not
+  accept with `invalid_client` ([Client Metadata][client-metadata]).
+  Several clients can map to one
   registration, such as the dedicated clients of one platform's agents;
   the RAS then cannot tell them apart, and only a bound grant stays with
   the key that obtained it. One client can also map to a separate
