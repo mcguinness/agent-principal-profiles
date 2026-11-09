@@ -60,7 +60,10 @@ origin values in tokens, client assertions and DPoP proofs, while the
 servers listen on localhost. A reader can lay the output beside
 the [first delegated
 transaction](../EXAMPLES.md#first-delegated-transaction) in
-[EXAMPLES.md](../EXAMPLES.md).
+[EXAMPLES.md](../EXAMPLES.md). The reference runs
+`https://idp.example/` as a multi-tenant issuer, so its grants also
+carry `tenant` with the value `acme`, which the examples'
+single-tenant issuer omits.
 
 ## Cases
 

@@ -42,7 +42,7 @@ operating steps and tests.
 
 | Party | Identifiers | Notes |
 |---|---|---|
-| Governing IdP | `https://idp.example/`, Governance Tenant `acme` | Issues the grants |
+| Governing IdP | `https://idp.example/`, Governance Tenant `acme` | Issues the grants. Its issuer is single-tenant, so the grants carry no `tenant`; at a multi-tenant issuer, both grants would also carry `tenant` with the value `acme` (core: Canonical Identity and Tenant Boundaries) |
 | Agent Principal | (`https://idp.example/`, `agent-42`) | The identity that grants carry |
 | Agent's client | `analysis-client` at the IdP; `analysis-api` at `https://ras.example/` | A dedicated client using `private_key_jwt`; DPoP key K |
 | User | Alice: `alice-ras` in grants for `https://ras.example/`; `user-108` at the API | Signs in to the client through the IdP |
