@@ -569,8 +569,8 @@ Some cases depend on choices made for the reference:
 The suite tests nothing outside the path above, including:
 
 * governed agent access with unbound grants, except bearer issuance
-  (P5 to P7), their single use (N50, N51), and as the setup for N10,
-  N30, and D08;
+  (P5 to P7), the single use of an unbound grant (N50, N51), and as
+  the setup for N10, N30, and D08;
 * the existing platform JWT input beyond P11, P12 and N36 to N39: JSON
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
