@@ -50,6 +50,8 @@
     "4.4.4": "Refresh Token",
     "4.5": "SAML 2.0 Subject Token Interoperability",
     "5.1": "Client ID Mapping",
+    "6.1": "Issuer and Tenant Relationship",
+    "6.4": "Tenant Context in Token Exchange",
     "7.1": "IdP Authorization Server Metadata",
     "7.2": "Resource Authorization Server Metadata",
     "8": "Client Metadata",

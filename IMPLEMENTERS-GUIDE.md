@@ -323,7 +323,7 @@ suite](conformance/README.md) and how far they go:
 | Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | IdP issuer and grant signing keys | IdP | `https://idp.example/`; its JWK Set | Yes (`jwks_uri`) | Positive path: P2 |
-| Authority for the IdP to assert agents in `act` under its issuer ([Grant Validation][redemption-validation]) | RAS trust configuration | Agents of `https://idp.example/` | No | Positive path: P2 |
+| Authority for the IdP to assert agents in `act` under its issuer, and at a multi-tenant issuer in which of its tenants ([Grant Validation][redemption-validation]; [Canonical Identity and Tenant Boundaries][canonical-identity]) | RAS trust configuration | Agents of `https://idp.example/` in its tenant `acme` | No | Positive path: P2. Direct for the tenant: N42 |
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
@@ -437,7 +437,8 @@ role returns. This index points to their tables, which govern.
 ### At the IdP
 
 [Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
-cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
+cases N01 to N09, N21, N22, N25, N28, N31 to N33, N36 to N39, and
+N41.
 
 * The client authentication method's error, such as `invalid_client`:
   a failed client assertion.
@@ -449,8 +450,9 @@ cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
 * `actor_unauthorized`, with HTTP 400: no Client Association permits
   the binding; no applicable Delegation Authorization covers the agent,
   user, client, and target; policy categorically prohibits the agent;
-  or policy does not authorize the agent's Governance Tenant for the
-  Target Tenant.
+  policy does not authorize the agent's Governance Tenant for the
+  Target Tenant; or, at a multi-tenant issuer, the agent is governed in
+  a tenant other than the user's.
 * `invalid_scope`: beyond an applicable authorization's scope ceiling.
 * `invalid_target`: the target, its Target Tenant, or the client
   registration association cannot be resolved.
@@ -463,7 +465,7 @@ cases N01 to N09, N21, N22, N25, N28, N31 to N33, and N36 to N39.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, N34, and N40.
+N30, N34, N40, and N42.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
@@ -480,7 +482,9 @@ N30, N34, and N40.
   * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
     or restricted;
   * a grant whose resource has no Target Tenant that the RAS can
-    determine unambiguously, or is not governed for it.
+    determine unambiguously, or is not governed for it;
+  * a grant from a multi-tenant issuer without a `tenant` the RAS
+    trusts with that issuer for the Target Tenant.
 * `actor_unauthorized`, with HTTP 400: the actor gate refuses an
   ID-JAG's agent for the user.
 * `access_denied`: other current RAS policy refuses a valid ID-JAG,
@@ -1593,6 +1597,7 @@ agent cannot use the token directly.
 [agent-correlation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#agent-correlation
 [jit-correlation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#jit-correlation
 [redemption-validation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-validation
+[canonical-identity]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#canonical-identity
 [access-token-protection]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#access-token-protection
 [introspection]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#introspection
 [api-processing]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#api-processing

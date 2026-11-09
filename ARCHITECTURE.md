@@ -196,7 +196,11 @@ from colliding:
   where the IdP administers the agent; the Target Tenant, such as
   `acme-data`, is where it exercises authority. Neither is part of the
   agent's identity. The RAS correlates the pair within the Target
-  Tenant, and a token for one tenant is rejected in another.
+  Tenant, and a token for one tenant is rejected in another. At an IdP
+  issuer that several tenants share, the Governance Tenant is the
+  tenant that the grant's `tenant` claim names: an agent acts only for
+  users in its own tenant there, and a RAS trusts the issuer one tenant
+  at a time.
 * **A new governing authority means a new agent.** Moving an agent to a
   Governance Tenant under a different administrative authority gives it
   a new identifier. Its delegations do not carry forward automatically,
@@ -918,7 +922,7 @@ What each draft needs from the specifications it depends on is in
 | Credential class | A configured category of agent-resolution input with its own validation rules, such as a client assertion, a SPIFFE SVID, Client Attestation, or a platform's workload JWT | The core |
 | Dedicated client, shared client | A dedicated client's authenticated identity maps to one agent. A shared client serves several agents, so resolving one needs workload evidence | The core |
 | Delegation Authorization | The IdP's decision that an agent may act for a user, within an approved client, tenant, target, and authority | The core |
-| Governance Tenant | The IdP's administrative scope for an agent and its relationships; not part of the agent's identity | The core |
+| Governance Tenant | The IdP's administrative scope for an agent and its relationships: a tenant of the IdP's issuer, named by `tenant` at a multi-tenant issuer; not part of the agent's identity | The core |
 | Governed agent access | The adoption profile that permits unbound grants only where trusted policy explicitly allows them | The core |
 | Grant-derived revocation | Optional revocation, by a CAEP event, of the authorization one ID-JAG produced in a tenant | Lifecycle |
 | ID-JAG | Identity Assertion JWT Authorization Grant: the delegated grant, with the user as subject and the agent in `act` | ID-JAG, profiled by the core |

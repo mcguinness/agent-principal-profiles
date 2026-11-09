@@ -43,7 +43,7 @@ def reference_config(ras_only=False):
         idp_client_id="analysis-client", idp_client_key=keys["analysis-client"],
         ras_client_id="analysis-api", ras_client_key=keys["analysis-api"],
         other_ras_client_id="other-api", other_ras_client_key=keys["other-api"],
-        user="alice", scope="files.read",
+        user="alice", scope="files.read", multi_tenant_issuer=True,
         expect={"agent_iss": reference.IDP_ISSUER, "agent": "agent-42",
                 "grant_sub": "alice-ras", "token_sub": "user-108"},
         shared_client=suite.SharedClient(
