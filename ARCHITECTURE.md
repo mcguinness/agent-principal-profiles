@@ -607,6 +607,7 @@ them are in the core's [Security Considerations][core-security].
 | Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key |
 | Actor-aware API processing | The actor gate is enforced where access happens | APIs parse `act` and consult the gate on delegated paths |
 | Sender-constrained access tokens by default | Token theft is contained | Resources without DPoP or mutual TLS need explicit configuration for bearer use |
+| Optional SCIM management and lifecycle ([SCIM management][management], [lifecycle][lifecycle]) | Agents, bindings, and delegated client associations registered by the platform; disablement reaches resource domains without a stream to each | A SCIM connector for each Governance Tenant the platform serves, since a Provisioning Domain lies within one; the IdP's SCIM service also exposes the OAuth clients it references; with grant-derived revocation, the IdP keeps the ID-JAG identifiers issued under each relationship, and each participating RAS keeps the revocation key with what it issued; for hosted agents, the platform retrieves status or receives change notices |
 
 Bound grants also need one key holder for issuance and redemption, and
 opaque access tokens add an introspection round trip and a freshness
@@ -951,3 +952,5 @@ What each draft needs from the specifications it depends on is in
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
 [lifecycle-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
+[management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
+[lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
