@@ -78,6 +78,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | P10 | API | With the API requiring DPoP nonces, the read gets HTTP 401 with `use_dpop_nonce`, and the retry with the nonce is served | RFC 9449 Section 9; core: Token Validation | Require nonces at the API |
 | P11 | IdP | The shared client `platform-client` presents a platform JWT for `workload-43` as `actor_token`; the grant names `agent-43` in `act` and the shared client's RAS registration, `platform-api`, as `client_id` | core: Conformance Claims (generic shared-client interoperability); Existing Platform JWT | A shared client configured |
 | P12 | IdP | With a platform JWT that expires in 90 s, the grant expires no later than that evidence deadline | core: Existing Platform JWT (Validation); Common Grant Claims | A shared client configured |
+| P13 | IdP | With `platform-client` mapped to the dedicated client's registration `analysis-api`, grants for `agent-42` and `agent-43` both name `analysis-api` and redeem with its credential; after `agent-42` is disabled at the RAS, its grant fails with `invalid_grant` and `agent-43`'s is still redeemed | core: Issuance Prerequisites (Downstream client); Agent Principal Correlation | A shared client configured; set the client registration association; disable the agent at the RAS |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -214,14 +215,15 @@ Another implementation's notes are reported and fail nothing. S32 to
 S34 fail only if a path is served; their other checks are notes, since
 validating the token before saying whether a path exists is a SHOULD.
 
-Every negative case but N32, and P2, P7, P12 and D02, name the reference
-checks they exercise (`CHECKS` in [reference.py](reference.py)). With
-`--vacuity`, each of these 102 cases runs once for each check it names,
-with that check switched off; eight S cases and N40 name two checks, so
-there are 111 runs, and every run fails. Thirty-seven N cases fail because
+Every negative case but N32, and P2, P7, P12, P13 and D02, name the
+reference checks they exercise (`CHECKS` in [reference.py](reference.py)).
+With `--vacuity`, each of these 103 cases runs once for each check it
+names, with that check switched off; eight S cases and N40 name two
+checks, so there are 112 runs, and every run fails. Thirty-seven N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
-token, and P12 because the grant then outlives the platform JWT. N36
+token, P12 because the grant then outlives the platform JWT, and P13
+because the disabled agent's grant is then redeemed. N36
 fails because the IdP then falls back to the shared client's own
 authentication, which resolves no agent (`invalid_grant`). N11 fails because the RAS's
 access-token protection check then
@@ -614,7 +616,8 @@ another IdP, RAS or API:
    `untrusted_agent_iss`, an issuer the API does not trust for agents.
    They assume the API's actor gate, and the policy S37 sets, permit the
    user's `agent-42` only under `expect["agent_iss"]`, with no entry for
-   the partner issuer's. P11, P12 and N36 to N39 need `shared_client`, a
+   the partner issuer's. P11 to P13 and N36 to N39 need `shared_client`,
+   P13 as a second IdP client, a
    `suite.SharedClient`: a shared client at the IdP and its RAS
    registration, a platform issuer whose JWTs the suite signs with a key
    the IdP approves, the workload `sub` the IdP binds exactly to an agent,
@@ -764,14 +767,12 @@ that settled it.
    prohibits the relationship, and `invalid_target` in self-acting
    issuance, with the other refusals of an agent for a target. N33
    asserts the first; the reference has no self-acting issuance.
-10. **Whether two IdP clients may share one RAS registration.** Open.
-   Issuance Prerequisites derives the grant's `client_id` from "an
-   authoritative association between the authenticated IdP client and
-   that client's registration at the target RAS". Read with the
-   possessive, each IdP client has its own registration, and the
-   reference gives the shared client `platform-client` its own,
-   `platform-api`. The text does not say whether several IdP clients may
-   map to one registration, which would collapse their clients at the
-   RAS.
+10. **Whether two IdP clients may share one RAS registration.**
+   Resolved. Issuance Prerequisites now permits several IdP clients to
+   map to one registration, and states the consequences: the RAS cannot
+   tell those clients apart, a restriction of an agent still follows
+   the agent, and only a bound grant stays with the key that obtained
+   it. The reference keeps a registration per IdP client; P13 maps
+   `platform-client` to `analysis-api` through test control.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

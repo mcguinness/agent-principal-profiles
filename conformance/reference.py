@@ -522,6 +522,9 @@ class IdP(Server):
                 self.agents["agent-42"]["governance_tenant"] = value
             elif what == "user_tenant":
                 self.users["alice"]["tenant"] = value
+            elif what == "client_registration":
+                # value: [IdP client, its registration at the RAS]
+                self.targets[RAS_ISSUER]["registrations"][value[0]] = value[1]
             elif what == "tenant_pair":
                 # value: [Governance Tenant, Target Tenant, authorized]
                 pair = (value[0], value[1])

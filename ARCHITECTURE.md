@@ -620,7 +620,7 @@ A platform's agents can authenticate in three ways, at these costs:
 | Choice | Benefit | Cost |
 |---|---|---|
 | A client per agent, without a governed principal | Plain OAuth client authentication; each agent's tokens carry its own `client_id` | The client identifier stands for the agent, so a resource domain's restriction keyed on it lapses when the agent moves to another client, and agents behind a shared client or a gateway cannot be told apart |
-| A dedicated client per governed agent | The agent keeps one Agent Principal across clients and platforms; resource domains restrict it by issuer and identifier | Per agent: a client at the IdP, a registration at each RAS with its client registration association, which no companion provisions; and, for delegated access, a user authorization flow for each client, since the user's subject token is issued to that client |
+| A dedicated client per governed agent | The agent keeps one Agent Principal across clients and platforms; resource domains restrict it by issuer and identifier | Per agent: a client at the IdP, and at each RAS a client registration association, which no companion provisions, to a registration of its own or one the platform's clients share; and, for delegated access, a user authorization flow for each client, since the user's subject token is issued to that client |
 | A shared platform client presenting platform JWTs | For many agents: one client, one registration, and, for delegated access, one user authorization flow | The IdP trusts the platform as a credential authority; the evidence is bearer unless key-bound; an optional input that an IdP claiming only the mandatory path does not accept ([shared platform clients](#shared-platform-clients)) |
 
 ## Changes, failures, and recovery
@@ -914,7 +914,7 @@ What each draft needs from the specifications it depends on is in
 | Bound governed agent access | The adoption profile that requires DPoP at grant issuance and redemption | The core |
 | Chain, hop | The IdP's record of grants continued from one root grant; each grant in it is a hop | ICA, as the continuation profile uses it |
 | Client Association | Permission for an OAuth client to use an agent through the selected Identity Binding, in one acting relationship and credential class | The core |
-| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id`; not a Client Association | The core ("Issuance Prerequisites") |
+| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id` and which several clients can share; not a Client Association | The core ("Issuance Prerequisites") |
 | Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop, that its authorization is active, and that the continuing client is associated with it | Identity Continuation Assertion (ICA) |
 | Continuation Association | Permission for a client to continue an agent's governed chains in one acting relationship | Continuation |
 | `continuation_via` | The onward grant's claim listing the continuing clients on the path | Continuation |

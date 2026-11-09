@@ -343,7 +343,10 @@ class Adapter:
                                           belongs to), tenant_pair
                                           ([Governance Tenant, Target
                                           Tenant, authorized]: whether
-                                          policy authorizes the pair)
+                                          policy authorizes the pair),
+                                          client_registration ([IdP
+                                          client, RAS registration]: the
+                                          client registration association)
                                      ras: agent_active, actor_gate,
                                           jit (just-in-time correlation for
                                           the IdP's agents in `tenant`),
@@ -1402,6 +1405,33 @@ def p11(ctx):
           f"act {claims.get('act')!r} does not name {sc.agent}")
     check(claims.get("client_id") == sc.ras_client_id,
           f"client_id {claims.get('client_id')!r}, expected {sc.ras_client_id}")
+
+
+@case("P13", "IdP", "Gives two IdP clients one RAS registration, and the RAS still restricts "
+      "each agent alone",
+      "core: Issuance Prerequisites (Downstream client); Agent Principal Correlation",
+      needs=("shared_client", "set:idp.client_registration", "set:ras.agent_active"),
+      defeats=("ras.agent_eligibility",))
+def p13(ctx):
+    # The shared client's IdP client is mapped to the dedicated client's
+    # RAS registration, so grants for agent-42 and agent-43 name one
+    # client_id and are redeemed with one credential.
+    cfg, sc = ctx.cfg, shared(ctx)
+    ctx.adapter.set("idp", "client_registration", [sc.idp_client_id, cfg.ras_client_id])
+    resp = ctx.client.shared_exchange(shared_id_token(ctx), platform_jwt(ctx))
+    check(resp.status == 200, f"shared exchange failed: {resp}")
+    theirs = resp.json()["access_token"]
+    for grant, agent in ((ctx.grant(), cfg.expect["agent"]), (theirs, sc.agent)):
+        claims = jws.decode(grant)[1]
+        check(claims.get("client_id") == cfg.ras_client_id,
+              f"client_id {claims.get('client_id')!r}, expected {cfg.ras_client_id}")
+        check((claims.get("act") or {}).get("sub") == agent, f"act {claims.get('act')!r}")
+    expect_token(ctx.client.redeem(ctx.grant()))
+    # Disabling agent-42 at the RAS refuses it, and leaves agent-43 admitted
+    # through the same registration.
+    ctx.adapter.set("ras", "agent_active", False)
+    expect_error(ctx.client.redeem(ctx.grant()), 400, "invalid_grant")
+    expect_token(ctx.client.redeem(theirs))
 
 
 @case("P12", "IdP", "Expires the grant no later than the platform JWT's evidence deadline",

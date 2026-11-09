@@ -199,7 +199,10 @@ configuration object types are prescribed.
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
   Client Identifier URL provides one identifier at both servers when
-  both servers use the document.
+  both servers use the document. Several clients can map to one
+  registration, such as the dedicated clients of one platform's agents;
+  the RAS then cannot tell them apart, and only a bound grant stays with
+  the key that obtained it.
 
 **At the RAS:**
 
@@ -327,7 +330,7 @@ suite](conformance/README.md) and how far they go:
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
-| Client registration association: each IdP client's registration at the RAS, which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13 |
+| Client registration association: each IdP client's registration at the RAS, which several IdP clients can share, and which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13. A shared registration: P13 |
 | The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
 | Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 for a disabled agent and N27 for an uncorrelated one, both `invalid_grant` |
 | What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |

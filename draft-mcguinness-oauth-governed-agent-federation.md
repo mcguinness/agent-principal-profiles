@@ -1017,6 +1017,15 @@ such as a Client ID Metadata Document (CIMD) Client Identifier URL
 {{CIMD}}, the association is the identity mapping. A client-supplied downstream client identifier MUST NOT
 select or override that association.
 
+Several IdP clients MAY map to one registration at a RAS, such as the
+dedicated clients of one platform's agents, or one client registered at
+several IdPs. The RAS then cannot tell those clients apart: its client
+policy, its audit, and any restriction keyed on `client_id` apply to all
+of them, while a restriction of an agent follows the agent
+({{agent-correlation}}). Every holder of that registration's credentials
+can redeem a grant that names it, so only a grant bound under
+{{grant-protection}} stays with the key that obtained it.
+
 ## Token Exchange Request {#issuance-request}
 
 Both grants are requested with a token exchange request {{RFC8693}} to
