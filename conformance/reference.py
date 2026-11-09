@@ -107,6 +107,7 @@ CHECKS = {
     "idp.client_assertion_replay": "client assertion jti is not reused",
     "idp.client_assertion_time": "client assertion iat and nbf are not in the future",
     "idp.require_dpop": "bound profile requires a DPoP proof at issuance",
+    "idp.nonce_match": "a DPoP proof carries the nonce the IdP provided",
     "idp.single_resource": "exactly one resource parameter",
     "idp.id_token_audience": "ID Token audience is the authenticated client",
     "idp.id_token_time": "ID Token iat and nbf are not in the future",
@@ -124,6 +125,7 @@ CHECKS = {
                         "platform JWT binding",
     "idp.evidence_deadline": "the grant expires no later than the platform JWT's evidence "
                              "deadline",
+    "idp.subject_deadline": "the grant expires no later than the ID Token it was issued for",
     "idp.client_association": "Client Association permits delegated use of the binding",
     "idp.self_acting_association": "Client Association permits self-acting use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
@@ -131,6 +133,9 @@ CHECKS = {
                                    "scope is enforced",
     "idp.scope_ceiling": "the issued scope stays within the Delegation Authorization's scope set",
     "ras.client_id": "grant client_id matches the authenticated client",
+    "ras.grant_replay": "a grant the RAS has accepted is refused when presented again",
+    "ras.explicit_type": "the RAS tells an ID-JAG from a WAG by typ, never by whether it "
+                         "carries act",
     "ras.grant_time": "grant iat and nbf are not in the future",
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
@@ -157,6 +162,7 @@ CHECKS = {
     "ras.bind_when_proven": "where DPoP or bearer is permitted, the access token is bound to a "
                             "valid proof presented at redemption",
     "ras.proof_replay": "a DPoP proof jti is not reused at the RAS",
+    "ras.nonce_match": "a DPoP proof carries the nonce the RAS provided",
     "ras.approval_gate": "a redemption RAS policy requires approval for issues nothing without one",
     "ras.absolute_expiration": "the absolute authorization expiration set at receipt bounds "
                                "expires_in and every token",
@@ -181,6 +187,7 @@ CHECKS = {
     "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
     "ras.refresh_ends": "a refresh rejected on re-evaluation ends the refresh authorization",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
+    "api.nonce_match": "a DPoP proof carries the nonce the API provided",
     "api.bound_token_scheme": "a DPoP-bound access token presented with the Bearer scheme is "
                               "rejected",
     "api.challenge_scheme": "every challenge uses the request's scheme: Bearer, with a realm, "
@@ -436,7 +443,11 @@ class Server:
             raise bad
         if access_token is not None and payload.get("ath") != jws.ath(access_token):
             raise bad
-        if self.require_nonce and payload.get("nonce") != self.nonce:
+        # With the role's nonce_match check off, any nonce passes, which no
+        # conforming server accepts (RFC 9449 Section 4.3, step 10).
+        nonce_ok = payload.get("nonce") == self.nonce if self.on(f"{self.role}.nonce_match") \
+            else payload.get("nonce") is not None
+        if self.require_nonce and not nonce_ok:
             # A token endpoint answers HTTP 400 (RFC 9449 Section 8), a
             # resource server HTTP 401 with a challenge (Section 9).
             raise OAuthError("use_dpop_nonce", status, "DPoP nonce required",
@@ -455,6 +466,8 @@ class IdP(Server):
     (core: Existing Platform JWT), with one credential class: a dedicated
     platform issuer, configured with that client.
     """
+
+    role = "idp"
 
     def __init__(self, client_keys, platform_key=None):
         self.issuer, self.token_endpoint = IDP_ISSUER, IDP_ISSUER + "token"
@@ -665,7 +678,9 @@ class IdP(Server):
                 raise OAuthError("actor_unauthorized", description="agent prohibited for the scope")
             raise OAuthError("invalid_scope")
         now = int(self.now())
-        exp = min(now + GRANT_LIFETIME, id_token_exp)
+        exp = now + GRANT_LIFETIME
+        if self.on("idp.subject_deadline"):
+            exp = min(exp, id_token_exp)
         if evidence_deadline is not None and self.on("idp.evidence_deadline"):
             exp = min(exp, evidence_deadline)
         claims = {"iss": self.issuer, "sub": ras_sub, "aud": audience, "iat": now,
@@ -909,6 +924,7 @@ class RAS(Server):
     HTTP Basic (RFC 6749 Section 2.3.1).
     """
 
+    role = "ras"
     ARS_OPS = ("tasks", "approve", "deny", "revoke", "shorten", "substitute")
 
     def __init__(self, client_keys, idp_public_key, introspection_clients=None):
@@ -1038,7 +1054,10 @@ class RAS(Server):
                 self.agents[(IDP_ISSUER, value)] = {"local": "local-" + value, "active": True}
                 self.actor_gate.add(("user-108", IDP_ISSUER, value, "acme-data"))
             elif what == "client_profile":
-                self.clients["analysis-api"]["profile"] = value
+                # A profile for analysis-api, or [registration, profile].
+                registration, profile = value if isinstance(value, list) \
+                    else ("analysis-api", value)
+                self.clients[registration]["profile"] = profile
             elif what == "resource_protection":
                 # "dpop", or "dpop_or_bearer": a resource explicitly configured
                 # to permit bearer tokens (core: Access-Token Protection).
@@ -1320,7 +1339,7 @@ class RAS(Server):
         """Whether an accepted grant is refused; a deferral-consumed one through switchable checks."""
         if grant_key in self.deferred_grants:
             return self.on("ras.grant_consumed") and self.on("ras.single_pending")
-        return True
+        return self.on("ras.grant_replay")
 
     @staticmethod
     def completion_modes(form):
@@ -1620,9 +1639,13 @@ class RAS(Server):
         Section 3); returns the claims and whether the grant is a WAG."""
         try:
             header, unverified, _, _ = jws.decode(assertion)
-            wag = _typ_is(header, "oauth-wag+jwt")
-            if not wag and not _typ_is(header, "oauth-id-jag+jwt"):
-                raise ValueError("typ")
+            if self.on("ras.explicit_type"):
+                wag = _typ_is(header, "oauth-wag+jwt")
+                if not wag and not _typ_is(header, "oauth-id-jag+jwt"):
+                    raise ValueError("typ")
+            else:
+                # Non-conforming: the grant's kind is inferred from act.
+                wag = "act" not in unverified
             key = self.trusted_idps.get(unverified.get("iss"))
             if key is None:
                 raise ValueError("untrusted issuer")
@@ -1841,6 +1864,8 @@ class API(Server):
     trusted client and resource configuration: a delegated population and,
     for a separate registration, a self-acting one.
     """
+
+    role = "api"
 
     def __init__(self, ras_public_key):
         self.ras_public_key = ras_public_key

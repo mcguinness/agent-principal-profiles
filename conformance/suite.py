@@ -95,7 +95,8 @@ class Config:
     extra_scope: str = "files.write"
     # Error codes (N25 to N28): an agent the RAS has no correlation for. N25
     # and N28 also use extra_scope, as a scope the IdP can be configured to
-    # exclude from the delegation or to prohibit for the agent. N34 and N47
+    # exclude from the delegation or to prohibit for the agent, and N53 as
+    # the only scope the delegation permits. N34 and N47
     # to N49 have the RAS correlate the agent just in time.
     uncorrelated_agent: str = "agent-99"
     # A user the IdP has no record of (N32).
@@ -412,7 +413,9 @@ class Adapter:
                                           resource_protection ("dpop", or
                                           "dpop_or_bearer" for a resource
                                           that permits bearer tokens),
-                                          client_profile ("bound" or "governed"),
+                                          client_profile ("bound" or "governed"
+                                          for ras_client_id, or [registration,
+                                          profile] for another),
                                           approval_required (a list of scopes
                                           RAS policy requires approval for),
                                           refresh_permitted (refresh tokens for
@@ -535,59 +538,65 @@ class Adapter:
     def reset(self):
         raise NotImplementedError
 
+    def disable_check(self, role, name):
+        raise NotImplementedError
+
     def argument_rejection(self, resp):
         return resp.status == 400 and challenge_error(resp) == "invalid_request"
 
     def route_rejection(self, resp, kind):
         return not 200 <= resp.status < 300
 
+    # Every other operation is a capability the deployment may lack: until an
+    # adapter defines it, a case that needs it is reported as not run.
+
     def id_token(self, user, aud=None, claims=None):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement id_token")
 
     def set(self, role, what, value):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement set")
 
     def mint_grant(self, claims):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement mint_grant")
 
-    def mint_access_token(self, claims, typ="at+jwt"):
-        raise NotImplementedError
+    def mint_wag(self, claims):
+        raise NotRun("the adapter does not implement mint_wag")
 
     def agent_record(self, iss, sub):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement agent_record")
 
-    def disable_check(self, role, name):
-        raise NotImplementedError
-
-    def tasks(self):
-        raise NotImplementedError
-
-    def approve(self, task, approved_until, scope=None):
-        raise NotImplementedError
-
-    def deny(self, task):
-        raise NotImplementedError
-
-    def revoke(self, task):
-        raise NotImplementedError
-
-    def shorten(self, task, approved_until):
-        raise NotImplementedError
-
-    def substitute(self, task, other):
-        raise NotImplementedError
-
-    def advance_clock(self, seconds):
-        raise NotImplementedError
+    def mint_access_token(self, claims, typ="at+jwt"):
+        raise NotRun("the adapter does not implement mint_access_token")
 
     def mint_opaque_token(self, claims):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement mint_opaque_token")
+
+    def tasks(self):
+        raise NotRun("the adapter does not implement tasks")
+
+    def approve(self, task, approved_until, scope=None):
+        raise NotRun("the adapter does not implement approve")
+
+    def deny(self, task):
+        raise NotRun("the adapter does not implement deny")
+
+    def revoke(self, task):
+        raise NotRun("the adapter does not implement revoke")
+
+    def shorten(self, task, approved_until):
+        raise NotRun("the adapter does not implement shorten")
+
+    def substitute(self, task, other):
+        raise NotRun("the adapter does not implement substitute")
+
+    def advance_clock(self, seconds):
+        raise NotRun("the adapter does not implement advance_clock")
 
     def set_policy(self, policy):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement set_policy")
 
     def evaluations(self):
-        raise NotImplementedError
+        raise NotRun("the adapter does not implement evaluations")
 
 
 class NotRun(Exception):
@@ -804,9 +813,46 @@ def typ_is(header, media_type):
     return isinstance(value, str) and value.lower() in (media_type, "application/" + media_type)
 
 
+def numeric(value):
+    """A NumericDate: a JSON number, integer or not (RFC 7519 Section 2)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def single(value):
     """A JWT claim that may be a string or a one-element array, as one value."""
     return value[0] if isinstance(value, list) and len(value) == 1 else value
+
+
+def jose_header(token):
+    """Whether token is a compact JWS: three segments, the first a JSON object with
+    alg. An opaque token's syntax can also contain periods (RFC 6750 Section 2.1)."""
+    parts = token.split(".") if isinstance(token, str) else []
+    if len(parts) != 3:
+        return False
+    try:
+        header = json.loads(jws.b64u_decode(parts[0]))
+    except (ValueError, TypeError):
+        return False
+    return isinstance(header, dict) and "alg" in header
+
+
+def access_token_jwt(token):
+    """A JWT access token's header and claims.
+
+    The core also permits an opaque token with equivalent context, which the
+    suite does not read: a case that needs the claims is then not run. A token
+    with a JOSE header that does not decode is a failure, not an opaque token.
+    """
+    check(isinstance(token, str) and token, f"access_token is not a non-empty string: "
+          f"{token!r}")
+    if not jose_header(token):
+        raise NotRun("the RAS issued an opaque access token; the suite reads JWT access "
+                     "tokens")
+    try:
+        header, claims, _, _ = jws.decode(token)
+    except ValueError as err:
+        raise AssertionError(f"the access token has a JOSE header but does not decode: {err}")
+    return header, claims
 
 
 def jkt(claims):
@@ -824,44 +870,83 @@ def expect_error(resp, status, error):
 
 
 def expect_challenge(ctx, resp, status, error):
-    """The status, the DPoP scheme, and the error code where the challenge carries one."""
+    """The status, a DPoP challenge, and its error code where it carries one."""
     challenge = challenge_of(resp)
-    check(resp.status == status and challenge.startswith("DPoP"),
+    check(resp.status == status and has_challenge(challenge, "DPoP"),
           f"expected HTTP {status} with a DPoP challenge, got {resp} {challenge!r}")
-    if "error" in challenge_params(challenge):
-        check(challenge_params(challenge)["error"] == error,
-              f"expected error {error}, got {challenge!r}")
+    params = challenge_params(challenge, "DPoP")
+    if "error" in params:
+        check(params["error"] == error, f"expected error {error}, got {challenge!r}")
     else:
         ctx.notes.append(f"challenge carries no error parameter; {error} expected "
                          "(RFC 9449 Section 7.1 SHOULD)")
 
 
 def challenge_of(resp):
-    return resp.headers.get("WWW-Authenticate", "") if resp.headers else ""
+    """Every WWW-Authenticate field as one list: a server can send several challenges
+    in one field or in several (RFC 9110 Section 11.6.1; RFC 9449 Section 7.2)."""
+    if not resp.headers:
+        return ""
+    return ", ".join(resp.headers.get_all("WWW-Authenticate") or [])
 
 
-def challenge_params(challenge):
-    """A challenge's auth-params (RFC 9110 Section 11.2): names lowercased, values unquoted."""
-    params = {}
-    for name, value in re.findall(r'([!#$%&\'*+.^_`|~0-9A-Za-z-]+)[ \t]*=[ \t]*'
-                                  r'("(?:[^"\\]|\\.)*"|[^\s,]+)', challenge):
-        if value.startswith('"'):
-            value = re.sub(r'\\(.)', r'\1', value[1:-1])
-        params.setdefault(name.lower(), value)
-    return params
+TOKEN = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
+
+
+def challenges(challenge):
+    """The challenges in a WWW-Authenticate list, in order, as (scheme, auth-params):
+    schemes and parameter names lowercased, values unquoted (RFC 9110 Section 11.2).
+
+    A list element that begins with a token not followed by "=" starts a new
+    challenge; an element "name=value" continues the current one.
+    """
+    elements = re.findall(r'(?:[^,"]|"(?:[^"\\]|\\.)*")+', challenge)
+    found = []
+    for element in (e.strip() for e in elements):
+        if not element:
+            continue
+        if not re.match(rf'{TOKEN}[ \t]*=', element):
+            scheme, element = re.match(rf'({TOKEN})[ \t]*(.*)$', element, re.S).groups()
+            found.append((scheme.lower(), {}))
+        param = re.match(rf'({TOKEN})[ \t]*=[ \t]*("(?:[^"\\]|\\.)*"|[^\s,]*)$', element)
+        if found and param:
+            name, value = param.groups()
+            if value.startswith('"'):
+                value = re.sub(r'\\(.)', r'\1', value[1:-1])
+            found[-1][1].setdefault(name.lower(), value)
+    return found
+
+
+def has_challenge(challenge, scheme):
+    """Whether the list has a challenge in this scheme, compared case-insensitively."""
+    return any(name == scheme.lower() for name, _ in challenges(challenge))
+
+
+def challenge_params(challenge, scheme=None):
+    """The auth-params of the first challenge in this scheme, or of the first
+    challenge where no scheme is named; empty if there is none."""
+    for name, params in challenges(challenge):
+        if scheme is None or name == scheme.lower():
+            return params
+    return {}
 
 
 def nonce_demanded(resp):
-    """A use_dpop_nonce error: HTTP 400 at a token endpoint, 401 at a resource server."""
+    """A use_dpop_nonce error: HTTP 400 at a token endpoint, 401 with a DPoP challenge
+    at a resource server."""
     if resp.status == 400:
         return resp.json().get("error") == "use_dpop_nonce"
     return resp.status == 401 and \
-        challenge_params(challenge_of(resp)).get("error") == "use_dpop_nonce"
+        challenge_params(challenge_of(resp), "DPoP").get("error") == "use_dpop_nonce"
 
 
-def challenge_error(resp):
-    """The challenge's error attribute, or else the body's error member."""
-    return challenge_params(challenge_of(resp)).get("error") or resp.json().get("error")
+def challenge_error(resp, scheme=None):
+    """The error attribute of the first challenge that has one, in this scheme where
+    one is named, or else the body's error member."""
+    for name, params in challenges(challenge_of(resp)):
+        if (scheme is None or name == scheme.lower()) and "error" in params:
+            return params["error"]
+    return resp.json().get("error")
 
 
 def expect_denial_code(ctx, resp, error):
@@ -873,10 +958,11 @@ def expect_denial_code(ctx, resp, error):
     error attribute or, where the challenge has none, in the body.
     """
     challenge = challenge_of(resp)
-    check(resp.status == 403 and challenge.startswith("DPoP"),
+    check(resp.status == 403 and has_challenge(challenge, "DPoP"),
           f"expected HTTP 403 with a DPoP challenge, got {resp} {challenge!r}")
-    check(challenge_error(resp) == error,
-          f"expected {error}, got {challenge_error(resp)!r} in {challenge!r} and the body")
+    check(challenge_error(resp, "DPoP") == error,
+          f"expected {error}, got {challenge_error(resp, 'DPoP')!r} in {challenge!r} and the "
+          "body")
 
 
 def expect_no_code_denial(ctx, resp, data):
@@ -887,10 +973,10 @@ def expect_no_code_denial(ctx, resp, data):
     file's data. The body is otherwise application-specific.
     """
     challenge = challenge_of(resp)
-    check(resp.status == 403 and challenge.startswith("DPoP"),
+    check(resp.status == 403 and has_challenge(challenge, "DPoP"),
           f"expected HTTP 403 with a DPoP challenge, got {resp} {challenge!r}")
     check(data not in resp.body, "the denial carried the file's data")
-    check("error" not in challenge_params(challenge),
+    check("error" not in challenge_params(challenge, "DPoP"),
           f"the challenge carries an error attribute: {challenge!r}")
     for code in ("actor_unauthorized", "insufficient_scope"):
         check(code not in challenge and code.encode() not in resp.body,
@@ -924,7 +1010,7 @@ def p1(ctx):
     check(resp.status == 200, f"exchange failed: {resp}")
     body = resp.json()
     check(body.get("issued_token_type") == ID_JAG_TYPE, "issued_token_type")
-    check(body.get("token_type") == "N_A", "token_type")
+    check(str(body.get("token_type", "")).lower() == "n_a", "token_type N_A")
     header, grant, _, _ = jws.decode(body["access_token"])
     _, subject, _, _ = jws.decode(id_token)
     check(typ_is(header, "oauth-id-jag+jwt"), "typ")
@@ -959,11 +1045,11 @@ def p2(ctx):
     resp = ctx.client.redeem(grant)
     check(resp.status == 200, f"redemption failed: {resp}")
     body = resp.json()
-    check(body.get("token_type") == "DPoP", "token_type DPoP")
+    check(str(body.get("token_type", "")).lower() == "dpop", "token_type DPoP")
     if "refresh_token" in body:
         ctx.notes.append("a refresh token was issued; the core permits one only under "
                          "explicit policy (Optional RAS Refresh Tokens)")
-    header, token, _, _ = jws.decode(body["access_token"])
+    header, token = access_token_jwt(body["access_token"])
     _, grant_claims, _, _ = jws.decode(grant)
     check(typ_is(header, "at+jwt"), "typ at+jwt or application/at+jwt")
     check(token.get("sub") == cfg.expect["token_sub"], "sub is the local user")
@@ -1013,7 +1099,7 @@ def bearer_setup(ctx):
 
 def unbound_jwt(token):
     """Whether a JWT access token carries no cnf; an opaque token is not inspected."""
-    return token.count(".") != 2 or "cnf" not in jws.decode(token)[1]
+    return not jose_header(token) or "cnf" not in access_token_jwt(token)[1]
 
 
 @case("P5", "RAS", "Issues a bearer token, without cnf, to a redemption with no proof where the "
@@ -1053,42 +1139,72 @@ def p7(ctx):
     check(str(body.get("token_type", "")).lower() == "dpop",
           f"token_type {body.get('token_type')!r}, expected DPoP")
     token = body["access_token"]
-    if token.count(".") == 2:
-        check(jkt(jws.decode(token)[1]) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
+    if jose_header(token):
+        check(jkt(access_token_jwt(token)[1]) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
               "the access token is not bound to the redemption proof key")
 
 
+def stale_nonce(ctx, url):
+    """Have the client's next proof to url carry a nonce the server never provided."""
+    host = urlsplit(url).netloc
+    ctx.client.nonces[host] = "stale-" + uuid.uuid4().hex
+    return host
+
+
 @case("P8", "IdP", "Issues the grant after demanding a DPoP nonce, to the retry that carries it",
-      "RFC 9449 Section 8; core: Grant Protection", needs=("set:idp.dpop_nonce",))
+      "RFC 9449 Sections 4.3 and 8; core: Grant Protection", needs=("set:idp.dpop_nonce",),
+      defeats=("idp.nonce_match",))
 def p8(ctx):
+    # The first proof carries a nonce the IdP never provided, which RFC
+    # 9449 Section 4.3 requires it to refuse with a demand for its own.
     ctx.adapter.set("idp", "dpop_nonce", True)
+    host = stale_nonce(ctx, ctx.cfg.idp.token_endpoint)
     resp = ctx.client.exchange(ctx.id_token())
     check(resp.status == 200, f"exchange failed: {resp}")
-    check(urlsplit(ctx.cfg.idp.token_endpoint).netloc in ctx.client.nonce_demands,
-          "setup: the IdP did not demand a nonce")
+    check(host in ctx.client.nonce_demands,
+          "the IdP accepted a DPoP nonce it never provided")
 
 
 @case("P9", "RAS", "Issues the access token after demanding a DPoP nonce, to the retry that carries "
-      "it", "RFC 9449 Section 8; core: Access-Token Protection",
-      needs=("set:ras.dpop_nonce",))
+      "it", "RFC 9449 Sections 4.3 and 8; core: Access-Token Protection",
+      needs=("set:ras.dpop_nonce",), defeats=("ras.nonce_match",))
 def p9(ctx):
     grant = ctx.grant()
     ctx.adapter.set("ras", "dpop_nonce", True)
+    host = stale_nonce(ctx, ctx.cfg.ras.token_endpoint)
     resp = ctx.client.redeem(grant)
     check(resp.status == 200, f"redemption failed: {resp}")
-    check(urlsplit(ctx.cfg.ras.token_endpoint).netloc in ctx.client.nonce_demands,
-          "setup: the RAS did not demand a nonce")
+    check(host in ctx.client.nonce_demands,
+          "the RAS accepted a DPoP nonce it never provided")
 
 
 @case("P10", "API", "Serves the read after demanding a DPoP nonce, to the retry that carries it",
-      "RFC 9449 Section 9; core: Token Validation", needs=("set:api.dpop_nonce",))
+      "RFC 9449 Sections 4.3 and 9; core: Token Validation", needs=("set:api.dpop_nonce",),
+      defeats=("api.nonce_match",))
 def p10(ctx):
     token = ctx.access_token()
     ctx.adapter.set("api", "dpop_nonce", True)
+    host = stale_nonce(ctx, ctx.cfg.api_base)
     resp = ctx.client.get(ctx.cfg.read_path, token)
     check(resp.status == 200, f"read failed: {resp}")
-    check(urlsplit(ctx.cfg.api_base).netloc in ctx.client.nonce_demands,
-          "setup: the API did not demand a nonce")
+    check(host in ctx.client.nonce_demands,
+          "the API accepted a DPoP nonce it never provided")
+
+
+@case("P16", "IdP", "Expires the grant no later than the ID Token",
+      "core: Grant Issuance (the subject credential's expiration); Common Grant Claims, "
+      "Lifetime, and Response",
+      needs=("id_token:claims",), defeats=("idp.subject_deadline",))
+def p16(ctx):
+    # The ID Token expires in 90 s, within the grant's own 300 s limit, so
+    # only the subject credential's expiration bounds the grant.
+    id_token = ctx.id_token(claims={"exp": ctx.now() + 90})
+    resp = ctx.client.exchange(id_token)
+    check(resp.status == 200, f"exchange failed: {resp}")
+    deadline = jws.decode(id_token)[1]["exp"]
+    exp = jws.decode(resp.json()["access_token"])[1].get("exp")
+    check(numeric(exp) and exp <= deadline,
+          f"grant exp {exp} is after the ID Token's exp {deadline}")
 
 
 # IdP rejections ------------------------------------------------------------
@@ -1178,11 +1294,17 @@ def n10(ctx):
     expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
 
 
-@case("N11", "RAS", "Rejects redemption of a bound grant without a DPoP proof",
+@case("N11", "RAS", "Rejects redemption of a bound grant without a DPoP proof, also where the "
+      "resource permits bearer tokens",
       "core: Renewal and Negative Tests, redemption omits the proof; Access-Token Protection "
-      "(Grant Protection first)",
-      defeats=("ras.require_proof",))
+      "(Grant Protection first, whatever protection the resource requires)",
+      needs=("set:ras.resource_protection",), defeats=("ras.require_proof",))
 def n11(ctx):
+    expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400,
+                 ("invalid_grant", "invalid_dpop_proof"))
+    # Where the resource permits bearer tokens, access-token protection
+    # would issue one; only Grant Protection refuses the bound grant.
+    ctx.adapter.set("ras", "resource_protection", "dpop_or_bearer")
     expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400,
                  ("invalid_grant", "invalid_dpop_proof"))
 
@@ -1507,12 +1629,12 @@ def p13(ctx):
         check(claims.get("client_id") == cfg.ras_client_id,
               f"client_id {claims.get('client_id')!r}, expected {cfg.ras_client_id}")
         check((claims.get("act") or {}).get("sub") == agent, f"act {claims.get('act')!r}")
-    expect_token(ctx.client.redeem(ctx.grant()))
+    expect_token_response(ctx.client.redeem(ctx.grant()))
     # Disabling agent-42 at the RAS refuses it, and leaves agent-43 admitted
     # through the same registration.
     ctx.adapter.set("ras", "agent_active", False)
     expect_error(ctx.client.redeem(ctx.grant()), 400, "invalid_grant")
-    expect_token(ctx.client.redeem(theirs))
+    expect_token_response(ctx.client.redeem(theirs))
 
 
 @case("P12", "IdP", "Expires the grant no later than the platform JWT's evidence deadline",
@@ -1524,7 +1646,7 @@ def p12(ctx):
     check(resp.status == 200, f"exchange failed: {resp}")
     deadline = jws.decode(evidence)[1]["exp"]
     exp = jws.decode(resp.json()["access_token"])[1].get("exp")
-    check(isinstance(exp, int) and exp <= deadline,
+    check(numeric(exp) and exp <= deadline,
           f"grant exp {exp} is after the evidence deadline {deadline}")
 
 
@@ -1590,7 +1712,7 @@ def n40(ctx):
     ctx.adapter.set("ras", "agent_active", False)
     expect_error(through_other_client(), 400, "invalid_grant")
     ctx.adapter.set("ras", "agent_active", True)
-    expect_token(through_other_client())
+    expect_token_response(through_other_client())
 
 
 def multi_tenant(ctx):
@@ -1650,7 +1772,7 @@ def n43(ctx):
     other = cfg.other_governance_tenant
     ctx.adapter.set("ras", "tenant_trust", [other, cfg.tenant, True])
     ctx.adapter.set("ras", "user_link", [other, cfg.other_tenant_sub, cfg.expect["token_sub"]])
-    expect_token(ctx.client.redeem(ctx.adapter.mint_grant(
+    expect_token_response(ctx.client.redeem(ctx.adapter.mint_grant(
         grant_claims(ctx, tenant=other, sub=cfg.other_tenant_sub))))
     expect_error(ctx.client.redeem(ctx.adapter.mint_grant(grant_claims(ctx, tenant=other))),
                  400, "invalid_grant")
@@ -1679,11 +1801,18 @@ def wag_claims(ctx, **overrides):
     return claims
 
 
-def wag(ctx):
-    """A WAG for the agent: from the IdP, or signed by the suite in RAS-only mode."""
+def wag(ctx, dpop_key="k"):
+    """A WAG for the agent, bound to dpop_key's key or unbound without one: from the
+    IdP, or signed by the suite in RAS-only mode."""
     if getattr(ctx.adapter, "signs_grants", False):
-        return ctx.adapter.mint_wag(wag_claims(ctx))
-    resp = ctx.client.wag_exchange()
+        claims = wag_claims(ctx)
+        if dpop_key:
+            claims["cnf"] = {"jkt": jws.thumbprint(jws.public_jwk(getattr(ctx.client,
+                                                                          dpop_key)))}
+        else:
+            claims.pop("cnf")
+        return ctx.adapter.mint_wag(claims)
+    resp = ctx.client.wag_exchange(dpop_key=dpop_key)
     check(resp.status == 200, f"self-acting exchange failed: {resp}")
     return resp.json()["access_token"]
 
@@ -1701,7 +1830,7 @@ def p14(ctx):
     check(resp.status == 200, f"exchange failed: {resp}")
     body = resp.json()
     check(body.get("issued_token_type") == WAG_TYPE, "issued_token_type")
-    check(body.get("token_type") == "N_A", "token_type")
+    check(str(body.get("token_type", "")).lower() == "n_a", "token_type N_A")
     header, grant, _, _ = jws.decode(body["access_token"])
     check(typ_is(header, "oauth-wag+jwt"), "typ")
     check(grant.get("iss") == cfg.idp.issuer, "iss")
@@ -1803,7 +1932,7 @@ def created_principal(ctx, iss, claims):
       "core: Optional Just-in-Time Correlation; Self-Acting Redemption: WAG; Redemption Errors",
       needs=("self_acting", "mint_wag", "agent_record", "set:ras.jit", "set:ras.jit_eligible",
              "set:ras.self_acting_rule"),
-      defeats=("ras.jit_correlation_only",))
+      defeats=("ras.jit_correlation_only", "ras.wag_policy"))
 def n47(ctx):
     # With just-in-time correlation on and created records eligible, the
     # RAS creates a record for an agent it has not seen, which grants
@@ -1845,7 +1974,7 @@ def n48(ctx):
       "Redemption: WAG",
       needs=("self_acting", "mint_wag", "agent_record", "set:ras.trusted_issuer", "set:ras.jit",
              "set:ras.jit_eligible", "set:ras.self_acting_rule"),
-      defeats=("ras.jit_qualified_principal",))
+      defeats=("ras.jit_qualified_principal", "ras.wag_policy"))
 def n49(ctx):
     # The RAS trusts a second issuer and correlates both issuers' agents
     # just in time; each asserts uncorrelated_agent. The records are keyed
@@ -1869,6 +1998,90 @@ def n49(ctx):
     partner_local = created_principal(ctx, partner, partner_claims)
     check(home_local != partner_local,
           f"both issuers' agents are the local principal {home_local!r}")
+
+
+@case("N50", "RAS", "Rejects with invalid_grant an unbound ID-JAG presented again, with a proof "
+      "of another key",
+      "core: Common Grant Validation (Grant replay); Renewal and Negative Tests, unbound grant "
+      "presented again",
+      needs=("set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.grant_replay",))
+def n50(ctx):
+    # Under governed agent access the grant has no cnf, so only the replay
+    # rule refuses it the second time: an access-token proof, of any key,
+    # does not make an unbound grant reusable.
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", "governed")
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the grant carries cnf")
+    expect_token_response(ctx.client.redeem(grant))
+    expect_error(ctx.client.redeem(grant, dpop_key="k2"), 400, "invalid_grant")
+
+
+@case("N51", "RAS", "Rejects with invalid_grant an unbound WAG presented again",
+      "core: Common Grant Validation (Grant replay); Renewal and Negative Tests, self-acting "
+      "variant",
+      needs=("self_acting", "set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.grant_replay",))
+def n51(ctx):
+    cfg = self_acting(ctx)
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", [cfg.self_acting_client_id, "governed"])
+    grant = wag(ctx, dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the WAG carries cnf")
+    expect_token_response(ctx.client.redeem(grant, as_self_acting=True))
+    expect_error(ctx.client.redeem(grant, as_self_acting=True), 400, "invalid_grant")
+
+
+@case("N52", "RAS", "Tells the grants apart by typ: an ID-JAG without act and a WAG with act "
+      "both fail with invalid_grant",
+      "core: Grant Validation (Actor); Self-Acting Redemption: WAG, step 1; Credential and "
+      "Token Confusion",
+      needs=("self_acting", "mint_grant", "mint_wag", "set:ras.jit", "set:ras.jit_eligible",
+             "set:ras.self_acting_rule"),
+      defeats=("ras.explicit_type",))
+def n52(ctx):
+    # With just-in-time correlation and a self-acting rule, a RAS that read
+    # an ID-JAG without act as a WAG would make the user's subject an agent
+    # principal, and one that read a WAG with act as an ID-JAG would issue
+    # delegated access. Only the explicit type refuses each.
+    cfg = self_acting(ctx)
+    ctx.adapter.set("ras", "jit", True)
+    ctx.adapter.set("ras", "jit_eligible", True)
+    ctx.adapter.set("ras", "self_acting_rule", True)
+    claims = grant_claims(ctx, client_id=cfg.self_acting_client_id)
+    del claims["act"]
+    resp = ctx.client.redeem(ctx.adapter.mint_grant(claims), as_self_acting=True)
+    check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+          f"an ID-JAG without act: expected HTTP 400 invalid_grant, got {resp}")
+    resp = ctx.client.redeem(ctx.adapter.mint_wag(grant_claims(ctx)))
+    check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+          f"a WAG with act: expected HTTP 400 invalid_grant, got {resp}")
+
+
+@case("N53", "API", "Reports the actor gate, not insufficient_scope, when the token also lacks "
+      "the read's scope",
+      "core: Error Responses (selection order); Delegated Actor Authorization",
+      needs=("set:idp.delegation_scope", "set:api.actor_gate"), defeats=("api.error_order",))
+def n53(ctx):
+    # The user delegates only extra_scope, so the access token lacks the
+    # read's scope, and the API's actor gate is closed: both conditions
+    # deny, and Error Responses reports the actor gate first. The API
+    # evaluates both itself, with no policy service (S14 uses one).
+    cfg = ctx.cfg
+    if getattr(ctx.adapter, "signs_grants", False):
+        grant = ctx.adapter.mint_grant(grant_claims(ctx, scope=cfg.extra_scope))
+    else:
+        ctx.adapter.set("idp", "delegation_scope", [cfg.extra_scope])
+        resp = ctx.client.exchange(ctx.id_token(), scope=cfg.extra_scope)
+        check(resp.status == 200, f"setup: exchange for {cfg.extra_scope} failed: {resp}")
+        grant = resp.json()["access_token"]
+    body, claims = expect_token(ctx.client.redeem(grant))
+    check(cfg.scope not in scopes(claims.get("scope")),
+          f"setup: the access token carries {cfg.scope}")
+    ctx.adapter.set("api", "actor_gate", False)
+    expect_denial_code(ctx, ctx.client.get(cfg.read_path, body["access_token"]),
+                       "actor_unauthorized")
 
 
 # Deferred redemption at the RAS ---------------------------------------------
@@ -1917,12 +2130,20 @@ def expect_pending(resp):
     check("access_token" not in body, "a pending response carried a token")
 
 
-def expect_token(resp):
-    """A successful token response; returns the body and the access token's claims."""
+def expect_token_response(resp):
+    """A successful token response, whatever the access token's format; returns the
+    body."""
     body = resp.json()
-    check(resp.status == 200 and isinstance(body.get("access_token"), str),
-          f"expected a token response, got {resp}")
-    return body, jws.decode(body["access_token"])[1]
+    check(resp.status == 200 and isinstance(body.get("access_token"), str) and
+          body["access_token"], f"expected a token response, got {resp}")
+    return body
+
+
+def expect_token(resp):
+    """A successful token response with a JWT access token; returns the body and the
+    token's claims. A case that needs the claims is not run for an opaque token."""
+    body = expect_token_response(resp)
+    return body, access_token_jwt(body["access_token"])[1]
 
 
 def defer(ctx, grant, **kwargs):
@@ -1983,8 +2204,8 @@ def d02(ctx):
     approved_until = ctx.now() + 3600
     ctx.adapter.approve(only_task(ctx), approved_until)
     body, token = expect_token(ctx.client.poll(code))
-    check(body.get("token_type") == "DPoP", "token_type DPoP")
-    header = jws.decode(body["access_token"])[0]
+    check(str(body.get("token_type", "")).lower() == "dpop", "token_type DPoP")
+    header = access_token_jwt(body["access_token"])[0]
     check(typ_is(header, "at+jwt"), "typ at+jwt or application/at+jwt")
     check(token.get("sub") == cfg.expect["token_sub"], "sub is the local user")
     check(token.get("act") == jws.decode(grant)[1]["act"], f"act unchanged: {token.get('act')}")
@@ -2080,14 +2301,15 @@ def d08(ctx):
 
 @case("D09", "RAS", "Recovery after approval returns the code, and the poll then issues",
       "oversight: Recovery",
-      needs=("set:ras.approval_required", "tasks", "approve"))
+      needs=("set:ras.approval_required", "tasks", "approve"),
+      defeats=("ras.single_pending",))
 def d09(ctx):
     require_approval(ctx)
     grant = ctx.grant()
     code = defer(ctx, grant)["deferral_code"]
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
     check(defer(ctx, grant)["deferral_code"] == code, "recovery returned another deferral code")
-    expect_token(ctx.client.poll(code))
+    expect_token_response(ctx.client.poll(code))
 
 
 @case("D10", "RAS", "A second agent through the same client gets its own access request",
@@ -2104,7 +2326,7 @@ def d10(ctx):
     check(len(found) == 2, f"expected two pending access requests, found {len(found)}")
     ctx.adapter.approve(only_task(ctx, cfg.expect["agent"]), ctx.now() + 3600)
     expect_pending(ctx.client.poll(code_b))
-    expect_token(ctx.client.poll(code_a))
+    expect_token_response(ctx.client.poll(code_a))
 
 
 @case("D11", "RAS", "Another task's approval leaves the redemption pending",
@@ -2235,7 +2457,7 @@ def d17(ctx):
           f"recovery extended the pending deadline: expires_in {first['expires_in']} s, "
           f"then {again['expires_in']} s 900 s later")
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
-    expect_token(ctx.client.poll(first["deferral_code"]))
+    expect_token_response(ctx.client.poll(first["deferral_code"]))
 
 
 @case("D18", "RAS", "Recovery that reuses the first request's DPoP proof fails",
@@ -2260,7 +2482,7 @@ def d19(ctx):
     grant = ctx.grant()
     code = defer(ctx, grant)["deferral_code"]
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
-    expect_token(ctx.client.poll(code))
+    expect_token_response(ctx.client.poll(code))
     expect_error(ctx.client.redeem(grant, deferred=True), 400, "invalid_grant")
 
 
@@ -2294,7 +2516,7 @@ def d21(ctx):
     body, _ = expect_token(ctx.client.poll(code))
     check(isinstance(body.get("refresh_token"), str),
           "setup: no refresh token with refresh permitted")
-    expect_token(ctx.client.refresh(body["refresh_token"]))
+    expect_token_response(ctx.client.refresh(body["refresh_token"]))
     ctx.adapter.set("ras", "client_profile", "bound")
     expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
 
@@ -2311,7 +2533,7 @@ def d22(ctx):
     resp = ctx.client.refresh(refresh_token, dpop_key="k2")
     check(400 <= resp.status < 500 and "access_token" not in resp.json(),
           f"setup: a refresh proven with another key was not rejected: {resp}")
-    expect_token(ctx.client.refresh(refresh_token))
+    expect_token_response(ctx.client.refresh(refresh_token))
     ctx.adapter.set("ras", "actor_gate", False)
     expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
     ctx.adapter.set("ras", "actor_gate", True)
@@ -2333,7 +2555,8 @@ def d23(ctx):
 
 @case("D24", "RAS", "Defers, recovers and issues for the opt-in deferred deferred_interactive",
       "oversight: Redemption Opt-In; Recovery; Approval",
-      needs=("set:ras.approval_required", "tasks", "approve"))
+      needs=("set:ras.approval_required", "tasks", "approve"),
+      defeats=("ras.single_pending",))
 def d24(ctx):
     require_approval(ctx)
     grant = ctx.grant()
@@ -2346,7 +2569,7 @@ def d24(ctx):
           "recovery returned another interaction_uri")
     expect_pending(ctx.client.poll(first["deferral_code"]))
     ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
-    expect_token(ctx.client.poll(first["deferral_code"]))
+    expect_token_response(ctx.client.poll(first["deferral_code"]))
 
 
 @case("D25", "RAS", "Denies at the next poll when the RAS stops trusting the grant's tenant "
@@ -2371,7 +2594,7 @@ def d25(ctx):
 def d26(ctx):
     cfg = multi_tenant(ctx)
     _, body, _ = approved_refresh(ctx, ctx.now() + 3600)
-    expect_token(ctx.client.refresh(body["refresh_token"]))
+    expect_token_response(ctx.client.refresh(body["refresh_token"]))
     ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
     expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
 
@@ -2500,7 +2723,8 @@ def s03(ctx):
     token = ctx.access_token()
     other = ctx.adapter.mint_access_token(minted_token_claims(
         ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.second_agent}))
-    check(jws.decode(other)[1].get("client_id") == jws.decode(token)[1].get("client_id"),
+    check(access_token_jwt(other)[1].get("client_id") ==
+          access_token_jwt(token)[1].get("client_id"),
           "setup: the two tokens carry different client_id values")
     use_policy(ctx, policy(ctx))
     expect_denial_code(ctx, ctx.client.get(cfg.read_path, other), "actor_unauthorized")
@@ -3146,9 +3370,9 @@ def bearer_claims(ctx, **overrides):
 def expect_bearer_challenge(resp, status, error, label):
     """The status, and a Bearer challenge with this error, or with none and a realm."""
     challenge = challenge_of(resp)
-    check(resp.status == status and challenge.startswith("Bearer"),
+    check(resp.status == status and has_challenge(challenge, "Bearer"),
           f"{label}: expected HTTP {status} with a Bearer challenge, got {resp} {challenge!r}")
-    params = challenge_params(challenge)
+    params = challenge_params(challenge, "Bearer")
     if error is None:
         check("error" not in params and "realm" in params,
               f"{label}: expected a Bearer challenge with realm and no error, got {challenge!r}")
