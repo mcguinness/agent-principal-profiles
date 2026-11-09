@@ -26,23 +26,29 @@ Copy it, fill in each line, and delete the guidance in italics.
 ### Cases that test each claim
 
 Passing these cases is evidence for the claim, not the claim itself.
-A claim whose cases were not run says so in Part 5.
+A claim whose cases were not run says so in Part 5. Cases listed as
+reference-implementation tests need test control that a product may not
+expose, such as its Access Request Service, its clock, its policy
+service, or minted tokens; they are evidence only where the adapter
+provides those hooks ([Running against another
+implementation](README.md#running-against-another-implementation)).
 
 | Claim | Cases |
 |---|---|
-| IdP: delegated access, dedicated client, ID Token subjects | P1, P16, P13 (with a second IdP client), N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
+| IdP: delegated access, dedicated client, ID Token subjects | P1, P16, N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
 | RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50 |
-| API: delegated access | P3, P4, N17 to N20, N24, N35, N53, S32, S33, S35, S36 |
-| Generic shared-client interoperability (IdP) | P11, P12, N36 to N39 |
-| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52 (RAS); S08 and S09 (API, with minted tokens) |
-| Bearer access tokens | P5, P6, N35, S38, S39 |
+| API: delegated access | P3, P4, N17 to N20, N24, N35, N53; reference-implementation tests: S32, S33, S35, S36 |
+| Generic shared-client interoperability (IdP) | P11 to P13 (P13 with a second IdP client), N36 to N39 |
+| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
+| Bearer access tokens | P5 to P7, N35; reference-implementation tests: S38, S39 |
 | DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
 | Just-in-time correlation | N34, N47 to N49 |
-| Opaque access tokens and introspection | S10 to S13, S20, S21, S31, S34, S38 |
-| Policy services | S01 to S19, S26, S27, S29, S30, S37 |
-| The API's error selection order | N20, N53; S14 to S31 |
-| Deferred redemption (RAS) | D01 to D26 |
-| RAS refresh tokens | D13 to D15, D21, D22, within a deferred redemption only |
+| Opaque access tokens and introspection | Reference-implementation tests: S10 to S13, S20, S21, S31, S34, S38 |
+| Policy services | Reference-implementation tests: S01 to S11, S14 to S19, S26, S27, S29, S30, S37 |
+| The API's error selection order | N20, N53; reference-implementation tests: S14 to S31 |
+| Deferred redemption (RAS) | D01, D03, D07, D08, D18 (configuration only); reference-implementation tests: D02, D04 to D06, D09 to D17, D19 to D26 |
+| RAS refresh tokens | Reference-implementation tests, within a deferred redemption only: D13 to D15, D21, D22, D26 |
+| Client ID Metadata Documents | None |
 | Mutual-TLS access tokens; re-redemption under policy | None |
 
 ## Part 2. Optional capabilities
@@ -53,6 +59,7 @@ A claim whose cases were not run says so in Part 5.
 |---|---|---|
 | Bearer access tokens for resources configured to permit them | | core: Access-Token Protection |
 | Mutual-TLS-bound access tokens | | core: Access-Token Protection |
+| Clients whose metadata is a Client ID Metadata Document | | core: Client Metadata |
 | Re-redemption of a bound grant under explicit policy | | core: Common Grant Validation |
 | Just-in-time correlation | | core: Optional Just-in-Time Correlation |
 | RAS refresh tokens | | core: Optional RAS Refresh Tokens |
