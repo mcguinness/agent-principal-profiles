@@ -98,12 +98,14 @@ class Config:
     uncorrelated_agent: str = "agent-99"
     # A user the IdP has no record of (N32).
     unknown_user: str = "carol"
-    # Governance Tenants (N33, N41, N42): the IdP tenant of the user, the
-    # IdP client and the agent; another tenant of the IdP's issuer; and
-    # whether that issuer is multi-tenant (ID-JAG Section 6.1), so that each
-    # grant names governance_tenant in `tenant`.
+    # Governance Tenants (N33, N41 to N43): the IdP tenant of the user, the
+    # IdP client and the agent; another tenant of the IdP's issuer, and a
+    # subject of it that test control links to the user (N43); and whether
+    # that issuer is multi-tenant (ID-JAG Section 6.1), so that each grant
+    # names governance_tenant in `tenant`.
     governance_tenant: str = "acme"
     other_governance_tenant: str = "beta"
+    other_tenant_sub: str = "bob-ras"
     multi_tenant_issuer: bool = False
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
@@ -348,6 +350,13 @@ class Adapter:
                                           client, RAS registration]: the
                                           client registration association)
                                      ras: agent_active, actor_gate,
+                                          tenant_trust ([issuer tenant,
+                                          Target Tenant, trusted]: whether
+                                          the RAS trusts the IdP's tenant
+                                          for the Target Tenant), user_link
+                                          ([issuer tenant, sub, local
+                                          user]: links that subject to the
+                                          local user),
                                           jit (just-in-time correlation for
                                           the IdP's agents in `tenant`),
                                           resource_protection ("dpop", or
@@ -1536,17 +1545,43 @@ def n41(ctx):
 @case("N42", "RAS", "Rejects with invalid_grant a grant from a multi-tenant issuer without a "
       "tenant it trusts for the Target Tenant",
       "ID-JAG Section 4.4.1; core: Canonical Identity and Tenant Boundaries",
-      needs=("mint_grant",), defeats=("ras.tenant_trust",))
+      needs=("mint_grant", "set:ras.user_link"), defeats=("ras.tenant_trust",))
 def n42(ctx):
+    # The other tenant's subject is linked to the user, so only the RAS's
+    # trust in that tenant refuses its grant.
     cfg = multi_tenant(ctx)
-    for label, tenant in (("another tenant", cfg.other_governance_tenant), ("no tenant", None)):
-        claims = grant_claims(ctx, tenant=tenant)
+    other = cfg.other_governance_tenant
+    ctx.adapter.set("ras", "user_link", [other, cfg.other_tenant_sub, cfg.expect["token_sub"]])
+    for label, tenant in (("another tenant", other), ("no tenant", None)):
+        claims = grant_claims(ctx, tenant=tenant, sub=cfg.other_tenant_sub)
         if tenant is None:
+            claims = grant_claims(ctx)
             del claims["tenant"]
         resp = ctx.client.redeem(ctx.adapter.mint_grant(claims))
         check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
               f"{label}: expected HTTP 400 invalid_grant, got {resp}")
         check("access_token" not in resp.json(), "an error response carried a token")
+
+
+@case("N43", "RAS", "Resolves the user within the grant's issuer tenant, so another tenant's "
+      "grant naming the same subject resolves no user",
+      "ID-JAG Section 6.3; core: User Resolution and Linking",
+      needs=("mint_grant", "set:ras.tenant_trust", "set:ras.user_link"),
+      defeats=("ras.user_tenant",))
+def n43(ctx):
+    # The RAS also trusts the issuer's other tenant for the Target Tenant,
+    # and links that tenant's own subject to the user, so its grants
+    # redeem; the minted grant's agent stands for one of that tenant's.
+    # The first tenant's subject, named under the other tenant, is not
+    # that user: subjects are unique only within a tenant.
+    cfg = multi_tenant(ctx)
+    other = cfg.other_governance_tenant
+    ctx.adapter.set("ras", "tenant_trust", [other, cfg.tenant, True])
+    ctx.adapter.set("ras", "user_link", [other, cfg.other_tenant_sub, cfg.expect["token_sub"]])
+    expect_token(ctx.client.redeem(ctx.adapter.mint_grant(
+        grant_claims(ctx, tenant=other, sub=cfg.other_tenant_sub))))
+    expect_error(ctx.client.redeem(ctx.adapter.mint_grant(grant_claims(ctx, tenant=other))),
+                 400, "invalid_grant")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

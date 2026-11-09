@@ -1815,8 +1815,9 @@ additions. After validating the ID-JAG and its client and proof
 bindings, the RAS MUST:
 
 * Resolve exactly one local user in the authorized Target Tenant,
-  qualifying `sub` by the validated IdP issuer and tenant relationship;
-  IdP and RAS tenant identifiers are not interchangeable.
+  qualifying `sub` by the validated IdP issuer, by `tenant` at a
+  multi-tenant issuer ({{Section 6.3 of ID-JAG}}), and by the tenant
+  relationship; IdP and RAS tenant identifiers are not interchangeable.
 * Use `aud_sub` only when the IdP is authorized to assert local account
   identifiers for that Target Tenant, and MUST NOT use it to override
   a conflicting approved link.
