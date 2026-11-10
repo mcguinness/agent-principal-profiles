@@ -61,6 +61,7 @@
     "9.11.1.1": "DPoP Key Binding During Token Exchange",
     "9.11.1.2": "DPoP Key Binding During ID-JAG Exchange",
     "9.11.1.2.2": "ID-JAG Contains cnf Claim but DPoP Proof is Not Presented",
+    "9.11.1.2.4": "ID-JAG Does Not Contain cnf Claim and DPoP Proof is Not Presented",
     "9.11.2": "mTLS Certificate Binding"
   },
   "I-D.ietf-oauth-spiffe-client-auth-03": {
