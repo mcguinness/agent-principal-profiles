@@ -170,6 +170,8 @@ single-tenant issuer omits.
 | D24 | RAS | With `completion_mode=deferred deferred_interactive`, a redemption is deferred, a repeated request gets the same deferral code and any `interaction_uri` again, and the poll after approval issues | oversight: Redemption Opt-In; Recovery; Approval | Require approval; approve |
 | D25 | RAS | A redemption deferred while the RAS trusts `acme` for `acme-data` gets `access_denied` at the poll after approval once that trust is withdrawn | oversight: Redemption Resolution; core: Canonical Identity and Tenant Boundaries | Require approval; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
 | D26 | RAS | After a refresh succeeds, withdrawing the RAS's trust in `acme` for `acme-data` makes the next refresh fail with `invalid_grant` | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation | Require approval; permit refresh tokens; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
+| D27 | RAS | After approval, while the lookups that resolution re-checks cannot be completed, a poll stays pending rather than denied; once they can, the poll issues the token, and a further poll fails with `invalid_grant` | oversight: Redemption Resolution (a check that cannot be completed) | Require approval; make resolution's lookups unavailable; list and approve tasks |
+| D28 | RAS | A redemption pending through such an outage still expires: after the maximum pending lifetime the poll fails with `expired_token`, and again once the outage ends | oversight: Redemption Resolution; Deferring a Redemption | As D27; set the maximum pending lifetime; advance the clock |
 | S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
 | S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
 | S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
@@ -242,9 +244,9 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02,
 D09 and D24, name the reference checks they exercise (`CHECKS` in
-[reference.py](reference.py)). With `--vacuity`, each of these 125
+[reference.py](reference.py)). With `--vacuity`, each of these 127
 cases runs once for each check it names, with that check switched off;
-eight S cases, N40, N47 and N49 name two checks, so there are 136 runs,
+eight S cases, N40, N47 and N49 name two checks, so there are 138 runs,
 and every run fails. Forty-eight N cases fail because the server then
 accepts the request, and N53 because the API then reports
 `insufficient_scope` first. P2 fails because the access token
@@ -282,7 +284,8 @@ The D cases fail without their check in these ways:
   D11, D14, D20, D21, D22 (after the actor gate reopens), D25 and D26;
 * it returns or keeps a deferral where an error is required: D03, D06
   (a new deferral after the denial), D08, D18, D19 and D23;
-* it returns another error: D07 (`access_denied`);
+* it returns another error: D07 (`access_denied`), and D27 and D28
+  (`access_denied` where an outage must leave the poll pending);
 * it exceeds a bound: D04 and D17 (`expires_in`), D12 (`scope`), D13
   and D15 (the token's `exp`);
 * it opens one access request for two redemptions (D10), or two
@@ -701,7 +704,8 @@ another IdP, RAS or API:
    the run. N25 and N28 use `set` on the IdP
    (`delegation_scope`, `prohibited_scope`). The D cases use `set` on
    the RAS (`approval_required`, `refresh_permitted`,
-   `max_pending_lifetime`, `authorization_lifetime`, `client_profile`),
+   `max_pending_lifetime`, `authorization_lifetime`, `client_profile`,
+   `resolution_unavailable`),
    the Access Request Service hooks `tasks`, `approve`, `deny`, `revoke`,
    `shorten` and `substitute`, and `advance_clock`, which must advance
    every server's clock. The S cases use `set` on the API

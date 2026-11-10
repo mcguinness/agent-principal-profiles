@@ -185,6 +185,8 @@ CHECKS = {
     "ras.approval_reevaluation": "resolution and every refresh re-evaluate the kept approval",
     "ras.enforcement_deadline": "a shorter approved_until from re-evaluation bounds later tokens",
     "ras.resolution_recheck": "resolution and refresh re-check the agent, actor gate and user",
+    "ras.outage_pending": "a resolution check that cannot be completed leaves the poll "
+                          "pending, not denied",
     "ras.correlation_continuity": "resolution and refresh require the agent's correlation to the "
                                   "same local principal",
     "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
@@ -1000,6 +1002,9 @@ class RAS(Server):
         self.approval_required = set()   # scopes whose redemption RAS policy holds for approval
         self.refresh_permitted = False   # refresh tokens for approved standing access
         self.max_pending_lifetime = MAX_PENDING_LIFETIME
+        # Test control: the lookups that resolution re-checks (the agent, the
+        # actor gate, the user) cannot be completed.
+        self.resolution_unavailable = False
         self.authorization_lifetime = AUTHORIZATION_LIFETIME
         self.authorization_expirations = {}   # (iss, jti) -> absolute authorization expiration
         self.deferred_grants = set()           # (iss, jti) a deferred redemption consumed
@@ -1094,6 +1099,8 @@ class RAS(Server):
                 self.approval_required = set(value or ())
             elif what == "refresh_permitted":
                 self.refresh_permitted = bool(value)
+            elif what == "resolution_unavailable":
+                self.resolution_unavailable = bool(value)
             elif what == "max_pending_lifetime":
                 self.max_pending_lifetime = int(value)
             elif what == "authorization_lifetime":
@@ -1508,6 +1515,15 @@ class RAS(Server):
             pending["state"] = "denied"
             raise OAuthError("access_denied")
         approval, now = result["approval"], self.now()
+        if self.resolution_unavailable:
+            # A check that cannot be completed has not failed: the poll stays
+            # pending until it can be, or the request expires (oversight:
+            # Redemption Resolution).
+            if self.on("ras.outage_pending"):
+                raise Deferred(self.pending_body(pending))
+            # Non-conforming: the outage resolves the redemption as denied.
+            pending["state"] = "denied"
+            raise OAuthError("access_denied", description="resolution unavailable")
         failure, enforcement = self.reevaluate(pending, approval, None, now)
         scope = pending["scope"].split()
         if result.get("scope") and self.on("ras.approval_narrowing"):
