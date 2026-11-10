@@ -114,41 +114,43 @@ applies to delegated access only ("Self-Acting Issuance: WAG" in
 For Client Attestation, `sub` identifies the OAuth client, and the
 client-to-agent mapping is explicit.
 
-An approved trust domain is a SPIFFE trust domain that the IdP's
-configuration trusts for an input, with the source of its bundle: a
-bundle or bundle endpoint configured as {{Section 6 of SPIFFE-OAUTH}}
-describes, or, for one client only, that client's Client ID Metadata
-Document ({{client-metadata-bundles}}).
+An approved trust domain is a SPIFFE trust domain that a server's
+configuration trusts, with the source of its bundle: at the IdP, for an
+input; at a RAS, for JWT-SVID client authentication
+({{jwt-svid-input}}). The source is a bundle or bundle endpoint
+configured as {{Section 6 of SPIFFE-OAUTH}} describes, or, for one
+client only, that client's Client ID Metadata Document
+({{client-metadata-bundles}}).
 
 ## Trust Bundles from Client Metadata {#client-metadata-bundles}
 
-For the SPIFFE inputs, the IdP selects the bundle that validates SVIDs
-from a client whose metadata is a Client ID Metadata Document as
-follows:
+A server selects the bundle that validates SVIDs from a client whose
+metadata is a Client ID Metadata Document as follows: the IdP for the
+SPIFFE inputs, and a RAS for JWT-SVID client authentication.
 
-1. An IdP configured with a bundle or bundle endpoint for the trust
+1. A server configured with a bundle or bundle endpoint for the trust
    domain of the document's `spiffe_id`, as
    {{Section 6 of SPIFFE-OAUTH}} describes, MUST validate with that
    bundle and MUST ignore the document's `spiffe_bundle_endpoint`, so a
-   document cannot supply keys for a trust domain the IdP already
+   document cannot supply keys for a trust domain the server already
    trusts through its own configuration. A bundle obtained from any
    Client ID Metadata Document, this client's or another's, is not so
    configured. This narrows {{Section 6.1 of SPIFFE-OAUTH}}, which
    recommends that preference.
-2. Otherwise, an IdP configured to do so for the client MAY validate
+2. Otherwise, a server configured to do so for the client MAY validate
    SVIDs with a bundle it obtains from the document's
    `spiffe_bundle_endpoint` only when the trust domain of the
    document's `spiffe_id` equals, or is a subdomain of, the host of the
    client's `client_id` URL ({{Section 8.2 of SPIFFE-OAUTH}}). It then
    uses the bundle only for SVIDs presented to authenticate as that
-   client ({{Section 6.1 of SPIFFE-OAUTH}}), and a SPIFFE ID validated
-   with it resolves an agent only through an Identity Binding
+   client ({{Section 6.1 of SPIFFE-OAUTH}}). At the IdP, a SPIFFE ID
+   validated with it resolves an agent only through an Identity Binding
    configured for that client.
-3. Otherwise, the IdP ignores the document's `spiffe_bundle_endpoint`,
-   and the document establishes no approved trust domain. An IdP that
-   accepts no bundles from documents is a deployment that does not
-   accept that trust model, which {{Section 8.2 of SPIFFE-OAUTH}}
-   requires to ignore them.
+3. Otherwise, the server ignores the document's
+   `spiffe_bundle_endpoint`, and the document establishes no approved
+   trust domain. A server that accepts no bundles from documents is a
+   deployment that does not accept that trust model, which
+   {{Section 8.2 of SPIFFE-OAUTH}} requires to ignore them.
 
 ## Grant Lifetime {#lifetime}
 
@@ -164,12 +166,14 @@ Response" in {{FEDERATION}}), these inputs bound the grant as follows:
 
 ## Algorithms {#algorithms-inputs}
 
-Implementations that support the JWT-SVID input MUST support this
-capability in addition to those of {{FEDERATION}}:
+Implementations that support the JWT-SVID input, including a RAS that
+accepts JWT-SVID client authentication ("Client Authentication and
+Algorithms" in {{FEDERATION}}), MUST support this capability in
+addition to those of {{FEDERATION}}:
 
 | Artifact | Mandatory-to-implement (MTI) capability |
 |---|---|
-| JWT-SVID, where supported | IdP validation: `RS256` and `ES256`, both required by this profile; {{SPIFFE-OAUTH}} requires no algorithm |
+| JWT-SVID, where supported | Validation at the IdP or the RAS: `RS256` and `ES256`, both required by this profile; {{SPIFFE-OAUTH}} requires no algorithm |
 {: title="Mandatory-to-implement algorithm for JWT-SVIDs"}
 
 # SPIFFE JWT-SVID {#jwt-svid-input}
@@ -177,7 +181,10 @@ capability in addition to those of {{FEDERATION}}:
 This OPTIONAL input identifies workloads independently of the OAuth
 client identifier, including multiple agents behind a shared client.
 JWT-SVID client authentication at either the IdP or the RAS follows this
-section.
+section. At the RAS it authenticates the client only: the RAS takes the
+Agent Principal from the grant ("Agent Principal Correlation" in
+{{FEDERATION}}), and the validated SPIFFE ID, like a client identifier,
+does not replace it.
 
 * **Presentation:** Client authentication by `client_assertion` with
   `client_assertion_type`

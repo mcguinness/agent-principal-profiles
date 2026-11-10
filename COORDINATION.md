@@ -1078,9 +1078,10 @@ The cluster can be broken with a small behavior change:
   dedicated-client method." Agent resolution from a JWT-SVID remains the
   companion's input, through the core's input-profile extension point.
 * JWT-SVID client authentication at the RAS follows `SPIFFE-OAUTH`
-  without this profile's narrowing: the rule that an optional `iss` does
-  not select another trust domain, and `ES256` as mandatory to
-  implement.
+  without this profile's narrowings: configured-bundle precedence and
+  the limits on bundles from client metadata, the rule that an optional
+  `iss` does not select another trust domain, and `RS256` and `ES256` as
+  mandatory to implement.
 * `INPUTS` becomes an informative reference.
 
 Breaking the cluster alone does not let the core advance ahead of early
