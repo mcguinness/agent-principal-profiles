@@ -4491,12 +4491,12 @@ When a grant without <code>cnf</code> is redeemed without the proof that the
 access-token protection of the grant's resource requires, a DPoP proof
 or, for mutual TLS, the client certificate, the RAS <span class="bcp14">MUST</span> reject the
 request with <code>invalid_grant</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.11.1.2.4" class="relref">Section 9.11.1.2.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>), for a
-WAG as for an ID-JAG. That refusal is a proof check, reported before
-replay and authority failures (<a href="#redemption-precedence" class="auto internal xref">Section 6.9.1</a>). The RAS
-selects access-token protection only after the proof checks succeed, so
-a bound grant redeemed without its proof fails as <a href="#grant-protection" class="auto internal xref">Section 4.4</a>
-specifies, with <code>invalid_grant</code> or <code>invalid_dpop_proof</code>, whatever
-protection the resource requires.<a href="#section-6.7-3" class="pilcrow">¶</a></p>
+WAG as for an ID-JAG. That refusal is one of the grant's checks,
+reported before replay and authority failures
+(<a href="#redemption-precedence" class="auto internal xref">Section 6.9.1</a>). The RAS selects access-token protection
+only after the proof checks succeed, so a bound grant redeemed without
+its proof fails as <a href="#grant-protection" class="auto internal xref">Section 4.4</a> specifies, with <code>invalid_grant</code>
+or <code>invalid_dpop_proof</code>, whatever protection the resource requires.<a href="#section-6.7-3" class="pilcrow">¶</a></p>
 <span id="name-access-token-protection-mod"></span><table class="center" id="table-17">
           <caption>
 <a href="#table-17" class="selfRef">Table 17</a>:
@@ -4667,17 +4667,19 @@ earliest failure in this order, whatever order it evaluates the checks
 in:<a href="#section-6.9.1-2" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-6.9.1-3">
 <li id="section-6.9.1-3.1">
-              <p id="section-6.9.1-3.1.1">Client authentication (<code>invalid_client</code>), then the validity of a
-presented DPoP proof (<code>invalid_dpop_proof</code>, or <code>use_dpop_nonce</code> where
-a nonce is required), then a malformed request, such as one without
-exactly one <code>assertion</code> (<code>invalid_request</code>).<a href="#section-6.9.1-3.1.1" class="pilcrow">¶</a></p>
+              <p id="section-6.9.1-3.1.1">Client authentication (<code>invalid_client</code>), then the DPoP proof,
+whether one presented is invalid or one the <code>jwt-dpop</code> grant type
+requires (<span><a href="https://datatracker.ietf.org/doc/html/draft-parecki-oauth-jwt-dpop-grant-02#section-5" class="relref">Section 5</a> of [<a href="#JWT-DPOP-GRANT" class="cite xref">JWT-DPOP-GRANT</a>]</span>) is missing
+(<code>invalid_dpop_proof</code>, or <code>use_dpop_nonce</code> where a nonce is required,
+except that a bound grant presented without its proof fails with
+<code>invalid_grant</code> or <code>invalid_dpop_proof</code> under <a href="#grant-protection" class="auto internal xref">Section 4.4</a>),
+then a malformed request, such as one without exactly one <code>assertion</code>
+(<code>invalid_request</code>).<a href="#section-6.9.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-6.9.1-3.2">
               <p id="section-6.9.1-3.2.1">The grant: its validation, its own claims, its binding, and a proof
 that its binding or its resource's access-token protection requires
-(<code>invalid_grant</code>, except that a bound grant presented without its
-proof fails with <code>invalid_grant</code> or <code>invalid_dpop_proof</code> under
-<a href="#grant-protection" class="auto internal xref">Section 4.4</a>).<a href="#section-6.9.1-3.2.1" class="pilcrow">¶</a></p>
+(<code>invalid_grant</code>).<a href="#section-6.9.1-3.2.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-6.9.1-3.3">
               <p id="section-6.9.1-3.3.1">Replay (<code>invalid_grant</code>).<a href="#section-6.9.1-3.3.1" class="pilcrow">¶</a></p>
