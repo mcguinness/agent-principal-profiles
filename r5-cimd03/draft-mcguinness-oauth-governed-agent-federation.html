@@ -5242,6 +5242,17 @@ method that each accepts. Where the RAS accepts none of the listed
 methods, the client registers separately at the RAS, and the client
 registration association (<a href="#flow-configuration" class="auto internal xref">Section 5.1</a>) maps the two
 identifiers.<a href="#section-9.2.2-4" class="pilcrow">¶</a></p>
+<p id="section-9.2.2-5">Two points of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-5" class="relref">Section 5</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span> bear on one document at both
+servers. First, a server that supports a declared <code>private_key_jwt</code>
+requires client authentication with it, and every IdP under this
+profile supports that method (<a href="#metadata" class="auto internal xref">Section 9.2</a>). An IdP that accepts another
+listed method, such as the <code>spiffe_jwt</code> method of <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, from
+a document that also lists <code>private_key_jwt</code> therefore relies on its
+policy restricting the methods it supports for that client. Second, the
+section requires <code>jwks</code> or <code>jwks_uri</code> with JWT-based methods without
+saying whether that includes methods whose keys come from elsewhere,
+such as <code>spiffe_jwt</code> or the methods of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>; whether a document
+that lists only such methods needs a JWK Set is unsettled.<a href="#section-9.2.2-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="capability-discovery">
