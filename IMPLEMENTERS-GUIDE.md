@@ -199,10 +199,18 @@ configuration object types are prescribed.
   it. If the client uses one identifier at both servers, that mapping is
   the identity mapping. A Client ID Metadata Document (CIMD) [CIMD]
   Client Identifier URL provides one identifier at both servers when
-  both servers use the document and accept the authentication method it
-  names. Otherwise the client registers separately at the RAS, and a
-  server rejects requests under a document naming a method it does not
-  accept with `invalid_client` ([Client Metadata][client-metadata]).
+  both servers use the document and each accepts a method it lists in
+  `token_endpoint_auth_methods_supported`. The client lists, for
+  example, `spiffe_jwt` for the IdP and `private_key_jwt` for the RAS,
+  and uses at each server the method configured for it there. The IdP,
+  which also supports `private_key_jwt`, accepts only `spiffe_jwt` for
+  that client by policy. Otherwise the client registers separately at
+  the RAS, and a server that accepts no listed method other than `none`
+  rejects requests under the document with `invalid_client` ([Client
+  Metadata][client-metadata]). Until CIMD's `response_types` rule is
+  fixed, a server without an authorization endpoint rejects every CIMD
+  client ([coordination
+  notes](COORDINATION.md#client-authentication-drafts)).
   Several clients can map to one
   registration, such as the dedicated clients of one platform's agents;
   the RAS then cannot tell them apart, and only a bound grant stays with

@@ -614,8 +614,8 @@ The suite tests nothing outside the path above, including:
   first;
 * RAS refresh tokens other than those from a deferred redemption;
 * Client ID Metadata Documents, including the rejection of a document
-  whose authentication method a server does not accept (core: Client
-  Metadata);
+  that lists no authentication method, other than `none`, that a server
+  accepts (core: Client Metadata);
 * mutual TLS, including the refusal to defer for a resource configured
   for mutual-TLS access tokens, and the refresh of a DPoP-bound grant
   whose access tokens are certificate-bound, which keeps the grant's
