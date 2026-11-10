@@ -481,9 +481,10 @@ N44, and N45.
 
 ### At the RAS
 
-[Redemption Errors][redemption-errors] and [Common Grant
+[Redemption Errors][redemption-errors], [Redemption Error
+Precedence][redemption-precedence] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, N34, N40, N42, N43, N46 to N52, and N54 to N56.
+N30, N34, N40, N42, N43, N46 to N52, and N54 to N68.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or
@@ -493,10 +494,16 @@ N30, N34, N40, N42, N43, N46 to N52, and N54 to N56.
     another key, or presentation with `jwt-bearer`; an unbound grant
     presented with `jwt-dpop`; and, where the minimum profile requires
     binding, a grant without `cnf`;
+  * a grant without `cnf`, redeemed without the proof that its
+    resource's access-token protection requires, such as a DPoP proof
+    for a resource that permits only DPoP-bound tokens ([Access-Token
+    Protection][access-token-protection]);
   * a prohibited replay: a grant without an enforced sender constraint
-    that the RAS already accepted. A bound grant can be accepted again
-    under explicit policy, each time with a fresh proof that matches its
-    `cnf.jkt`;
+    that the RAS already accepted. The RAS accepts a grant only when it
+    issues a token or defers the redemption, so a request it rejects
+    leaves the grant redeemable once the client corrects it. A bound
+    grant can be accepted again under explicit policy, each time with a
+    fresh proof that matches its `cnf.jkt`;
   * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
     or restricted;
   * a grant whose resource has no Target Tenant that the RAS can
@@ -511,6 +518,25 @@ N30, N34, N40, N42, N43, N46 to N52, and N54 to N56.
 * `invalid_target`: current policy refuses a WAG, or the requested
   resource is not the grant's.
 * `invalid_scope`: a requested scope outside the grant's.
+
+For a request that would accept a grant, the RAS reports the first
+failure in this order, whatever order it evaluates its checks in.
+Recovery of a deferred redemption and its polls follow the oversight
+companion instead.
+
+1. Client authentication, then a presented DPoP proof.
+2. The grant: its validation, claims, binding, and a proof that its
+   binding or its resource's protection requires.
+3. Replay.
+4. The requested resource, then the requested scope.
+5. User resolution, then agent correlation and eligibility. No
+   just-in-time record is created for a request that fails earlier.
+6. The actor gate, then other RAS policy.
+7. Approval.
+
+If a check cannot complete and no established failure precedes it, the
+RAS answers HTTP 503 without an `error`, with `Retry-After` recommended,
+and issues nothing.
 
 ### At the API
 
@@ -569,7 +595,7 @@ applies.
 * **Oversight, at the IdP and the RAS** ([Client Opt-In][ov-opt-in];
   [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery];
   [Redemption Resolution][ov-redemption-resolution]; [Refresh and
-  Continuation][ov-redemption-refresh]; cases D01 to D28, at the RAS
+  Continuation][ov-redemption-refresh]; cases D01 to D29, at the RAS
   only):
   * When policy requires approval, a request without the opt-in gets
     the IdP's ordinary refusal: `actor_unauthorized` for a delegated
@@ -696,7 +722,7 @@ A deployment that uses oversight adds this configuration to the
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
 
 The conformance suite tests deferred redemption against the reference,
-whose Access Request Service it controls: D01 to D28. WAG deferral,
+whose Access Request Service it controls: D01 to D29. WAG deferral,
 mutual-TLS resources, continuation ineligibility, and grant-derived
 revocation while pending are untested.
 
@@ -1670,6 +1696,7 @@ agent cannot use the token directly.
 [issuance-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#issuance-errors
 [redemption-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-errors
 [redemption-common]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-common
+[redemption-precedence]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-precedence
 [resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
 [security-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#security-errors
 [implementation-client]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#implementation-client
