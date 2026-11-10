@@ -1007,10 +1007,12 @@ The companion's open items (`open-items`) are AROP at the IdP and
 continuation from a deferred redemption, an attribute for the
 oversight mode in the SCIM management profile, a Shared Signals event
 for supervised-issuance notices, duplicate pending requests at the
-IdP, DTR's originating-grant preconditions, and whether a
-continuation's oversight mode may be lower than the mode policy
-requires for the same request made directly (the continuation mode
-floor, which awaits a negative test).
+IdP, DTR's originating-grant preconditions, and whether policy may
+lower a continuation's oversight mode on account of the continuing
+client (the continuation mode floor, which awaits a negative test).
+Mode policy already takes the chain's root client as a continuation's
+client, so a continuation meets the mode of the same request made
+directly.
 
 ## Family Structure
 

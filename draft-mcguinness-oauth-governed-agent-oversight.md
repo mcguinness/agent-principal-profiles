@@ -107,6 +107,7 @@ informative:
     target: https://mcguinness.github.io/mission-bound-authorization/draft-mcguinness-oauth-mission-approval.html
   OVERSIGHT-ACTS: I-D.ehstand-oversight-acts-00
   RFC7009:
+  RFC7521:
   RFC8417:
   WAG: I-D.carleton-workload-authz-grant-02
 
@@ -278,7 +279,9 @@ Governed request context:
   its registration at the target RAS; the acting relationship; the
   Governance and Target Tenants; the RAS, resource, and requested
   authority (scope and any authorization details); for a continuation,
-  the continuing client; and the request's proof key.
+  the chain's root client, in whose context the onward grant is
+  authorized ("Validation" in {{CONTINUATION}}), and, separately, the
+  continuing client; and the request's proof key.
 
 Pending governed request:
 : IdP state for a governed token exchange request that passed every
@@ -315,7 +318,9 @@ These rules apply to every mode:
 * **Policy selects the mode.** The IdP determines the mode for a
   governed request from trusted policy for the resolved agent, acting
   relationship, user, client, target, and requested authority, usually
-  as a condition of the Delegation or Agent Authorization; the RAS
+  as a condition of the Delegation or Agent Authorization. For a
+  continuation, the client is the chain's root client, so the same
+  policy applies to a continuation as to the direct request; the RAS
   determines it for a redemption from its own policy. A request
   parameter or the client's opt-in to deferral MUST NOT select a mode or
   lower one that policy requires.
@@ -380,11 +385,14 @@ When policy requires human in the loop and the request does not include
 `deferred`, the IdP MUST NOT return a deferred response
 ({{Section 5.3 of DTR}}) and MUST NOT issue the grant. It rejects the
 request ({{Section 5.2 of RFC6749}}) with `actor_unauthorized` for
-delegated issuance or `invalid_target` for self-acting issuance. These
-are the errors {{FEDERATION}} assigns when approval requires a condition
-the selected composition cannot enforce ("Issuance Authorization" in
-{{FEDERATION}}); this document reuses them for an approval that the
-request did not let the IdP obtain. This document defines no discovery
+delegated root issuance, and with `invalid_target` for self-acting root
+issuance and for any continuation. These are the errors {{FEDERATION}}
+assigns when approval requires a condition the selected composition
+cannot enforce ("Issuance Authorization" in {{FEDERATION}}), and, for a
+continuation, the code {{CONTINUATION}} uses for a target the chain's
+authorization does not permit, since a continuation uses the error
+codes of {{ICA}} ("Errors" in {{CONTINUATION}}); this document reuses
+them for an approval that the request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
 configuration. A
 client that can wait for an approver and handle a deferred response can
@@ -508,7 +516,13 @@ that:
   Authorization" in {{FEDERATION}}) withdraws any of these.
 
 If any check fails, the IdP returns `access_denied` and issues no grant,
-as {{Section 11.7 of DTR}} requires. A denial resolves to
+as {{Section 11.7 of DTR}} requires. A check that cannot be completed,
+because state it depends on is unavailable, has not failed: the IdP
+MUST NOT resolve the request on that basis, and answers the poll with a
+pending response ({{Section 6.6 of DTR}}) until it can complete the
+check or the request expires, as {{CONTINUATION}} answers a
+continuation exchange it cannot confirm with HTTP 503 rather than
+ending the chain. A denial resolves to
 `access_denied`, and a pending request that outlives `expires_in`
 resolves to `expired_token` ({{Section 6.6 of DTR}}). A client cancels
 a pending request by revoking its deferral code ({{Section 8 of DTR}},
@@ -668,6 +682,11 @@ set at resolution, and both RAS lifetime policy ("Authorization
 Lifetime" in {{FEDERATION}}) and the deadlines of
 {{redemption-resolution}} apply to its expiration: the approval expiry,
 any enforcement deadline, and the absolute authorization expiration.
+This departs from the recommendation of {{Section 4.1 of RFC7521}},
+which {{Section 5 of WAG}} repeats and {{FEDERATION}} keeps for
+direct redemption, that an access token not outlive the assertion's
+validity by a significant period: for a deferred redemption, those
+deadlines and the maximum pending lifetime bound the token instead.
 
 The RAS then accepts the grant. It MUST record the grant's (`iss`,
 `jti`) as accepted, whether or not the grant is bound, and MUST NOT
@@ -828,7 +847,11 @@ poll, the RAS MUST re-evaluate the redemption under
   Target Tenant, and resource.
 
 If any check fails, the RAS returns `access_denied` and issues no
-token, as {{Section 11.7 of DTR}} requires. A denial resolves to
+token, as {{Section 11.7 of DTR}} requires. As at the IdP
+({{resolution}}), a check that cannot be completed has not failed: the
+RAS MUST NOT resolve the redemption on that basis, and answers the poll
+with a pending response until it can complete the check or the pending
+governed redemption expires. A denial resolves to
 `access_denied`, and a pending governed redemption that outlives
 `expires_in` resolves to `expired_token` ({{Section 6.6 of DTR}}).
 Grant-derived revocation of the grant reaches "all redemptions" of it
@@ -952,7 +975,12 @@ oversight applies within the access token's authority:
   policy requires for an action ({{mcp}}).
 * **The approver is a person.** Resource policy designates approvers as
   in {{approval}}, and the API MUST NOT accept a decision from the
-  client, the agent, or another agent as an approval.
+  client, the agent, or another agent as an approval. Where the API
+  reaches the approver through a URI that the client receives, such as
+  an MCP URL-mode elicitation ({{mcp}}), the API MUST NOT accept a
+  decision made through it unless the approver authenticated there
+  after the action was held; an existing session does not satisfy
+  this, as at the IdP ({{approval}}).
 * **The approval does not add authority.** It satisfies an additional
   condition within the token's authority and cannot expand it
   ("External Approval" in {{FEDERATION}}). An action outside that
@@ -1295,6 +1323,7 @@ Each case changes this variant as stated; all other checks succeed.
 | {{AROP}} | Token issuance completion profiled at the RAS ({{deferred-redemption}}): the approval expiry bounds what the RAS issues, every refresh is evaluated again with the approval, recovery replaces idempotent submission, and the authorization is not eligible for continuation. Not profiled at the IdP, where `approved_until` would bound tokens the RAS issues ({{open-items}}) |
 | {{ARAP}} | One way to route an approval; at the RAS, its `approval` object is the approval kept unchanged ({{redemption-approval}}) |
 | {{ICA}} | A deferred continuation holds the assertion's replay reservation while pending, replacing one transition of {{Section 5.5.7.1 of ICA}}, and counts the limits of {{Section 6.3 of ICA}} when the onward grant issues ({{deferred-continuation}}) |
+| {{RFC7521}}, {{WAG}} | Departed from for a deferred redemption: the access token can outlive the assertion, bounded instead by the approval expiry, any enforcement deadline, the absolute authorization expiration, and the maximum pending lifetime ({{redemption-deferring}}) |
 | {{CIBA}} | One way to reach a user for a decision; not profiled |
 | {{MCP}} | Informative realization of per-action oversight ({{mcp}}) |
 | {{MISSION-APPROVAL}} | Approves a task, where this document approves a governed request. A Mission approval can be the basis of standing authorization under which requests are human out of the loop |
@@ -1328,14 +1357,14 @@ Each case changes this variant as stated; all other checks succeed.
    include the grant's own expiration when the client does not present
    the grant again. {{redemption-deferring}} reads them as checked on
    receipt.
-6. **Continuation mode floor.** Whether a continuation's mode may be
-   lower than the mode policy requires for the same agent, user,
-   target, and authority requested directly. Policy selects the mode at
-   each decision point ({{modes}}), so a deployment that keys approval
-   on the requesting client does not require it when a gateway
-   continues to the same target. A negative test comes before the
-   choice between a rule and guidance: approval required for a direct
-   request, and the gateway's continuation without the opt-in.
+6. **Continuation mode floor.** Mode policy takes the chain's root
+   client as a continuation's client ({{modes}}), so a continuation
+   meets the mode of the same request made directly. Whether policy may
+   also lower the mode on account of the continuing client is open. A
+   negative test comes before the choice between a rule and guidance:
+   approval required for a direct request, and the gateway's
+   continuation without the opt-in, which fails with `invalid_target`
+   ({{opt-in}}).
 
 # Document History
 {:numbered="false"}

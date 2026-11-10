@@ -564,7 +564,8 @@ applies.
   only):
   * When policy requires approval, a request without the opt-in gets
     the IdP's ordinary refusal: `actor_unauthorized` for a delegated
-    grant, `invalid_target` for a self-acting one. A redemption without
+    root grant, and `invalid_target` for a self-acting one or any
+    continuation, which uses ICA's codes. A redemption without
     the opt-in, or one the RAS cannot defer, gets the RAS's ordinary
     refusal: `access_denied` for an ID-JAG, `invalid_target` for a WAG.
     Without such a policy, a request without the opt-in can succeed at
