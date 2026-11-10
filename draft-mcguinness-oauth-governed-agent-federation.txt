@@ -241,17 +241,17 @@ Table of Contents
    restricts an agent by its client identifier readmits it when the
    agent moves to another client; agents behind one shared client cannot
    be told apart; and a gateway that calls further resource domains is
-   one client for every agent behind it.  This profile's mandatory path
-   starts from such a dedicated client (Section 9.1) and adds what the
-   client identifier lacks.  The IdP resolves the client to an Agent
-   Principal through an Identity Binding (Section 5.3) and authorizes
-   the client to use that principal through a Client Association
-   (Section 5.3.6).  The grant carries the principal as the actor,
-   separate from the client, and the resource domain decides whether
-   that actor may act for the user (Section 3.6.4).  A shared client
-   reaches the same principal by presenting an existing platform JWT
-   (Section 5.3.3), under a claim of generic shared-client
-   interoperability (Section 9.1).
+   one client for every agent behind it ([CONTINUATION]).  This
+   profile's mandatory path starts from such a dedicated client
+   (Section 9.1) and adds what the client identifier lacks.  The IdP
+   resolves the client to an Agent Principal through an Identity Binding
+   (Section 5.3) and authorizes the client to use that principal through
+   a Client Association (Section 5.3.6).  The grant carries the
+   principal as the actor, separate from the client, and the resource
+   domain decides whether that actor may act for the user
+   (Section 3.6.4).  A shared client reaches the same principal by
+   presenting an existing platform JWT (Section 5.3.3), under a claim of
+   generic shared-client interoperability (Section 9.1).
 
 1.1.  Protocol Overview
 
@@ -1183,8 +1183,9 @@ Table of Contents
    client policy, its audit, and any restriction keyed on client_id
    apply to all of them, while a restriction of an agent follows the
    agent (Section 6.3).  Every holder of that registration's credentials
-   can redeem a grant that names it, so only a grant bound under
-   Section 4.4 stays with the key that obtained it.
+   can redeem a grant that names it, and can use a refresh token bound
+   only to that registration (Section 8.2), so only a grant or refresh
+   token also bound to a key stays with the key that obtained it.
 
    An IdP client MAY also map to a different registration at a RAS for
    self-acting grants than for delegated grants, so that the client
@@ -1318,7 +1319,7 @@ Table of Contents
       select another Agent Principal under this input.
 
    *  *Audience:* RFC 7523 client authentication at the IdP and the RAS
-      MUST follow Section 4 of [RFC7523bis]: aud has the authorization
+      MUST follow Section 4 of [RFC10070]: aud has the authorization
       server's issuer identifier as its sole value, never its token
       endpoint URL, and the server rejects any other audience.  This
       profile adds no alternative audience configuration and leaves
@@ -2295,8 +2296,9 @@ Table of Contents
 
    *  *Tenant:* By default, the tenant-specific resource URI, which
       becomes the audience under Section 3 of [RFC8707].  A deployment
-      MAY instead carry the tenant in a configured tenant claim or
-      authoritative token context.
+      MAY instead carry the Target Tenant in a configured claim that
+      names it, or in authoritative token context.  The grant's tenant,
+      an issuer tenant (Section 3.3), is not that claim.
 
    *  *Authorization details:* Effective authorization_details, when
       used, in the JWT claim or introspection member under Section 9 of
@@ -3252,6 +3254,19 @@ Table of Contents
    key lookup (Section 4.6) limit that scope.  Neither kid alone nor a
    union of unrelated issuers' keys establishes the assertion's source.
 
+   A RAS that trusts one tenant of a multi-tenant issuer relies on that
+   issuer to keep its tenants apart: a grant's tenant is only as
+   trustworthy as the issuer that signs for every tenant (Section 3.3).
+   Trust in one tenant does not extend to the issuer's others, but a
+   compromise of the issuer's signing key reaches them all.
+
+   Just-in-time correlation (Section 6.3.1) creates RAS state for each
+   previously unseen agent that a trusted issuer asserts, as Section 10
+   of [WAG] notes.  A RAS that enables it can cap the records created
+   per issuer, or per issuer and tenant, and remove records that never
+   become eligible.  A created record authorizes nothing, so the
+   exposure is state, not access.
+
    A holder of a shared private key can present any credential issued
    for that key.  Agent isolation therefore depends on issuance controls
    and key custody as well as identity mapping.  Sharing the grant proof
@@ -3529,14 +3544,11 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-parecki-
               oauth-jwt-dpop-grant-02>.
 
-   [RFC7523bis]
-              Jones, M. B., Campbell, B., Mortimore, C., and F. Skokan,
+   [RFC10070] Jones, M.B., Campbell, B., Mortimore, C., and F. Skokan,
               "Updates to OAuth 2.0 JSON Web Token (JWT) Client
               Authentication and Assertion-Based Authorization Grants",
-              Work in Progress, Internet-Draft, draft-ietf-oauth-
-              rfc7523bis-11, 28 April 2026,
-              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              rfc7523bis-11>.
+              RFC 10070, DOI 10.17487/RFC10070, November 2026,
+              <https://www.rfc-editor.org/rfc/rfc10070>.
 
    [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
               Document", Work in Progress, Internet-Draft, draft-ietf-
@@ -4336,48 +4348,50 @@ B.1.  Differences from Base Specifications
    referenced sections define each requirement.
 
    +========================+============================+============+
-   | Area                   | Profile requirement        |Defined in  |
+   | Area                   | Profile requirement        | Defined in |
    +========================+============================+============+
-   | Actor extension        | Identity Binding resolves  |Section     |
-   |                        | the agent; a separate      |5.3.6       |
+   | Actor extension        | Identity Binding resolves  | Section    |
+   |                        | the agent; a separate      | 5.3.6      |
    |                        | Client Association         |            |
    |                        | authorizes client use      |            |
    +------------------------+----------------------------+------------+
-   | Dedicated-client input | Resolved from              |Section     |
-   |                        | authenticated client       |5.3.2,      |
-   |                        | context; issuer identifier |Section 4 of|
-   |                        | as sole assertion          |[RFC7523bis]|
-   |                        | audience; single-use jti   |            |
+   | Dedicated-client input | Resolved from              | Section    |
+   |                        | authenticated client       | 5.3.2,     |
+   |                        | context; issuer identifier | Section 4  |
+   |                        | as sole assertion          | of         |
+   |                        | audience; single-use jti   | [RFC10070] |
    +------------------------+----------------------------+------------+
-   | Other authentication-  | Resolved from the identity |Section     |
-   | context inputs         | validated by SPIFFE or     |5.3.5; the  |
-   |                        | Client Attestation         |inputs are  |
-   |                        | authentication             |defined in  |
-   |                        |                            |[INPUTS]    |
+   | Other authentication-  | Resolved from the identity | Section    |
+   | context inputs         | validated by SPIFFE or     | 5.3.5; the |
+   |                        | Client Attestation         | inputs are |
+   |                        | authentication             | defined in |
+   |                        |                            | [INPUTS]   |
    +------------------------+----------------------------+------------+
-   | Actor representation   | One actor: Agent Principal |Section     |
-   |                        | as act.sub, IdP as         |5.6.4       |
+   | Actor representation   | One actor: Agent Principal | Section    |
+   |                        | as act.sub, IdP as         | 5.6.4      |
    |                        | act.iss; replaces Actor    |            |
    |                        | Profile's credential-to-   |            |
    |                        | actor copying              |            |
    +------------------------+----------------------------+------------+
-   | Request narrowing      | Configured resolution      |Section 5.2,|
-   |                        | mode; one resource; non-   |Section     |
-   |                        | empty scope; actor-token   |5.6.1,      |
-   |                        | parameters required in     |Section     |
-   |                        | presented-evidence mode    |5.3.5       |
-   |                        | and rejected otherwise; no |            |
+   | Request narrowing      | Configured resolution      | Section    |
+   |                        | mode; one resource; non-   | 5.2,       |
+   |                        | empty scope; actor-token   | Section    |
+   |                        | parameters required in     | 5.6.1,     |
+   |                        | presented-evidence mode    | Section    |
+   |                        | and rejected otherwise; no | 5.3.5      |
    |                        | incoming actor chain       |            |
    +------------------------+----------------------------+------------+
-   | Identity and client    | Users and agents resolved  |Section     |
-   | binding                | separately; downstream     |5.6.3,      |
-   |                        | client_id from an          |Section     |
-   |                        | authoritative client-      |6.4.2,      |
-   |                        | registration association   |Section 6.3,|
-   |                        |                            |Section 5.1 |
+   | Identity and client    | Users and agents resolved  | Section    |
+   | binding                | separately; downstream     | 5.6.3,     |
+   |                        | client_id from an          | Section    |
+   |                        | authoritative client-      | 6.4.2,     |
+   |                        | registration association   | Section    |
+   |                        |                            | 6.3,       |
+   |                        |                            | Section    |
+   |                        |                            | 5.1        |
    +------------------------+----------------------------+------------+
-   | Multi-tenant issuers   | tenant also names the      |Section 3.3 |
-   |                        | agent's Governance Tenant: |            |
+   | Multi-tenant issuers   | tenant also names the      | Section    |
+   |                        | agent's Governance Tenant: | 3.3        |
    |                        | no ID-JAG for an agent of  |            |
    |                        | a tenant other than the    |            |
    |                        | user's, tenant in every    |            |
@@ -4392,43 +4406,43 @@ B.1.  Differences from Base Specifications
    |                        | conditions its rule on the |            |
    |                        | RAS knowing that           |            |
    +------------------------+----------------------------+------------+
-   | Grant narrowing        | One resource URI (a        |Section 5.5,|
-   |                        | string; singleton arrays   |Section     |
-   |                        | accepted), scope           |5.6.5,      |
-   |                        | constraints, input-        |Section 6.2,|
-   |                        | specific expiration        |Section 4.4 |
-   |                        | limits; single use unless  |            |
-   |                        | bound; DPoP and cnf.jkt in |            |
-   |                        | the bound profile          |            |
+   | Grant narrowing        | One resource URI (a        | Section    |
+   |                        | string; singleton arrays   | 5.5,       |
+   |                        | accepted), scope           | Section    |
+   |                        | constraints, input-        | 5.6.5,     |
+   |                        | specific expiration        | Section    |
+   |                        | limits; single use unless  | 6.2,       |
+   |                        | bound; DPoP and cnf.jkt in | Section    |
+   |                        | the bound profile          | 4.4        |
    +------------------------+----------------------------+------------+
-   | Grant binding          | cnf.jkt from a DPoP proof, |Section 4.4,|
-   |                        | redeemed with jwt-dpop; no |Section 6.1 |
-   |                        | x5t#S256 certificate       |            |
-   |                        | binding (Section 9.11.2 of |            |
+   | Grant binding          | cnf.jkt from a DPoP proof, | Section    |
+   |                        | redeemed with jwt-dpop; no | 4.4,       |
+   |                        | x5t#S256 certificate       | Section    |
+   |                        | binding (Section 9.11.2 of | 6.1        |
    |                        | [ID-JAG])                  |            |
    +------------------------+----------------------------+------------+
-   | Redemption client      | Required for every grant,  |Section 6.2 |
-   | authentication         | including a bound grant;   |            |
+   | Redemption client      | Required for every grant,  | Section    |
+   | authentication         | including a bound grant;   | 6.2        |
    |                        | Section 4.4 of [ID-JAG]    |            |
    |                        | lets a bound ID-JAG stand  |            |
    |                        | in for it, and Section 4.1 |            |
    |                        | of [JWT-DPOP-GRANT] makes  |            |
    |                        | it optional                |            |
    +------------------------+----------------------------+------------+
-   | Resource processing    | Actor and tenant context   |Section 6.6,|
-   |                        | preserved; user authority  |Section 7   |
-   |                        | and actor gate enforced    |            |
+   | Resource processing    | Actor and tenant context   | Section    |
+   |                        | preserved; user authority  | 6.6,       |
+   |                        | and actor gate enforced    | Section 7  |
    |                        | with the selected token    |            |
    |                        | protection                 |            |
    +------------------------+----------------------------+------------+
-   | Refresh narrowing      | Explicit policy, client    |Section 8.2 |
-   |                        | binding, preserved proof   |            |
+   | Refresh narrowing      | Explicit policy, client    | Section    |
+   |                        | binding, preserved proof   | 8.2        |
    |                        | binding and profile,       |            |
    |                        | finite absolute            |            |
    |                        | authorization expiration   |            |
    +------------------------+----------------------------+------------+
-   | Error processing       | invalid_grant, not RFC     |Section 5.8 |
-   |                        | 8693's invalid_request,    |            |
+   | Error processing       | invalid_grant, not RFC     | Section    |
+   |                        | 8693's invalid_request,    | 5.8        |
    |                        | for a valid subject or     |            |
    |                        | actor credential that      |            |
    |                        | resolves no user or no     |            |
@@ -4442,8 +4456,8 @@ B.1.  Differences from Base Specifications
    |                        | or user that is not        |            |
    |                        | authorized                 |            |
    +------------------------+----------------------------+------------+
-   | Redemption errors      | invalid_grant for an       |Section 6.9 |
-   |                        | unresolved or disabled     |            |
+   | Redemption errors      | invalid_grant for an       | Section    |
+   |                        | unresolved or disabled     | 6.9        |
    |                        | user or an uncorrelated or |            |
    |                        | disabled agent, where      |            |
    |                        | Section 4.4.3 of [ID-JAG]  |            |
@@ -4453,46 +4467,46 @@ B.1.  Differences from Base Specifications
    |                        | actor_unauthorized for an  |            |
    |                        | actor-gate refusal         |            |
    +------------------------+----------------------------+------------+
-   | Profile discovery      | Governed profiles in       |Section 9.2,|
-   |                        | existing ID-JAG metadata;  |Section 4.8 |
-   |                        | trusted policy sets the    |            |
-   |                        | minimum                    |            |
+   | Profile discovery      | Governed profiles in       | Section    |
+   |                        | existing ID-JAG metadata;  | 9.2,       |
+   |                        | trusted policy sets the    | Section    |
+   |                        | minimum                    | 4.8        |
    +------------------------+----------------------------+------------+
-   | Client ID Metadata     | A                          |Section     |
-   | Document               | token_endpoint_auth_method |9.2.2       |
+   | Client ID Metadata     | A                          | Section    |
+   | Document               | token_endpoint_auth_method | 9.2.2      |
    |                        | other than none that each  |            |
    |                        | server using the document  |            |
    |                        | accepts; jwks or jwks_uri  |            |
    |                        | with private_key_jwt       |            |
    +------------------------+----------------------------+------------+
-   | DPoP at endpoints      | A request carrying a DPoP  |Section 4.4 |
-   | without DPoP           | proof is rejected with     |            |
+   | DPoP at endpoints      | A request carrying a DPoP  | Section    |
+   | without DPoP           | proof is rejected with     | 4.4        |
    |                        | invalid_request, not       |            |
    |                        | ignored                    |            |
    +------------------------+----------------------------+------------+
-   | Time claims            | iat later than the current |Section 4.6 |
-   |                        | time plus permitted clock  |            |
+   | Time claims            | iat later than the current | Section    |
+   |                        | time plus permitted clock  | 4.6        |
    |                        | skew is rejected           |            |
    +------------------------+----------------------------+------------+
-   | Introspection caching  | A cached active response   |Section 7.2 |
-   |                        | is not used beyond exp or  |            |
+   | Introspection caching  | A cached active response   | Section    |
+   |                        | is not used beyond exp or  | 7.2        |
    |                        | the disablement freshness  |            |
    |                        | limit, narrowing Section 4 |            |
    |                        | of [RFC7662]               |            |
    +------------------------+----------------------------+------------+
-   | Denials without a      | A challenge without an     |Section 7.6 |
-   | remedy                 | error attribute, a         |            |
+   | Denials without a      | A challenge without an     | Section    |
+   | remedy                 | error attribute, a         | 7.6        |
    |                        | restriction of Section 3   |            |
    |                        | of [RFC6750]               |            |
    +------------------------+----------------------------+------------+
-   | Hidden targets         | The error table's          |Section 12.3|
-   |                        | responses take precedence  |            |
+   | Hidden targets         | The error table's          | Section    |
+   |                        | responses take precedence  | 12.3       |
    |                        | over the 404 that          |            |
    |                        | Section 15.5.4 of          |            |
    |                        | [RFC9110] permits          |            |
    +------------------------+----------------------------+------------+
-   | WISE revocation events | Applied only within what   |Section 4.6 |
-   |                        | configuration trusts the   |            |
+   | WISE revocation events | Applied only within what   | Section    |
+   |                        | configuration trusts the   | 4.6        |
    |                        | sending authority for,     |            |
    |                        | where [WISE] has a         |            |
    |                        | receiver reject every      |            |

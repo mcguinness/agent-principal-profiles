@@ -1635,7 +1635,8 @@ difference shows in three cases. A resource domain that restricts an
 agent by its client identifier readmits it when the agent moves to
 another client; agents behind one shared client cannot be told apart;
 and a gateway that calls further resource domains is one client for
-every agent behind it. This profile's mandatory path starts from such
+every agent behind it (<span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>). This profile's mandatory path
+starts from such
 a dedicated client (<a href="#scope" class="auto internal xref">Section 9.1</a>) and adds what the client identifier
 lacks. The IdP resolves the client
 to an Agent Principal through an Identity Binding (<a href="#identity" class="auto internal xref">Section 5.3</a>) and
@@ -2829,8 +2830,9 @@ several IdPs. The RAS then cannot tell those clients apart: its client
 policy, its audit, and any restriction keyed on <code>client_id</code> apply to all
 of them, while a restriction of an agent follows the agent
 (<a href="#agent-correlation" class="auto internal xref">Section 6.3</a>). Every holder of that registration's credentials
-can redeem a grant that names it, so only a grant bound under
-<a href="#grant-protection" class="auto internal xref">Section 4.4</a> stays with the key that obtained it.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+can redeem a grant that names it, and can use a refresh token bound only
+to that registration (<a href="#ras-refresh" class="auto internal xref">Section 8.2</a>), so only a grant or refresh token
+also bound to a key stays with the key that obtained it.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 <p id="section-5.1-4">An IdP client <span class="bcp14">MAY</span> also map to a different registration at a RAS for
 self-acting grants than for delegated grants, so that the client
 registration tells the two token populations apart
@@ -3027,7 +3029,7 @@ select another Agent Principal under this input.<a href="#section-5.3.2-2.3.1" c
 </li>
             <li class="normal" id="section-5.3.2-2.4">
               <p id="section-5.3.2-2.4.1"><strong>Audience:</strong> RFC 7523 client authentication at the IdP and the RAS
-<span class="bcp14">MUST</span> follow <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rfc7523bis-11#section-4" class="relref">Section 4</a> of [<a href="#RFC7523bis" class="cite xref">RFC7523bis</a>]</span>: <code>aud</code> has the authorization
+<span class="bcp14">MUST</span> follow <span><a href="https://rfc-editor.org/rfc/rfc10070#section-4" class="relref">Section 4</a> of [<a href="#RFC10070" class="cite xref">RFC10070</a>]</span>: <code>aud</code> has the authorization
 server's issuer identifier as its sole value, never its token endpoint
 URL, and the server rejects any other audience. This profile adds no
 alternative audience configuration and leaves other credential
@@ -4407,8 +4409,9 @@ self-acting access, the local agent principal as subject and no <code>act</code>
           <li class="normal" id="section-6.6-2.4">
             <p id="section-6.6-2.4.1"><strong>Tenant:</strong> By default, the tenant-specific resource URI, which
 becomes the audience under <span><a href="https://rfc-editor.org/rfc/rfc8707#section-3" class="relref">Section 3</a> of [<a href="#RFC8707" class="cite xref">RFC8707</a>]</span>. A deployment <span class="bcp14">MAY</span>
-instead carry the tenant in a configured tenant claim or authoritative
-token context.<a href="#section-6.6-2.4.1" class="pilcrow">¶</a></p>
+instead carry the Target Tenant in a configured claim that names it,
+or in authoritative token context. The grant's <code>tenant</code>, an issuer
+tenant (<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>), is not that claim.<a href="#section-6.6-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.6-2.5">
             <p id="section-6.6-2.5.1"><strong>Authorization details:</strong> Effective <code>authorization_details</code>, when
@@ -5638,10 +5641,22 @@ revocation and binding disablement affect subsequent issuance under
 trusted scope. Exact bindings, tenant boundaries, and issuer-scoped key
 lookup (<a href="#time-validation" class="auto internal xref">Section 4.6</a>) limit that scope. Neither <code>kid</code> alone nor a
 union of unrelated issuers' keys establishes the assertion's source.<a href="#section-12.6-1" class="pilcrow">¶</a></p>
-<p id="section-12.6-2">A holder of a shared private key can present any credential issued for
+<p id="section-12.6-2">A RAS that trusts one tenant of a multi-tenant issuer relies on that
+issuer to keep its tenants apart: a grant's <code>tenant</code> is only as
+trustworthy as the issuer that signs for every tenant
+(<a href="#canonical-identity" class="auto internal xref">Section 3.3</a>). Trust in one tenant does not extend to the
+issuer's others, but a compromise of the issuer's signing key reaches
+them all.<a href="#section-12.6-2" class="pilcrow">¶</a></p>
+<p id="section-12.6-3">Just-in-time correlation (<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>) creates RAS state for
+each previously unseen agent that a trusted issuer asserts, as
+<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-10" class="relref">Section 10</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> notes. A RAS that enables it can cap the records
+created per issuer, or per issuer and tenant, and remove records that
+never become eligible. A created record authorizes nothing, so the
+exposure is state, not access.<a href="#section-12.6-3" class="pilcrow">¶</a></p>
+<p id="section-12.6-4">A holder of a shared private key can present any credential issued for
 that key. Agent isolation therefore depends on issuance controls and
 key custody as well as identity mapping. Sharing the grant proof key
-across components widens its exposure (<span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span>).<a href="#section-12.6-2" class="pilcrow">¶</a></p>
+across components widens its exposure (<span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span>).<a href="#section-12.6-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-authorized-misuse">
@@ -5965,9 +5980,9 @@ This document requests no registration for them.<a href="#section-14.2-3" class=
         <dd>
 <span class="refAuthor">Parecki, A.</span>, <span class="refTitle">"OAuth 2.0 JWT Authorization Grant with DPoP Binding"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-parecki-oauth-jwt-dpop-grant-02</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-parecki-oauth-jwt-dpop-grant-02">https://datatracker.ietf.org/doc/html/draft-parecki-oauth-jwt-dpop-grant-02</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="RFC7523bis">[RFC7523bis]</dt>
+<dt id="RFC10070">[RFC10070]</dt>
         <dd>
-<span class="refAuthor">Jones, M. B.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Mortimore, C.</span>, and <span class="refAuthor">F. Skokan</span>, <span class="refTitle">"Updates to OAuth 2.0 JSON Web Token (JWT) Client Authentication and Assertion-Based Authorization Grants"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-rfc7523bis-11</span>, <time datetime="2026-04-28" class="refDate">28 April 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rfc7523bis-11">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rfc7523bis-11</a>&gt;</span>. </dd>
+<span class="refAuthor">Jones, M.B.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Mortimore, C.</span>, and <span class="refAuthor">F. Skokan</span>, <span class="refTitle">"Updates to OAuth 2.0 JSON Web Token (JWT) Client Authentication and Assertion-Based Authorization Grants"</span>, <span class="seriesInfo">RFC 10070</span>, <span class="seriesInfo">DOI 10.17487/RFC10070</span>, <time datetime="2026-11" class="refDate">November 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc10070">https://www.rfc-editor.org/rfc/rfc10070</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
@@ -6808,7 +6823,7 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
               <td class="text-left" rowspan="1" colspan="1">Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use <code>jti</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
-                <a href="#client-assertion-input" class="auto internal xref">Section 5.3.2</a>, <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rfc7523bis-11#section-4" class="relref">Section 4</a> of [<a href="#RFC7523bis" class="cite xref">RFC7523bis</a>]</span>
+                <a href="#client-assertion-input" class="auto internal xref">Section 5.3.2</a>, <span><a href="https://rfc-editor.org/rfc/rfc10070#section-4" class="relref">Section 4</a> of [<a href="#RFC10070" class="cite xref">RFC10070</a>]</span>
 </td>
             </tr>
             <tr>
