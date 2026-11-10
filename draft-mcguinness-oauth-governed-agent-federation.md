@@ -1809,7 +1809,8 @@ disabled by default and enabled per governing issuer, or per issuer and
 Tenant.
 When it applies, the RAS:
 
-* MUST key the created record by that exact pair;
+* MUST key the created record by that exact pair, creating one record
+  for the pair even under concurrent requests;
 * MUST give the created record a local principal that no other
   qualified pair maps to, so agents of two issuers with one identifier
   remain two principals;
@@ -1915,7 +1916,8 @@ The RAS:
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
 3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
-4. **Correlation:** Resolve the pair (`iss`, `sub`) under
+4. **Authority:** Apply the authority checks of {{redemption-common}}.
+5. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
    issuance. It is provisioned in advance or, where resource policy
@@ -1923,10 +1925,10 @@ The RAS:
    a RAS can accept a previously unseen agent's first WAG as
    {{Section 3 of WAG}} describes; creating the record does not
    authorize the agent.
-5. **Authority:** Apply the authority checks of {{redemption-common}}
-   and current RAS policy for the agent, client, tenant, and resource. A
-   valid grant sets an authority ceiling; it does not require issuance.
-6. **Output:** Issue an access token under {{access-token-response}} and
+6. **Policy:** Apply current RAS policy for the agent, client, tenant,
+   and resource. A valid grant sets an authority ceiling; it does not
+   require issuance.
+7. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`
    and no `act`. The RAS MUST NOT issue a refresh token for a WAG
    redemption.
@@ -2061,6 +2063,50 @@ RAS uses these errors:
 | Other current RAS policy refuses a valid ID-JAG for the user, client, tenant, or resource | `access_denied` ({{Section 4.4.1 of ID-JAG}}) |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
 {: title="Redemption errors"}
+
+### Redemption Error Precedence {#redemption-precedence}
+
+This order applies to a redemption request that would accept a grant
+({{redemption-common}}). A request that {{OVERSIGHT}} treats as
+recovery of, or a poll for, a pending governed redemption follows that
+document. The steps of {{redemption-validation}} and
+{{wag-redemption}} name the checks; this order selects the failure
+reported.
+
+When such a request fails more than one check, the RAS MUST report the
+earliest failure in this order, whatever order it evaluates the checks
+in:
+
+1. Client authentication (`invalid_client`), then the validity of a
+   presented DPoP proof (`invalid_dpop_proof`, or `use_dpop_nonce` where
+   a nonce is required).
+2. The grant: its validation, its own claims, its binding, and a proof
+   that its binding or its resource's access-token protection requires
+   (`invalid_grant`, except that a bound grant presented without its
+   proof fails with `invalid_grant` or `invalid_dpop_proof` under
+   {{grant-protection}}).
+3. Replay (`invalid_grant`).
+4. The requested resource (`invalid_target`), then the requested scope
+   (`invalid_scope`).
+5. User resolution, then agent correlation and eligibility
+   (`invalid_grant`).
+6. The actor gate (`actor_unauthorized`), then other current RAS policy
+   (`access_denied` for an ID-JAG, `invalid_target` for a WAG).
+7. Approval ({{OVERSIGHT}}).
+
+The RAS MUST NOT create a record under {{jit-correlation}} for a
+request that fails a check that precedes correlation in this order.
+
+If a check cannot complete, for example because the state that
+correlation or the actor gate reads is unavailable, the RAS MUST NOT
+issue an access token or admit the request to deferral. If it has
+established a failure and no check that did not complete precedes it in
+this order, it reports that failure. Otherwise it responds with HTTP
+status code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}),
+SHOULD include a `Retry-After` header field
+({{Section 10.2.3 of RFC9110}}), and MUST NOT include an `error`
+parameter, since no token endpoint error code describes a check that
+did not complete.
 
 # Access at the Resource Server {#api-processing}
 

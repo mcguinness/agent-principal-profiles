@@ -969,7 +969,7 @@ class RAS(Server):
                               (IDP_ISSUER, "agent-43"): {"analysis-api"}}
         # Self-acting policy: (issuer, agent) and Target Tenant -> the scopes
         # RAS policy permits the agent's own access (core: Self-Acting
-        # Redemption: WAG, step 5). Unlike user_links, the key carries no
+        # Redemption: WAG, step 6). Unlike user_links, the key carries no
         # issuer tenant: an agent identifier is unique across its issuer
         # (core: Canonical Identity and Tenant Boundaries), while a user
         # subject is unique only within its tenant.
