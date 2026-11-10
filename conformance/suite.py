@@ -299,7 +299,7 @@ class Client:
         return self.send(cfg.ras.token_endpoint, build, retry=not proof)
 
     def redeem(self, grant, dpop_key="k", resource=None, as_other_client=False,
-               deferred=False, proof=None, grant_type=None, as_self_acting=False):
+               deferred=False, proof=None, grant_type=None, as_self_acting=False, scope=None):
         """Redeem a grant: with jwt-dpop if it carries cnf, otherwise with
         jwt-bearer (core: Redemption Request), unless grant_type is given."""
         if grant_type is None:
@@ -312,6 +312,8 @@ class Client:
                 "resource": resource or self.cfg.resource}
         if deferred:
             form["completion_mode"] = deferred if isinstance(deferred, str) else "deferred"
+        if scope is not None:
+            form["scope"] = scope
         return self.ras_token(form, dpop_key, as_other_client, proof, as_self_acting)
 
     def poll(self, deferral_code, dpop_key="k"):
@@ -2158,6 +2160,210 @@ def n56(ctx):
                                 ctx.client.redeem(grant, as_self_acting=True))
 
 
+# Acceptance, the missing proof and error precedence at the RAS -------------
+#
+# The core's Common Grant Validation (Grant replay), Access-Token Protection
+# and Redemption Error Precedence. A grant is accepted only when the RAS
+# issues a token or defers, so a rejected request leaves it redeemable; a
+# request that fails several checks gets the failure that comes first in
+# the core's order, whatever order the RAS evaluates them in.
+
+UNGOVERNED_RESOURCE = "https://ungoverned.example/"
+
+
+def unbound_profile(ctx, self_acting_client=None):
+    """Governed agent access, whose grants carry no cnf (core: Grant Protection)."""
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile",
+                    [self_acting_client, "governed"] if self_acting_client else "governed")
+
+
+@case("N57", "RAS", "Leaves a grant redeemable after a request it rejects: the wrong resource, "
+      "then the same grant with the right one",
+      "core: Common Grant Validation (Grant replay)", defeats=("ras.commit_point",))
+def n57(ctx):
+    grant = ctx.grant()
+    expect_error(ctx.client.redeem(grant, resource=ctx.cfg.other_resource), 400,
+                 "invalid_target")
+    expect_token_response(ctx.client.redeem(grant))
+
+
+@case("N58", "RAS", "Leaves a grant the actor gate refused redeemable once the gate opens",
+      "core: Common Grant Validation (Grant replay); Delegated Actor Authorization",
+      needs=("set:ras.actor_gate",), defeats=("ras.commit_point",))
+def n58(ctx):
+    # Policy refused the request, so the RAS committed to no outcome and
+    # did not accept the grant; once policy permits the agent, the same
+    # grant redeems.
+    grant = ctx.grant()
+    ctx.adapter.set("ras", "actor_gate", False)
+    expect_error(ctx.client.redeem(grant), 400, "actor_unauthorized")
+    ctx.adapter.set("ras", "actor_gate", True)
+    expect_token_response(ctx.client.redeem(grant))
+
+
+@case("N59", "RAS", "Accepts one of two concurrent redemptions of an unbound grant; the other "
+      "fails with invalid_grant",
+      "core: Common Grant Validation (Grant replay)",
+      needs=("set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.grant_replay",))
+def n59(ctx):
+    unbound_profile(ctx)
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the grant carries cnf")
+    responses = [None, None]
+
+    def send(i):
+        responses[i] = ctx.client.redeem(grant, dpop_key="k" if i == 0 else "k2")
+    threads = [threading.Thread(target=send, args=(i,)) for i in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    issued = [r for r in responses if r.status == 200]
+    check(len(issued) == 1, f"expected one token, got {responses}")
+    expect_error(next(r for r in responses if r.status != 200), 400, "invalid_grant")
+
+
+def expect_proof_required(ctx, label, grant, **kwargs):
+    """A grant without cnf, without a proof, at a resource that requires DPoP:
+    invalid_grant, even with the wrong resource; then, with a proof, a DPoP-bound
+    token for the same grant."""
+    cfg = ctx.cfg
+    for what, resource in (("with the wrong resource", cfg.other_resource), ("", None)):
+        resp = ctx.client.redeem(grant, dpop_key=None, resource=resource, **kwargs)
+        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+              f"{label} without a proof {what}: expected HTTP 400 invalid_grant, got {resp}")
+        check("access_token" not in resp.json(), "an error response carried a token")
+    body = expect_token_response(ctx.client.redeem(grant, **kwargs))
+    check(body.get("token_type") == "DPoP",
+          f"{label} with a proof: token_type {body.get('token_type')!r}, expected DPoP")
+
+
+@case("N60", "RAS", "Rejects with invalid_grant an ID-JAG without cnf redeemed without the proof "
+      "a DPoP-only resource requires, before the request's resource; the grant stays redeemable",
+      "core: Access-Token Protection; Redemption Error Precedence; ID-JAG Section 9.11.1.2.4",
+      needs=("set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.unbound_proof_required",))
+def n60(ctx):
+    unbound_profile(ctx)
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the grant carries cnf")
+    expect_proof_required(ctx, "an ID-JAG", grant)
+
+
+@case("N61", "RAS", "Rejects with invalid_grant a WAG without cnf redeemed without the proof a "
+      "DPoP-only resource requires, before the request's resource; the WAG stays redeemable",
+      "core: Access-Token Protection; Redemption Error Precedence; Self-Acting Redemption: WAG",
+      needs=("self_acting", "set:idp.client_profile", "set:ras.client_profile"),
+      defeats=("ras.unbound_proof_required",))
+def n61(ctx):
+    cfg = self_acting(ctx)
+    unbound_profile(ctx, cfg.self_acting_client_id)
+    grant = wag(ctx, dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the WAG carries cnf")
+    expect_proof_required(ctx, "a WAG", grant, as_self_acting=True)
+
+
+@case("N62", "RAS", "Reports invalid_target, not invalid_grant, for an ID-JAG whose agent is "
+      "uncorrelated and whose request names the wrong resource",
+      "core: Redemption Error Precedence", needs=("mint_grant",),
+      defeats=("ras.request_before_correlation",))
+def n62(ctx):
+    cfg = ctx.cfg
+    grant = ctx.adapter.mint_grant(grant_claims(
+        ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.uncorrelated_agent}))
+    expect_error(ctx.client.redeem(grant, resource=cfg.other_resource), 400, "invalid_target")
+
+
+@case("N63", "RAS", "Reports invalid_target for a WAG whose agent is uncorrelated and whose "
+      "request names the wrong resource, and creates no just-in-time record for it",
+      "core: Redemption Error Precedence; Self-Acting Redemption: WAG; Optional Just-in-Time "
+      "Correlation",
+      needs=("self_acting", "mint_wag", "set:ras.jit", "set:ras.jit_eligible",
+             "set:ras.self_acting_rule"),
+      defeats=("ras.request_before_correlation",))
+def n63(ctx):
+    # The request fails a check that precedes correlation, so the RAS
+    # creates no record. Afterwards, with just-in-time correlation off and
+    # policy that would admit the agent, a correct WAG finds no record.
+    cfg = self_acting(ctx)
+    expect_error(ctx.client.redeem(unseen_wag(ctx), resource=cfg.other_resource,
+                                   as_self_acting=True), 400, "invalid_target")
+    ctx.adapter.set("ras", "jit", True)
+    ctx.adapter.set("ras", "jit_eligible", True)
+    ctx.adapter.set("ras", "self_acting_rule", True)
+    expect_error(ctx.client.redeem(unseen_wag(ctx), resource=cfg.other_resource,
+                                   as_self_acting=True), 400, "invalid_target")
+    ctx.adapter.set("ras", "jit", False)
+    expect_error(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True), 400, "invalid_grant")
+
+
+@case("N64", "RAS", "Reports invalid_grant, not invalid_target, for a grant naming a resource "
+      "the RAS does not govern, presented with another resource",
+      "core: Redemption Error Precedence; Token Endpoint Errors", needs=("mint_grant",),
+      defeats=("ras.grant_class_first",))
+def n64(ctx):
+    grant = ctx.adapter.mint_grant(grant_claims(ctx, resource=UNGOVERNED_RESOURCE))
+    expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
+
+
+@case("N65", "RAS", "Reports invalid_target, not invalid_scope, for a request naming the wrong "
+      "resource and a scope beyond the grant's",
+      "core: Redemption Error Precedence", defeats=("ras.within_class_order",))
+def n65(ctx):
+    cfg = ctx.cfg
+    resp = ctx.client.redeem(ctx.grant(), resource=cfg.other_resource,
+                             scope=f"{cfg.scope} {cfg.extra_scope}")
+    expect_error(resp, 400, "invalid_target")
+
+
+@case("N66", "RAS", "Reports actor_unauthorized, not the approval refusal, for an agent the "
+      "actor gate refuses where RAS policy also requires approval",
+      "core: Redemption Error Precedence; oversight: Redemption Opt-In",
+      needs=("set:ras.actor_gate", "set:ras.approval_required"), defeats=("ras.actor_gate",))
+def n66(ctx):
+    grant = ctx.grant()
+    ctx.adapter.set("ras", "actor_gate", False)
+    ctx.adapter.set("ras", "approval_required", [ctx.cfg.scope])
+    expect_error(ctx.client.redeem(grant), 400, "actor_unauthorized")
+
+
+@case("N67", "RAS", "Reports an expired grant with invalid_grant, not HTTP 503, while "
+      "correlation lookups cannot complete",
+      "core: Redemption Error Precedence (a check that cannot complete)",
+      needs=("mint_grant", "set:ras.resolution_unavailable"),
+      defeats=("ras.established_failure_first",))
+def n67(ctx):
+    now = int(ctx.now())
+    grant = ctx.adapter.mint_grant(grant_claims(ctx, iat=now - 900, exp=now - 600))
+    ctx.adapter.set("ras", "resolution_unavailable", True)
+    expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
+
+
+@case("N68", "RAS", "Answers HTTP 503 without an error, and issues nothing, while correlation "
+      "lookups cannot complete, though a later check would refuse the request",
+      "core: Redemption Error Precedence (a check that cannot complete)",
+      needs=("set:ras.resolution_unavailable", "set:ras.approval_required"),
+      defeats=("ras.unfinished_503",))
+def n68(ctx):
+    # The approval refusal comes after correlation, which cannot complete,
+    # so no denial can be reported. The grant stays redeemable.
+    grant = ctx.grant()
+    ctx.adapter.set("ras", "approval_required", [ctx.cfg.scope])
+    ctx.adapter.set("ras", "resolution_unavailable", True)
+    resp = ctx.client.redeem(grant)
+    body = resp.json()
+    check(resp.status == 503, f"expected HTTP 503, got {resp}")
+    check("error" not in body, f"the 503 response carried error {body.get('error')!r}")
+    check("access_token" not in body, "a 503 response carried a token")
+    if not resp.headers.get("Retry-After"):
+        ctx.notes.append("no Retry-After header field (core: Redemption Error Precedence SHOULD)")
+    ctx.adapter.set("ras", "resolution_unavailable", False)
+    ctx.adapter.set("ras", "approval_required", [])
+    expect_token_response(ctx.client.redeem(grant))
+
+
 # Deferred redemption at the RAS ---------------------------------------------
 #
 # The oversight companion's Deferred Redemption rows. In every case RAS
@@ -2713,6 +2919,7 @@ def d28(ctx):
     expect_error(ctx.client.poll(body["deferral_code"]), 400, "expired_token")
     ctx.adapter.set("ras", "resolution_unavailable", False)
     expect_error(ctx.client.poll(body["deferral_code"]), 400, "expired_token")
+
 
 # Policy services at the API ------------------------------------------------
 #
