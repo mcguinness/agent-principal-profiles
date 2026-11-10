@@ -25,8 +25,8 @@ were assessed.
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
 on 2026-11-06 (Identity Chaining-17, Entity Profiles-02, Oversight
-Acts-00, SCIM Agent Resource-00). CIMD stays at -02 until its Section 6
-is fixed (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
+Acts-00, SCIM Agent Resource-00). CIMD is pinned at -03 with its
+Section 6 an open item (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
 checks that every cited section of a pinned RFC or draft still has the
 heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
@@ -171,8 +171,8 @@ Recorded differences, which need no change to WAG:
   for multiple agents, and several dedicated clients can map to one
   registration (`flow-configuration`), but a RAS can still give each
   agent's client its own. CIMD can avoid pre-registration where the RAS
-  supports onboarding from the client's metadata document; Section 7.2
-  of CIMD-02 also permits pre-registered Client Identifier URLs. The
+  supports onboarding from the client's metadata document; Section 9.2
+  of CIMD-03 also permits pre-registered Client Identifier URLs. The
   core's composition table states this difference (`base-differences`).
   The agent record that the RAS requires for each agent is a separate
   difference (Linking, above).
@@ -257,12 +257,33 @@ Two differences found in assessing the 2026-11-07 revisions:
   CIMD-03 Section 6 rejects a request with `invalid_client` when the
   `response_types` that a document declares and the server supports do
   not intersect. Read literally, a server with no authorization
-  endpoint, such as the RAS, rejects every token request from a CIMD
-  client. The drafts therefore hold CIMD at -02. Re-pinning to a fixed
-  revision also moves the core's rule to Section 5 of CIMD-03, which
-  lists methods in `token_endpoint_auth_methods_supported`, treats a
-  document that lists none as `none`, and requires a declared
-  `private_key_jwt` only where the server supports it.
+  endpoint, such as a RAS without one, rejects every token request from
+  a CIMD client, and every server rejects a document whose
+  `response_types` is empty. The drafts pin CIMD-03 anyway (ruling R5,
+  2026-11-10) for its Section 5, where a client lists its methods in
+  `token_endpoint_auth_methods_supported`, so one document can serve an
+  IdP and a RAS that accept different methods. The core makes no
+  exception to Section 6: its Upstream Dependencies table states the
+  consequence, a separate registration at such a server. Open until the
+  issue is resolved.
+* Not filed: CIMD-03 Section 5 says that "When using JWT-based client
+  authentication methods such as private_key_jwt", the document "MUST
+  include either jwks or jwks_uri". Read literally, that covers
+  `spiffe_jwt` (SPIFFE OAuth-03) and the attestation methods of
+  ATTEST-12, whose keys come from a SPIFFE bundle or an attester, so a
+  document listing only such methods carries a JWK Set that no server
+  uses or is rejected. The core requires `jwks` or `jwks_uri` only with
+  a listed `private_key_jwt`, and `INPUTS` takes no side.
+* Not filed: the same section says that when a document declares
+  `private_key_jwt` "and the authorization server supports this method",
+  the server "MUST require client authentication according to Section
+  2.2 of [RFC7523]". The core has every IdP advertise `private_key_jwt`,
+  so read literally, an IdP must demand it from a SPIFFE client that
+  lists it for the RAS. The one-document deployment of the core's Client
+  Metadata relies on reading "supports" per client, through the same
+  section's "MAY restrict the supported methods of client authentication
+  based on its own policies". The core's Client Metadata states both
+  points beside the one-document case.
 
 #### Shared Signals: WISE and CAEP
 

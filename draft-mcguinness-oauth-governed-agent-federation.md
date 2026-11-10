@@ -40,7 +40,7 @@ normative:
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
   RFC10070:
-  CIMD: I-D.ietf-oauth-client-id-metadata-document-02
+  CIMD: I-D.ietf-oauth-client-id-metadata-document-03
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
     target: https://openid.net/specs/openid-connect-core-1_0.html
@@ -2430,22 +2430,42 @@ CIMD. Its `grant_types` MUST permit:
   `urn:ietf:params:oauth:grant-type:jwt-dpop` there when the client
   redeems grants containing `cnf`.
 
-When that metadata is a Client ID Metadata Document, its
-`token_endpoint_auth_method` MUST name a client authentication method,
-other than `none`, that each server using the document accepts for the
-client ({{Section 4 of CIMD}} lets a profile restrict it). A client that
-authenticates with an input of {{INPUTS}} names that input's method. A
-document that names `private_key_jwt` makes that method required at
-each server ({{Section 8.2 of CIMD}}) and MUST publish the client's keys
-with `jwks` or `jwks_uri`. A server that accepts Client ID Metadata
-Documents under this profile MUST reject, with `invalid_client`, a
-request from a client whose metadata is such a document and names no
-method, names `none` or a method the server does not accept for that
-client, or names `private_key_jwt` without `jwks` or `jwks_uri`. Because the document
-names one method, a client whose IdP and RAS accept different methods
-cannot use one document at both: it registers separately at the RAS,
-and the client registration association ({{flow-configuration}}) maps
-the two identifiers.
+When that metadata is a Client ID Metadata Document, the client
+authentication methods it lists are those in its
+`token_endpoint_auth_methods_supported`, or, where that is absent, its
+`token_endpoint_auth_method` ({{Section 5 of CIMD}}). They MUST include,
+for each server using the document, a method other than `none` that the
+server accepts for the client ({{Section 4 of CIMD}} lets a profile
+restrict them). A client that authenticates with an input of {{INPUTS}}
+lists that input's method. A document that lists `private_key_jwt` MUST
+publish the client's keys with `jwks` or `jwks_uri`.
+
+A server that accepts Client ID Metadata Documents under this profile
+selects a listed method that it accepts for the client, and its policy
+can restrict the methods it accepts ({{Section 5 of CIMD}}); it MUST NOT
+select `none`. It MUST reject, with `invalid_client`, a request from a
+client whose metadata is such a document and lists no method other than
+`none` that the server accepts for that client, or lists
+`private_key_jwt` without `jwks` or `jwks_uri`. No response reports the
+selection, so the client uses at each server the method its
+configuration for that server names. A client whose IdP and RAS accept
+different methods can therefore use one document at both, listing a
+method that each accepts. Where the RAS accepts none of the listed
+methods, the client registers separately at the RAS, and the client
+registration association ({{flow-configuration}}) maps the two
+identifiers.
+
+Two points of {{Section 5 of CIMD}} bear on one document at both
+servers. First, a server that supports a declared `private_key_jwt`
+requires client authentication with it, and every IdP under this
+profile supports that method ({{metadata}}). An IdP that accepts another
+listed method, such as the `spiffe_jwt` method of {{SPIFFE-OAUTH}}, from
+a document that also lists `private_key_jwt` therefore relies on its
+policy restricting the methods it supports for that client. Second, the
+section requires `jwks` or `jwks_uri` with JWT-based methods without
+saying whether that includes methods whose keys come from elsewhere,
+such as `spiffe_jwt` or the methods of {{ATTEST}}; whether a document
+that lists only such methods needs a JWK Set is unsettled.
 
 ### Capability Discovery {#capability-discovery}
 
@@ -3348,7 +3368,7 @@ This informative appendix records how this document differs from its
 base specifications, what it depends on, and the compositions it does
 not define. They were assessed against WAG-02, ID-JAG-06, JWT DPoP
 Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-03, ATTEST-12,
-CIMD-02, and Client Instance Identifiers-01.
+CIMD-03, and Client Instance Identifiers-01.
 
 ## Differences from Base Specifications {#base-differences}
 
@@ -3372,7 +3392,7 @@ referenced sections define each requirement.
 | Error processing | `invalid_grant`, not RFC 8693's `invalid_request`, for a valid subject or actor credential that resolves no user or no active binding, agent, or tenant; `actor_unauthorized` for a denied resolved actor, where {{Section 4.3.4.3 of ID-JAG}} profiles `access_denied` for a client or user that is not authorized | {{issuance-errors}} |
 | Redemption errors | `invalid_grant` for an unresolved or disabled user or an uncorrelated or disabled agent, where {{Section 4.4.3 of ID-JAG}} profiles `access_denied` for a valid ID-JAG that is not authorized; `actor_unauthorized` for an actor-gate refusal | {{redemption-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
-| Client ID Metadata Document | A `token_endpoint_auth_method` other than `none` that each server using the document accepts; `jwks` or `jwks_uri` with `private_key_jwt` | {{client-metadata}} |
+| Client ID Metadata Document | Listed methods include, for each server using the document, one other than `none` that it accepts; a server never selects `none`, and reads `token_endpoint_auth_method` where `token_endpoint_auth_methods_supported` is absent, which {{Section 5 of CIMD}} permits; `invalid_client` for a listed `private_key_jwt` without `jwks` or `jwks_uri` | {{client-metadata}} |
 | DPoP at endpoints without DPoP | A request carrying a DPoP proof is rejected with `invalid_request`, not ignored | {{grant-protection}} |
 | Time claims | `iat` later than the current time plus permitted clock skew is rejected | {{time-validation}} |
 | Introspection caching | A cached active response is not used beyond `exp` or the disablement freshness limit, narrowing {{Section 4 of RFC7662}} | {{api-validation}} |
@@ -3404,6 +3424,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | WAG | Alignment on protection ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
 | ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof: `invalid_grant` in {{Section 9.11.1.2.2 of ID-JAG}}, `invalid_dpop_proof` in {{Section 5 of JWT-DPOP-GRANT}} | Either error is permitted ({{grant-protection}}) |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
+| CIMD | {{Section 6 of CIMD}} to apply its `response_types` intersection to authorization requests only; it rejects, with `invalid_client`, any request whose document and server share no response type | A server that supports no response type, such as one without an authorization endpoint, rejects every Client ID Metadata Document client, which registers separately there ({{client-metadata}}); every server rejects a document whose `response_types` is empty |
 {: title="Upstream dependencies"}
 
 ### WAG {#wag-gaps}
