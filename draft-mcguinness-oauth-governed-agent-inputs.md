@@ -164,12 +164,14 @@ Response" in {{FEDERATION}}), these inputs bound the grant as follows:
 
 ## Algorithms {#algorithms-inputs}
 
-Implementations that support the JWT-SVID input MUST support this
-capability in addition to those of {{FEDERATION}}:
+Implementations that support the JWT-SVID input, including a RAS that
+accepts JWT-SVID client authentication ("Client Authentication and
+Algorithms" in {{FEDERATION}}), MUST support this capability in
+addition to those of {{FEDERATION}}:
 
 | Artifact | Mandatory-to-implement (MTI) capability |
 |---|---|
-| JWT-SVID, where supported | IdP validation: `RS256` and `ES256`, both required by this profile; {{SPIFFE-OAUTH}} requires no algorithm |
+| JWT-SVID, where supported | Validation at the IdP or the RAS: `RS256` and `ES256`, both required by this profile; {{SPIFFE-OAUTH}} requires no algorithm |
 {: title="Mandatory-to-implement algorithm for JWT-SVIDs"}
 
 # SPIFFE JWT-SVID {#jwt-svid-input}
