@@ -179,7 +179,10 @@ addition to those of {{FEDERATION}}:
 This OPTIONAL input identifies workloads independently of the OAuth
 client identifier, including multiple agents behind a shared client.
 JWT-SVID client authentication at either the IdP or the RAS follows this
-section.
+section. At the RAS it authenticates the client only: the RAS takes the
+Agent Principal from the grant ("Agent Principal Correlation" in
+{{FEDERATION}}), and the validated SPIFFE ID, like a client identifier,
+does not replace it.
 
 * **Presentation:** Client authentication by `client_assertion` with
   `client_assertion_type`
