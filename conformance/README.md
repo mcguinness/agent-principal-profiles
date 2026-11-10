@@ -148,8 +148,8 @@ single-tenant issuer omits.
 | N57 | RAS | A grant presented with the wrong `resource` fails with `invalid_target`; the same grant with the right `resource` then redeems: a rejected request does not consume it | core: Common Grant Validation (Grant replay) | None |
 | N58 | RAS | With the actor gate closed, a grant fails with `actor_unauthorized`; once the gate opens, the same grant redeems | core: Common Grant Validation (Grant replay); Delegated Actor Authorization | Close and reopen the RAS's actor gate |
 | N59 | RAS | With unbound grants, two concurrent redemptions of one ID-JAG yield one token, and the other fails with `invalid_grant` | core: Common Grant Validation (Grant replay) | As N50 |
-| N60 | RAS | With unbound grants and a resource that permits only DPoP, an ID-JAG redeemed without a proof fails with `invalid_grant`, also when the request names the wrong `resource`; with a proof, the same grant then redeems for a DPoP-bound token | core: Access-Token Protection; Redemption Error Precedence; ID-JAG Section 9.11.1.2.4 | As N50 |
-| N61 | RAS | The same for a WAG | core: Access-Token Protection; Redemption Error Precedence; Self-Acting Redemption: WAG | As N51 |
+| N60 | RAS | With unbound grants and a resource that permits only DPoP, an ID-JAG redeemed without a proof fails with `invalid_grant`, also when the request names the wrong `resource`; with a proof, the same grant then redeems for a DPoP-bound token | core: Access-Token Protection; Redemption Error Precedence; ID-JAG Section 9.11.1.2.4 | As N50; permit only DPoP for the resource |
+| N61 | RAS | The same for a WAG | core: Access-Token Protection; Redemption Error Precedence; Self-Acting Redemption: WAG | As N51; permit only DPoP for the resource |
 | N62 | RAS | An ID-JAG for `agent-99`, which the RAS has not seen, presented with the wrong `resource`, fails with `invalid_target`, not `invalid_grant`: the request's resource comes before correlation | core: Redemption Error Precedence | Mint an ID-JAG |
 | N63 | RAS | The same for a WAG, with just-in-time correlation off and then on; with it then off again and a self-acting rule set, a correct WAG for `agent-99` fails with `invalid_grant`, so the rejected requests created no record | core: Redemption Error Precedence; Optional Just-in-Time Correlation | The controls of N47 except `agent_record` |
 | N64 | RAS | A grant naming a resource the RAS does not govern, presented with the governed `resource`, fails with `invalid_grant`, not `invalid_target` | core: Redemption Error Precedence | Mint an ID-JAG |
@@ -691,8 +691,9 @@ another IdP, RAS or API:
    `agent_record`, and `set:ras.remove_correlation`; N55 and N56 run
    only where `multi_tenant_issuer` is set and need
    `set:ras.multi_tenant_issuer`, N55 with `mint_grant` and N56 with
-   `self_acting_client_key` and `mint_wag`. N59 and N60 need the
-   controls of N50, and N61 those of N51; N62, N64 and N67 need
+   `self_acting_client_key` and `mint_wag`. N59 needs the controls
+   of N50; N60 needs those and `set:ras.resource_protection`, and N61
+   those of N51 and `set:ras.resource_protection`; N62, N64 and N67 need
    `mint_grant`; N63 needs `mint_wag`, `uncorrelated_agent` and the
    just-in-time controls of N47 except `agent_record`; N65 needs
    `extra_scope`. D10 and D11 need

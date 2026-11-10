@@ -2230,6 +2230,7 @@ def expect_proof_required(ctx, label, grant, **kwargs):
     invalid_grant, even with the wrong resource; then, with a proof, a DPoP-bound
     token for the same grant."""
     cfg = ctx.cfg
+    ctx.adapter.set("ras", "resource_protection", "dpop")
     for what, resource in (("with the wrong resource", cfg.other_resource), ("", None)):
         resp = ctx.client.redeem(grant, dpop_key=None, resource=resource, **kwargs)
         check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
@@ -2243,7 +2244,7 @@ def expect_proof_required(ctx, label, grant, **kwargs):
 @case("N60", "RAS", "Rejects with invalid_grant an ID-JAG without cnf redeemed without the proof "
       "a DPoP-only resource requires, before the request's resource; the grant stays redeemable",
       "core: Access-Token Protection; Redemption Error Precedence; ID-JAG Section 9.11.1.2.4",
-      needs=("set:idp.client_profile", "set:ras.client_profile"),
+      needs=("set:idp.client_profile", "set:ras.client_profile", "set:ras.resource_protection"),
       defeats=("ras.unbound_proof_required",))
 def n60(ctx):
     unbound_profile(ctx)
@@ -2255,7 +2256,8 @@ def n60(ctx):
 @case("N61", "RAS", "Rejects with invalid_grant a WAG without cnf redeemed without the proof a "
       "DPoP-only resource requires, before the request's resource; the WAG stays redeemable",
       "core: Access-Token Protection; Redemption Error Precedence; Self-Acting Redemption: WAG",
-      needs=("self_acting", "set:idp.client_profile", "set:ras.client_profile"),
+      needs=("self_acting", "set:idp.client_profile", "set:ras.client_profile",
+             "set:ras.resource_protection"),
       defeats=("ras.unbound_proof_required",))
 def n61(ctx):
     cfg = self_acting(ctx)
