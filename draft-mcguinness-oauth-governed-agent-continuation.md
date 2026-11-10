@@ -932,9 +932,11 @@ rate limit, the gateway can retry under that limit's policy. A
 temporary refusal is not an error response: the gateway retries as
 {{continuation-errors}} describes.
 
-After the IdP rejects a governed continuation for a request, the
-continuing client MUST NOT serve that request with its own authority or
-through a chain established without this document. This extends the
+When a governed continuation for a request fails, because the CAI
+refuses the assertion, the target lacks a capability the continuation
+needs, or the IdP rejects the exchange, the continuing client MUST NOT
+serve that request with its own authority or through a chain
+established without this document. This extends the
 no-fallback rule of "Profile Applicability and Downgrade Prevention" in
 {{FEDERATION}}, which covers retrying as ordinary access or without
 proof. Gateway-side tool filtering narrows what the gateway attempts
@@ -1749,6 +1751,7 @@ Each case changes the stated conditions; all other checks succeed.
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | GatewayRAS deferred the root redemption until an approver decided ({{OVERSIGHT}}), and the gateway presents the resulting access token, or one refreshed from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
+| The CAI refuses the assertion for either reason above, and the gateway holds client credentials of its own that the tool accepts | Gateway | The gateway fails the agent's request; it does not call the tool with its own authority ({{gateway-reuse}}) |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` or `invalid_dpop_proof` |
 | The gateway's source hop has passed its continuation window while the agent's access token at the gateway is still accepted | IdP, then gateway | HTTP 400, `invalid_grant`; the gateway fails the agent's request with an error of its own API, not with HTTP 401 `invalid_token` |
 | Tenant policy lengthens the continuation window after the gateway's source hop was issued, and the gateway requests a continuation after the hop's original deadline | IdP | HTTP 400, `invalid_grant`; lengthening the window does not extend a hop's deadline |
