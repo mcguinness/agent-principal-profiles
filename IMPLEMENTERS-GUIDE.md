@@ -1591,7 +1591,7 @@ agent cannot use the token directly.
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [AGENT-MANAGEMENT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [ID-JAG]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06
-[CIMD]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02
+[CIMD]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03
 [SCIM-AGENT]: https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00
 [RFC7643]: https://www.rfc-editor.org/rfc/rfc7643
 [RFC7644]: https://www.rfc-editor.org/rfc/rfc7644

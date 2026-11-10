@@ -15,10 +15,10 @@
     "5.2": "Using DPoP as the Proof of Possession",
     "10.3": "Refresh Token Binding"
   },
-  "I-D.ietf-oauth-client-id-metadata-document-02": {
+  "I-D.ietf-oauth-client-id-metadata-document-03": {
     "4": "Client ID Metadata Document",
-    "6": "Authorization Server Metadata",
-    "8.2": "Client Authentication"
+    "5": "Client Authentication",
+    "8": "Authorization Server Metadata"
   },
   "I-D.ietf-oauth-deferred-token-response-01": {
     "4.2": "Profile Obligations",

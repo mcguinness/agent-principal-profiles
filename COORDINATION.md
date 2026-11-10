@@ -25,8 +25,8 @@ were assessed.
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
 on 2026-11-06 (Identity Chaining-17, Entity Profiles-02, Oversight
-Acts-00, SCIM Agent Resource-00). CIMD stays at -02 until its Section 6
-is fixed (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
+Acts-00, SCIM Agent Resource-00). CIMD is pinned at -03 with its
+Section 6 an open item (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
 checks that every cited section of a pinned RFC or draft still has the
 heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
@@ -171,8 +171,8 @@ Recorded differences, which need no change to WAG:
   for multiple agents, and several dedicated clients can map to one
   registration (`flow-configuration`), but a RAS can still give each
   agent's client its own. CIMD can avoid pre-registration where the RAS
-  supports onboarding from the client's metadata document; Section 7.2
-  of CIMD-02 also permits pre-registered Client Identifier URLs. The
+  supports onboarding from the client's metadata document; Section 9.2
+  of CIMD-03 also permits pre-registered Client Identifier URLs. The
   core's composition table states this difference (`base-differences`).
   The agent record that the RAS requires for each agent is a separate
   difference (Linking, above).
