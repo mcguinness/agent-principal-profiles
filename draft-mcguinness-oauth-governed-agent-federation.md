@@ -207,7 +207,8 @@ difference shows in three cases. A resource domain that restricts an
 agent by its client identifier readmits it when the agent moves to
 another client; agents behind one shared client cannot be told apart;
 and a gateway that calls further resource domains is one client for
-every agent behind it. This profile's mandatory path starts from such
+every agent behind it ({{CONTINUATION}}). This profile's mandatory path
+starts from such
 a dedicated client ({{scope}}) and adds what the client identifier
 lacks. The IdP resolves the client
 to an Agent Principal through an Identity Binding ({{identity}}) and
