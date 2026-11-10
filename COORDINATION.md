@@ -266,6 +266,14 @@ Two differences found in assessing the 2026-11-07 revisions:
   exception to Section 6: its Upstream Dependencies table states the
   consequence, a separate registration at such a server. Open until the
   issue is resolved.
+* Not filed: CIMD-03 Section 5 says that "When using JWT-based client
+  authentication methods such as private_key_jwt", the document "MUST
+  include either jwks or jwks_uri". Read literally, that covers
+  `spiffe_jwt` (SPIFFE OAuth-03) and the attestation methods of
+  ATTEST-12, whose keys come from a SPIFFE bundle or an attester, so a
+  document listing only such methods carries a JWK Set that no server
+  uses or is rejected. The core requires `jwks` or `jwks_uri` only with
+  a listed `private_key_jwt`, and `INPUTS` takes no side.
 
 #### Shared Signals: WISE and CAEP
 
