@@ -2191,12 +2191,20 @@ present and the RAS trusts <code>iss</code> and <code>tenant</code> together for
 Tenant, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.1" class="relref">Section 4.4.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires for an ID-JAG.<a href="#section-3.3-8.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-3.3-9">A RAS's trust in a multi-tenant issuer to assert agents, including
+<p id="section-3.3-9">Only a multi-tenant issuer includes <code>tenant</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-6.1" class="relref">Section 6.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>),
+so a grant that carries it is from one, whatever the RAS's
+configuration says of the issuer. The RAS <span class="bcp14">MUST</span> reject such a grant with
+<code>invalid_grant</code> unless it trusts <code>iss</code> and that <code>tenant</code> together for
+the Target Tenant. A RAS configured with the issuer alone therefore
+fails closed instead of trusting every tenant of a shared issuer.<a href="#section-3.3-9" class="pilcrow">¶</a></p>
+<p id="section-3.3-10">A RAS's trust in a multi-tenant issuer to assert agents, including
 just-in-time correlation (<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>) and an actor-gate rule
-that admits every agent an issuer asserts, is therefore trust in one of
-that issuer's tenants. The Agent Principal identifier remains unique
-across the issuer, and <code>tenant</code> does not become part of the agent's
-identity.<a href="#section-3.3-9" class="pilcrow">¶</a></p>
+that admits every agent an issuer asserts, is therefore trust in each
+issuer tenant the RAS trusts for the Target Tenant. The access token
+does not carry the issuer tenant, so an API that evaluates the actor
+gate itself cannot narrow such a rule to one of those tenants. The
+Agent Principal identifier remains unique across the issuer, and
+<code>tenant</code> does not become part of the agent's identity.<a href="#section-3.3-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="governance-boundary">
@@ -6834,7 +6842,7 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Multi-tenant issuers</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>tenant</code> also names the agent's Governance Tenant: no ID-JAG for an agent of a tenant other than the user's, <code>tenant</code> in every WAG, and the RAS's tenant rule of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.1" class="relref">Section 4.4.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> applied to a WAG</td>
+                <code>tenant</code> also names the agent's Governance Tenant: no ID-JAG for an agent of a tenant other than the user's, <code>tenant</code> in every WAG, and the RAS's tenant rule of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.1" class="relref">Section 4.4.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> applied to a WAG. A grant carrying <code>tenant</code> is from a multi-tenant issuer whatever the RAS's configuration says, where <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.1" class="relref">Section 4.4.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> conditions its rule on the RAS knowing that</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <a href="#canonical-identity" class="auto internal xref">Section 3.3</a>
 </td>

@@ -264,10 +264,12 @@ Table of Contents
       the IdP Service Provider in [AGENT-MANAGEMENT].
 
    Provisioning Domain:  Trusted configuration identifying one governing
-      IdP issuer and one receiving Target Tenant, together with the
-      connectors authorized to manage their correlation and
-      administrative state.  This is the resource-domain counterpart of
-      the IdP-side Provisioning Domain.
+      IdP issuer, its tenant where the issuer is multi-tenant
+      ("Canonical Identity and Tenant Boundaries" in [FEDERATION]), and
+      one receiving Target Tenant, together with the connectors
+      authorized to manage their correlation and administrative state.
+      This is the resource-domain counterpart of the IdP-side
+      Provisioning Domain.
 
    Authorization Session:  RAS state retaining the identity and
       authority derived from a grant, including any associated refresh
@@ -344,6 +346,11 @@ Table of Contents
       update.  Attempts to change externalId use SCIM's mutability
       error.
 
+   *  At a multi-tenant issuer, an Agent belongs to the Provisioning
+      Domain of its Governance Tenant, the issuer tenant that the
+      agent's grants name in tenant.  A connector authorized for another
+      tenant of the same issuer is authorized for another context.
+
    Thus, externalId alone is not a globally qualified identity.  A
    deployment with multiple IdPs MUST retain the context with each
    resource; it cannot merge records on equal externalId values across
@@ -374,16 +381,18 @@ Table of Contents
 4.1.  Just-in-Time Correlation
 
    [FEDERATION] defines just-in-time correlation: the resource-policy
-   gate per governing issuer and Target Tenant, exact keying by the
-   pair, and the local restrictions and retained revocation state
-   applied before issuance.  A Receiver that correlates agents that way
-   without supporting this interface uses those rules alone and does not
-   conform to this profile.
+   gate per governing issuer, or issuer and tenant at a multi-tenant
+   issuer, and Target Tenant; exact keying by the pair; and the local
+   restrictions and retained revocation state applied before issuance.
+   A Receiver that correlates agents that way without supporting this
+   interface uses those rules alone and does not conform to this
+   profile.
 
    A conforming Receiver that permits just-in-time correlation MUST
-   expose the created principal in its Provisioning Domain with
-   externalId set to the agent identifier, and MUST subject it to the
-   same provisioning, reconciliation, and disablement rules as a
+   expose the created principal, with externalId set to the agent
+   identifier, in the Provisioning Domain of the triggering grant's
+   issuer and, at a multi-tenant issuer, its tenant, and MUST subject it
+   to the same provisioning, reconciliation, and disablement rules as a
    provisioned one.  Local Suspension is among the local restrictions
    Federation requires it to apply, and the initial active value
    reflects the initial eligibility set by local policy.
@@ -749,10 +758,10 @@ Table of Contents
 11.1.  Provisioning Writers
 
    Provisioning writers can enable principals and change eligibility.
-   Their authority MUST remain scoped to the configured issuer and
-   Target Tenant.  An event signature, matching display name, or equal
-   externalId outside that context does not establish permission to
-   correlate a principal.
+   Their authority MUST remain scoped to the configured issuer, its
+   tenant at a multi-tenant issuer, and Target Tenant.  An event
+   signature, matching display name, or equal externalId outside that
+   context does not establish permission to correlate a principal.
 
    Conditional writes prevent stale updates to a known receiver version;
    they do not prove that a connector consulted current source state.
@@ -958,9 +967,9 @@ A.1.  Trust and Delivery
    *  For SCIM event reconciliation, the source SCIM service, retrieval
       authority, and source-resource correlation under Section 6.
 
-   *  For grant-derived revocation, the governing ID-JAG issuer whose
-      grants the Transmitter may revoke, and agreement to apply
-      Appendix A.4.
+   *  For grant-derived revocation, the governing ID-JAG issuer, and its
+      tenant at a multi-tenant issuer, whose grants the Transmitter may
+      revoke, and agreement to apply Appendix A.4.
 
    *  For coarse user-and-tenant revocation, the authorized user
       namespace and revocation scope defined in Appendix A.4.
@@ -1109,10 +1118,12 @@ A.4.  Grant-Derived Session Revocation
 
    *  The Receiver MUST verify that the subject's iss matches the
       governing ID-JAG issuer authorized in the stream configuration.
-      That configuration supplies the Target Tenant.  The revocation key
-      is (ID-JAG issuer, ID-JAG jti, Target Tenant); it MUST NOT be
-      matched as a bare RAS session identifier or used outside that
-      tenant.
+      That configuration supplies the Target Tenant.  At a multi-tenant
+      issuer, the Receiver MUST apply the revocation, including a denial
+      retained before redemption, only to a grant whose tenant is the
+      tenant that configuration authorizes.  The revocation key is (ID-
+      JAG issuer, ID-JAG jti, Target Tenant); it MUST NOT be matched as
+      a bare RAS session identifier or used outside that tenant.
 
    *  On redemption, a participating RAS MUST retain that key with every
       derived authorization session, access token, and refresh

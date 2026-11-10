@@ -1510,9 +1510,11 @@ resource-domain counterpart of the IdP Service Provider in
         <dd class="break"></dd>
 <dt id="section-2-3.5">Provisioning Domain:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.6">
-          <p id="section-2-3.6.1">Trusted configuration identifying one governing IdP issuer and one
-receiving Target Tenant, together with the connectors authorized to
-manage their correlation and administrative state. This is the
+          <p id="section-2-3.6.1">Trusted configuration identifying one governing IdP issuer, its
+tenant where the issuer is multi-tenant ("Canonical Identity and
+Tenant Boundaries" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and one receiving Target
+Tenant, together with the connectors authorized to manage their
+correlation and administrative state. This is the
 resource-domain counterpart of the IdP-side Provisioning Domain.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
@@ -1606,6 +1608,12 @@ of SCIM's client-scoped <code>externalId</code> behavior.<a href="#section-4-3.3
           <p id="section-4-3.4.1">Once established, the pair <span class="bcp14">MUST NOT</span> change through a resource update.
 Attempts to change <code>externalId</code> use SCIM's <code>mutability</code> error.<a href="#section-4-3.4.1" class="pilcrow">¶</a></p>
 </li>
+        <li class="normal" id="section-4-3.5">
+          <p id="section-4-3.5.1">At a multi-tenant issuer, an Agent belongs to the Provisioning Domain
+of its Governance Tenant, the issuer tenant that the agent's grants
+name in <code>tenant</code>. A connector authorized for another tenant of the
+same issuer is authorized for another context.<a href="#section-4-3.5.1" class="pilcrow">¶</a></p>
+</li>
       </ul>
 <p id="section-4-4">Thus, <code>externalId</code> alone is not a globally qualified identity. A
 deployment with multiple IdPs <span class="bcp14">MUST</span> retain the context with each
@@ -1636,15 +1644,17 @@ adds.<a href="#section-4-7" class="pilcrow">¶</a></p>
 <a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-just-in-time-correlation" class="section-name selfRef">Just-in-Time Correlation</a>
         </h3>
 <p id="section-4.1-1"><span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> defines just-in-time correlation: the resource-policy
-gate per governing issuer and Target Tenant, exact keying by the pair,
-and the local restrictions and retained revocation state applied before
-issuance. A Receiver that correlates agents that way without
+gate per governing issuer, or issuer and tenant at a multi-tenant
+issuer, and Target Tenant; exact keying by the pair; and the local
+restrictions and retained revocation state applied before issuance. A Receiver that correlates agents that way without
 supporting this interface uses those rules alone and does not conform
 to this profile.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
 <p id="section-4.1-2">A conforming Receiver that permits just-in-time correlation <span class="bcp14">MUST</span> expose
-the created principal in its Provisioning Domain with <code>externalId</code> set
-to the agent identifier, and <span class="bcp14">MUST</span> subject it to the same provisioning,
-reconciliation, and disablement rules as a provisioned one. Local
+the created principal, with <code>externalId</code> set to the agent identifier,
+in the Provisioning Domain of the triggering grant's issuer and, at a
+multi-tenant issuer, its <code>tenant</code>, and <span class="bcp14">MUST</span> subject it to the same
+provisioning, reconciliation, and disablement rules as a provisioned
+one. Local
 Suspension is among the local restrictions Federation requires it to
 apply, and the initial <code>active</code> value reflects the initial eligibility
 set by local policy.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
@@ -2093,7 +2103,8 @@ transaction or establish that a remote source replica is current
 <a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-provisioning-writers" class="section-name selfRef">Provisioning Writers</a>
         </h3>
 <p id="section-11.1-1">Provisioning writers can enable principals and change eligibility. Their
-authority <span class="bcp14">MUST</span> remain scoped to the configured issuer and Target Tenant.
+authority <span class="bcp14">MUST</span> remain scoped to the configured issuer, its tenant at a
+multi-tenant issuer, and Target Tenant.
 An event signature, matching display name, or equal <code>externalId</code> outside
 that context does not establish permission to correlate a principal.<a href="#section-11.1-1" class="pilcrow">¶</a></p>
 <p id="section-11.1-2">Conditional writes prevent stale updates to a known receiver version;
@@ -2312,8 +2323,9 @@ require SCIM event subscription or source-resource retrieval.<a href="#appendix-
 authority, and source-resource correlation under <a href="#recovery" class="auto internal xref">Section 6</a>.<a href="#appendix-A.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-A.1-2.3">
-            <p id="appendix-A.1-2.3.1">For grant-derived revocation, the governing ID-JAG issuer whose grants
-the Transmitter may revoke, and agreement to apply <a href="#grant-revocation" class="auto internal xref">Appendix A.4</a>.<a href="#appendix-A.1-2.3.1" class="pilcrow">¶</a></p>
+            <p id="appendix-A.1-2.3.1">For grant-derived revocation, the governing ID-JAG issuer, and its
+tenant at a multi-tenant issuer, whose grants the Transmitter may
+revoke, and agreement to apply <a href="#grant-revocation" class="auto internal xref">Appendix A.4</a>.<a href="#appendix-A.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-A.1-2.4">
             <p id="appendix-A.1-2.4.1">For coarse user-and-tenant revocation, the authorized user namespace
@@ -2492,7 +2504,10 @@ to revoke. The SET's own <code>jti</code> identifies the event, not the grant.<a
           <li class="normal" id="appendix-A.4-2.2">
             <p id="appendix-A.4-2.2.1">The Receiver <span class="bcp14">MUST</span> verify that the subject's <code>iss</code> matches the
 governing ID-JAG issuer authorized in the stream configuration. That
-configuration supplies the Target Tenant. The revocation key is
+configuration supplies the Target Tenant. At a multi-tenant issuer,
+the Receiver <span class="bcp14">MUST</span> apply the revocation, including a denial retained
+before redemption, only to a grant whose <code>tenant</code> is the tenant that
+configuration authorizes. The revocation key is
 (ID-JAG issuer, ID-JAG <code>jti</code>, Target Tenant); it <span class="bcp14">MUST NOT</span> be matched as
 a bare RAS session identifier or used outside that tenant.<a href="#appendix-A.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
