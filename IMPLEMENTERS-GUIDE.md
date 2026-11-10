@@ -332,7 +332,7 @@ suite](conformance/README.md) and how far they go:
 | Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | IdP issuer and grant signing keys | IdP | `https://idp.example/`; its JWK Set | Yes (`jwks_uri`) | Positive path: P2 |
-| Authority for the IdP to assert agents in `act` under its issuer, and at a multi-tenant issuer in which of its tenants ([Grant Validation][redemption-validation]; [Canonical Identity and Tenant Boundaries][canonical-identity]) | RAS trust configuration | Agents of `https://idp.example/` in its tenant `acme` | No | Positive path: P2. Direct for the tenant: N42, and N55 for a RAS that configures the issuer without its tenants |
+| Authority for the IdP to assert agents in `act` under its issuer, and at a multi-tenant issuer in which of its tenants ([Grant Validation][redemption-validation]; [Canonical Identity and Tenant Boundaries][canonical-identity]) | RAS trust configuration | Agents of `https://idp.example/` in its tenant `acme` | No | Positive path: P2. Direct for the tenant: N42, and N55 and N56 for a RAS that configures the issuer without its tenants |
 | The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
 | RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
@@ -474,7 +474,7 @@ N44, and N45.
 
 [Redemption Errors][redemption-errors] and [Common Grant
 Validation][redemption-common]; cases N10 to N16, N23, N26, N27, N29,
-N30, N34, N40, N42, N43, N46 to N52, N54, and N55.
+N30, N34, N40, N42, N43, N46 to N52, and N54 to N56.
 
 * `invalid_grant`:
   * an invalid grant, including one with a missing, empty, or

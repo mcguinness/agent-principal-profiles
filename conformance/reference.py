@@ -1619,10 +1619,16 @@ class RAS(Server):
     def issuer_tenant(self, claims):
         """The grant's tenant at an issuer the RAS knows to be multi-tenant, or wherever
         the grant carries one, since only a multi-tenant issuer does (ID-JAG Section
-        6.1; core: Canonical Identity and Tenant Boundaries); None otherwise."""
+        6.1; core: Canonical Identity and Tenant Boundaries); None otherwise.
+
+        A tenant that is absent there, or present but not a string (null included),
+        is False: it names no tenant the RAS can trust, and differs from None, which
+        means the grant has no issuer tenant to check.
+        """
         if claims["iss"] in self.multi_tenant_issuers or \
                 ("tenant" in claims and self.on("ras.tenant_claim")):
-            return claims.get("tenant")
+            tenant = claims.get("tenant")
+            return tenant if isinstance(tenant, str) else False
         return None
 
     def tenant_trusted(self, iss, issuer_tenant, target_tenant):

@@ -2117,26 +2117,42 @@ def n54(ctx):
 
 
 
-@case("N55", "RAS", "Rejects with invalid_grant a grant naming a tenant the RAS does not trust, "
-      "even where its configuration treats the issuer as single-tenant",
+def expect_untrusted_tenant(ctx, label, resp):
+    check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+          f"{label}: expected HTTP 400 invalid_grant, got {resp}")
+    check("access_token" not in resp.json(), f"{label}: an error response carried a token")
+
+
+@case("N55", "RAS", "Rejects with invalid_grant an ID-JAG naming a tenant the RAS does not "
+      "trust, or a null tenant, even where its configuration treats the issuer as single-tenant",
       "core: Canonical Identity and Tenant Boundaries; Redemption Errors",
       needs=("mint_grant", "set:ras.multi_tenant_issuer"), defeats=("ras.tenant_claim",))
 def n55(ctx):
     # Only a multi-tenant issuer includes tenant, so a RAS that registered
     # the issuer alone must still refuse another tenant's grants rather
-    # than trust every tenant of it. The WAG leg runs where the deployment
-    # has a self-acting registration.
+    # than trust every tenant of it. A null tenant is present, and names
+    # no tenant the RAS trusts.
     cfg = multi_tenant(ctx)
-    other = cfg.other_governance_tenant
     ctx.adapter.set("ras", "multi_tenant_issuer", False)
-    grants = [("an ID-JAG", ctx.adapter.mint_grant(grant_claims(ctx, tenant=other)), False)]
-    if cfg.self_acting_client_key is not None:
-        grants.append(("a WAG", ctx.adapter.mint_wag(wag_claims(ctx, tenant=other)), True))
-    for label, grant, self_acting_grant in grants:
-        resp = ctx.client.redeem(grant, as_self_acting=self_acting_grant)
-        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
-              f"{label} naming {other}: expected HTTP 400 invalid_grant, got {resp}")
-        check("access_token" not in resp.json(), "an error response carried a token")
+    for value in (cfg.other_governance_tenant, None):
+        grant = ctx.adapter.mint_grant(grant_claims(ctx, tenant=value))
+        expect_untrusted_tenant(ctx, f"an ID-JAG with tenant {value!r}",
+                                ctx.client.redeem(grant))
+
+
+@case("N56", "RAS", "Rejects with invalid_grant a WAG naming a tenant the RAS does not trust, "
+      "or a null tenant, even where its configuration treats the issuer as single-tenant",
+      "core: Canonical Identity and Tenant Boundaries; Self-Acting Redemption: WAG",
+      needs=("self_acting", "mint_wag", "set:ras.multi_tenant_issuer"),
+      defeats=("ras.tenant_claim",))
+def n56(ctx):
+    self_acting(ctx)
+    cfg = multi_tenant(ctx)
+    ctx.adapter.set("ras", "multi_tenant_issuer", False)
+    for value in (cfg.other_governance_tenant, None):
+        grant = ctx.adapter.mint_wag(wag_claims(ctx, tenant=value))
+        expect_untrusted_tenant(ctx, f"a WAG with tenant {value!r}",
+                                ctx.client.redeem(grant, as_self_acting=True))
 
 
 # Deferred redemption at the RAS ---------------------------------------------
