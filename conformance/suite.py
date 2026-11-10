@@ -2086,17 +2086,18 @@ def n53(ctx):
                        "actor_unauthorized")
 
 
-@case("N54", "RAS", "Does not create again, just in time, an agent whose correlation the RAS "
-      "removed",
+@case("N54", "RAS", "Keeps refusing an agent whose correlation the RAS removed, with "
+      "just-in-time correlation on",
       "core: Optional Just-in-Time Correlation; Applied Disablement and Revocation; Redemption "
       "Errors",
-      needs=("self_acting", "mint_wag", "agent_record", "set:ras.jit", "set:ras.jit_eligible",
+      needs=("self_acting", "mint_wag", "set:ras.jit", "set:ras.jit_eligible",
              "set:ras.self_acting_rule", "set:ras.remove_correlation"),
       defeats=("ras.removal_retained",))
 def n54(ctx):
     # A record created just in time admits the agent under a self-acting
-    # rule. Once the RAS removes that correlation, the next WAG must not
-    # create the record again: the removal is retained revocation state.
+    # rule. Once the RAS removes that correlation, the removal is retained
+    # revocation state: every later WAG for the agent fails, whether or not
+    # the RAS keeps an ineligible record for it.
     cfg = self_acting(ctx)
     home = cfg.expect["agent_iss"]
     ctx.adapter.set("ras", "jit", True)
@@ -2104,9 +2105,11 @@ def n54(ctx):
     ctx.adapter.set("ras", "self_acting_rule", True)
     expect_token_response(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True))
     ctx.adapter.set("ras", "remove_correlation", [home, cfg.uncorrelated_agent])
-    expect_error(ctx.client.redeem(unseen_wag(ctx), as_self_acting=True), 400, "invalid_grant")
-    check(ctx.adapter.agent_record(home, cfg.uncorrelated_agent) is None,
-          "the RAS created the removed agent's record again")
+    for attempt in ("first", "second"):
+        resp = ctx.client.redeem(unseen_wag(ctx), as_self_acting=True)
+        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+              f"{attempt} WAG after the removal: expected HTTP 400 invalid_grant, got {resp}")
+        check("access_token" not in resp.json(), "an error response carried a token")
 
 
 # Deferred redemption at the RAS ---------------------------------------------

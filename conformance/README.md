@@ -141,7 +141,7 @@ single-tenant issuer omits.
 | N51 | RAS | With unbound grants, a WAG without `cnf` redeemed once and presented again fails with `invalid_grant` | core: Common Grant Validation (Grant replay); Renewal and Negative Tests | As N50, for the self-acting registration |
 | N52 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, an ID-JAG-typed grant without `act`, naming the self-acting registration, and a WAG-typed grant carrying `act` both fail with `invalid_grant`: the RAS tells the grants apart by `typ`, so neither becomes the other | core: Grant Validation (Actor); Self-Acting Redemption: WAG, step 1; Credential and Token Confusion | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; mint an ID-JAG and a WAG |
 | N53 | API | With the user delegating only `files.write` and the API's actor gate closed, a read with the resulting access token, which lacks `files.read`, fails with 403 `actor_unauthorized`, not `insufficient_scope`: the actor gate is reported first | core: Error Responses (selection order); Delegated Actor Authorization | Set the delegation's scopes at the IdP; close the API's actor gate |
-| N54 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, a WAG for `agent-99` redeems and creates its record. After the RAS removes that correlation, the next such WAG fails with `invalid_grant`, and the RAS holds no record for the pair: the removal is retained revocation state, which just-in-time correlation does not undo | core: Optional Just-in-Time Correlation; Applied Disablement and Revocation; Redemption Errors | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; remove a correlation; mint WAGs; read the agent record |
+| N54 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, a WAG for `agent-99` redeems and creates its record. After the RAS removes that correlation, each of the next two such WAGs fails with `invalid_grant`: the removal is retained revocation state, which just-in-time correlation does not undo. Whether the RAS keeps an ineligible record for the pair is not tested | core: Optional Just-in-Time Correlation; Applied Disablement and Revocation; Redemption Errors | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; remove a correlation; mint WAGs |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -659,8 +659,8 @@ another IdP, RAS or API:
    `set:idp.client_profile` and `set:ras.client_profile`, N51 for the
    self-acting registration too; N52 needs `mint_grant`, `mint_wag` and
    the just-in-time controls of N47; N53 needs `extra_scope` and
-   `set:idp.delegation_scope`; N54 needs the controls of N47 and
-   `set:ras.remove_correlation`. D10 and D11 need
+   `set:idp.delegation_scope`; N54 needs the controls of N47 except
+   `agent_record`, and `set:ras.remove_correlation`. D10 and D11 need
    `second_agent`, another agent the RAS correlates and lets act for
    the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28
