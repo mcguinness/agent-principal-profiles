@@ -2730,6 +2730,20 @@ trusted scope. Exact bindings, tenant boundaries, and issuer-scoped key
 lookup ({{time-validation}}) limit that scope. Neither `kid` alone nor a
 union of unrelated issuers' keys establishes the assertion's source.
 
+A RAS that trusts one tenant of a multi-tenant issuer relies on that
+issuer to keep its tenants apart: a grant's `tenant` is only as
+trustworthy as the issuer that signs for every tenant
+({{canonical-identity}}). Trust in one tenant does not extend to the
+issuer's others, but a compromise of the issuer's signing key reaches
+them all.
+
+Just-in-time correlation ({{jit-correlation}}) creates RAS state for
+each previously unseen agent that a trusted issuer asserts, as
+{{Section 10 of WAG}} notes. A RAS that enables it can cap the records
+created per issuer, or per issuer and tenant, and remove records that
+never become eligible. A created record authorizes nothing, so the
+exposure is state, not access.
+
 A holder of a shared private key can present any credential issued for
 that key. Agent isolation therefore depends on issuance controls and
 key custody as well as identity mapping. Sharing the grant proof key
