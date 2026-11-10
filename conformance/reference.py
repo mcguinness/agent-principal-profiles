@@ -143,6 +143,8 @@ CHECKS = {
                              "resource and scope",
     "ras.within_class_order": "a wrong requested resource is reported before an excessive "
                               "requested scope",
+    "ras.proof_before_request": "a DPoP proof the jwt-dpop grant type requires is reported "
+                                "missing before a malformed request",
     "ras.request_before_correlation": "the request's resource and scope are checked before "
                                       "correlation, which creates no record for a request they "
                                       "fail",
@@ -1196,8 +1198,13 @@ class RAS(Server):
 
     def redeem(self, environ, form, grant_type=JWT_BEARER):
         client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
+        if not self.on("ras.proof_before_request"):
+            # Non-conforming: a malformed request is reported before the proof.
+            _one(form, "assertion")
         jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
-        # JWT DPoP Grant Section 5, step 1: jwt-dpop requires a DPoP proof.
+        # JWT DPoP Grant Section 5, step 1: jwt-dpop requires a DPoP proof. It
+        # is missing whatever the request holds, so it is reported before a
+        # malformed request (core: Redemption Error Precedence, class 1).
         if grant_type == JWT_DPOP and jkt is None and self.on("ras.require_proof"):
             raise OAuthError("invalid_dpop_proof", description="jwt-dpop requires a DPoP proof")
         assertion = _one(form, "assertion")

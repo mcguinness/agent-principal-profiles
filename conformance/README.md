@@ -17,7 +17,7 @@ Beyond that path, it tests self-acting issuance and redemption (P14,
 P15, N44 to N49, N51, N52, N54), the existing platform JWT input for a
 shared client (P11 to P13, N36 to N39), and just-in-time correlation
 (N34, N47 to N49, N54), and the RAS's acceptance point, missing proof
-and error precedence (N57 to N68). It also holds tests of the oversight companion's
+and error precedence (N57 to N69). It also holds tests of the oversight companion's
 deferred redemption at the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
 Policy Services, error selection order, self-acting access and
@@ -157,6 +157,7 @@ single-tenant issuer omits.
 | N66 | RAS | With the actor gate closed and approval required, a redemption without the opt-in fails with `actor_unauthorized`, not `access_denied` | core: Redemption Error Precedence; oversight: Redemption Opt-In | Close the RAS's actor gate; require approval |
 | N67 | RAS | While correlation lookups cannot complete, an expired grant fails with `invalid_grant`, not HTTP 503 | core: Redemption Error Precedence | Mint an ID-JAG; make resolution's lookups unavailable |
 | N68 | RAS | While correlation lookups cannot complete, a redemption that approval would refuse gets HTTP 503 without an `error` and no token; once they can, the same grant redeems | core: Redemption Error Precedence | Require approval; make resolution's lookups unavailable |
+| N69 | RAS | A `jwt-dpop` request with neither a DPoP proof nor an `assertion` fails with `invalid_dpop_proof` (or `use_dpop_nonce`), not `invalid_request`: the proof the grant type requires comes first. With a proof, the same request fails with `invalid_request` | core: Redemption Error Precedence; JWT DPoP Grant Section 5 | None |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -258,17 +259,17 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02,
 D09 and D24, name the reference checks they exercise (`CHECKS` in
-[reference.py](reference.py)). With `--vacuity`, each of these 140
+[reference.py](reference.py)). With `--vacuity`, each of these 141
 cases runs once for each check it names, with that check switched off;
-eight S cases, N40, N47 and N49 name two checks, so there are 151 runs,
+eight S cases, N40, N47 and N49 name two checks, so there are 152 runs,
 and every run fails. Fifty N cases, N11 among them, fail because the
 server then accepts the request, and N53 because the API then reports
 `insufficient_scope` first. N57 and N58 fail because the RAS then
 refuses as already redeemed a grant it rejected before accepting. N60
-to N66 fail because it then reports another failure first:
+to N66 and N69 fail because it then reports another failure first:
 `invalid_target` for N60 and N61, `invalid_grant` for N62 and N63,
-`invalid_target` for N64, `invalid_scope` for N65 and `access_denied`
-for N66. N67 fails because
+`invalid_target` for N64, `invalid_scope` for N65, `access_denied`
+for N66 and `invalid_request` for N69. N67 fails because
 it then answers HTTP 503 though the expired grant is an earlier
 failure, and N68 because it then reports `invalid_grant` for lookups
 that could not complete. P2 fails because the access token
@@ -603,7 +604,7 @@ The suite tests nothing outside the path above, including:
   (P5 to P7), the single use of an unbound grant (N50, N51, N59), the
   proof a DPoP-only resource requires (N60, N61), and as the setup for
   N10, N30, and D08;
-* the RAS's error precedence beyond the pairs N62 to N68 test,
+* the RAS's error precedence beyond the pairs N62 to N69 test,
   including client authentication against an invalid DPoP proof;
 * the existing platform JWT input beyond P11, P12 and N36 to N39: JSON
   Pointer selectors, the binding of key-bound platform JWTs (which the

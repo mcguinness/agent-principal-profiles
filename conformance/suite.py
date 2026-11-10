@@ -2364,6 +2364,19 @@ def n68(ctx):
     expect_token_response(ctx.client.redeem(grant))
 
 
+@case("N69", "RAS", "Reports the DPoP proof that jwt-dpop requires, not invalid_request, for a "
+      "request with neither that proof nor an assertion",
+      "core: Redemption Error Precedence; JWT DPoP Grant Section 5",
+      defeats=("ras.proof_before_request",))
+def n69(ctx):
+    # Both failures are in class 1, and the proof comes first. With a
+    # proof, the same request fails for its missing assertion.
+    form = {"grant_type": JWT_DPOP, "resource": ctx.cfg.resource}
+    expect_error(ctx.client.ras_token(form, dpop_key=None), 400,
+                 ("invalid_dpop_proof", "use_dpop_nonce"))
+    expect_error(ctx.client.ras_token(form), 400, "invalid_request")
+
+
 # Deferred redemption at the RAS ---------------------------------------------
 #
 # The oversight companion's Deferred Redemption rows. In every case RAS
