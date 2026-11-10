@@ -16,7 +16,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) traces it:
 Beyond that path, it tests self-acting issuance and redemption (P14,
 P15, N44 to N49, N51, N52, N54), the existing platform JWT input for a
 shared client (P11 to P13, N36 to N39), and just-in-time correlation
-(N34, N47 to N49, N54). It also holds tests of the oversight companion's
+(N34, N47 to N49, N54), and the RAS's acceptance point, missing proof
+and error precedence (N57 to N69). It also holds tests of the oversight companion's
 deferred redemption at the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
 Policy Services, error selection order, self-acting access and
@@ -144,6 +145,19 @@ single-tenant issuer omits.
 | N54 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, a WAG for `agent-99` redeems and creates its record. After the RAS removes that correlation, each of the next two such WAGs fails with `invalid_grant`: the removal is retained revocation state, which just-in-time correlation does not undo. Whether the RAS keeps an ineligible record for the pair is not tested | core: Optional Just-in-Time Correlation; Applied Disablement and Revocation; Redemption Errors | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; remove a correlation; mint WAGs |
 | N55 | RAS | With the RAS configured to treat `https://idp.example/` as single-tenant, trusting it with no tenant, an ID-JAG naming `beta` and one whose `tenant` is null each fail with `invalid_grant`: a grant that carries `tenant` is from a multi-tenant issuer, so the RAS must trust that tenant | core: Canonical Identity and Tenant Boundaries; Redemption Errors | Treat the issuer as single-tenant at the RAS; mint ID-JAGs; a multi-tenant issuer |
 | N56 | RAS | The same for a WAG naming `beta` and one whose `tenant` is null | core: Canonical Identity and Tenant Boundaries; Self-Acting Redemption: WAG | As N55, minting WAGs for the self-acting registration |
+| N57 | RAS | A grant presented with the wrong `resource` fails with `invalid_target`; the same grant with the right `resource` then redeems: a rejected request does not consume it | core: Common Grant Validation (Grant replay) | None |
+| N58 | RAS | With the actor gate closed, a grant fails with `actor_unauthorized`; once the gate opens, the same grant redeems | core: Common Grant Validation (Grant replay); Delegated Actor Authorization | Close and reopen the RAS's actor gate |
+| N59 | RAS | With unbound grants, two concurrent redemptions of one ID-JAG yield one token, and the other fails with `invalid_grant` | core: Common Grant Validation (Grant replay) | As N50 |
+| N60 | RAS | With unbound grants and a resource that permits only DPoP, an ID-JAG redeemed without a proof fails with `invalid_grant`, also when the request names the wrong `resource`; with a proof, the same grant then redeems for a DPoP-bound token | core: Access-Token Protection; Redemption Error Precedence; ID-JAG Section 9.11.1.2.4 | As N50; permit only DPoP for the resource |
+| N61 | RAS | The same for a WAG | core: Access-Token Protection; Redemption Error Precedence; Self-Acting Redemption: WAG | As N51; permit only DPoP for the resource |
+| N62 | RAS | An ID-JAG for `agent-99`, which the RAS has not seen, presented with the wrong `resource`, fails with `invalid_target`, not `invalid_grant`: the request's resource comes before correlation | core: Redemption Error Precedence | Mint an ID-JAG |
+| N63 | RAS | The same for a WAG, with just-in-time correlation off and then on; with it then off again and a self-acting rule set, a correct WAG for `agent-99` fails with `invalid_grant`, so the rejected requests created no record | core: Redemption Error Precedence; Optional Just-in-Time Correlation | The controls of N47 except `agent_record` |
+| N64 | RAS | A grant naming a resource the RAS does not govern, presented with the governed `resource`, fails with `invalid_grant`, not `invalid_target` | core: Redemption Error Precedence | Mint an ID-JAG |
+| N65 | RAS | A request with the wrong `resource` and a scope beyond the grant's fails with `invalid_target`, not `invalid_scope` | core: Redemption Error Precedence | None |
+| N66 | RAS | With the actor gate closed and approval required, a redemption without the opt-in fails with `actor_unauthorized`, not `access_denied` | core: Redemption Error Precedence; oversight: Redemption Opt-In | Close the RAS's actor gate; require approval |
+| N67 | RAS | While correlation lookups cannot complete, an expired grant fails with `invalid_grant`, not HTTP 503 | core: Redemption Error Precedence | Mint an ID-JAG; make resolution's lookups unavailable |
+| N68 | RAS | While correlation lookups cannot complete, a redemption that approval would refuse gets HTTP 503 without an `error` and no token; once they can, the same grant redeems | core: Redemption Error Precedence | Require approval; make resolution's lookups unavailable |
+| N69 | RAS | A `jwt-dpop` request with neither a DPoP proof nor an `assertion` fails with `invalid_dpop_proof` (or `use_dpop_nonce`), not `invalid_request`: the proof the grant type requires comes first. With a proof, the same request fails with `invalid_request` | core: Redemption Error Precedence; JWT DPoP Grant Section 5 | None |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -172,6 +186,7 @@ single-tenant issuer omits.
 | D26 | RAS | After a refresh succeeds, withdrawing the RAS's trust in `acme` for `acme-data` makes the next refresh fail with `invalid_grant` | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation | Require approval; permit refresh tokens; withdraw the RAS's tenant trust; approve; a multi-tenant issuer |
 | D27 | RAS | After approval, while the lookups that resolution re-checks cannot be completed, a poll stays pending rather than denied; once they can, the poll issues the token, and a further poll fails with `invalid_grant` | oversight: Redemption Resolution (a check that cannot be completed) | Require approval; make resolution's lookups unavailable; list and approve tasks |
 | D28 | RAS | A redemption pending through such an outage still expires: after the maximum pending lifetime the poll fails with `expired_token`, and again once the outage ends | oversight: Redemption Resolution; Deferring a Redemption | As D27; set the maximum pending lifetime; advance the clock |
+| D29 | RAS | After a refresh token is issued, disabling and re-enabling the agent with no refresh in between makes the next refresh fail with `invalid_grant`; a new grant then redeems | core: Applied Disablement and Revocation; oversight: Refresh and Continuation | Require approval; permit refresh tokens; disable and re-enable the agent; approve |
 | S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
 | S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
 | S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
@@ -244,27 +259,31 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02,
 D09 and D24, name the reference checks they exercise (`CHECKS` in
-[reference.py](reference.py)). With `--vacuity`, each of these 127
+[reference.py](reference.py)). With `--vacuity`, each of these 141
 cases runs once for each check it names, with that check switched off;
-eight S cases, N40, N47 and N49 name two checks, so there are 138 runs,
-and every run fails. Forty-eight N cases fail because the server then
-accepts the request, and N53 because the API then reports
-`insufficient_scope` first. P2 fails because the access token
+eight S cases, N40, N47 and N49 name two checks, so there are 152 runs,
+and every run fails. Fifty N cases, N11 among them, fail because the
+server then accepts the request, and N53 because the API then reports
+`insufficient_scope` first. N57 and N58 fail because the RAS then
+refuses as already redeemed a grant it rejected before accepting. N60
+to N66 and N69 fail because it then reports another failure first:
+`invalid_target` for N60 and N61, `invalid_grant` for N62 and N63,
+`invalid_target` for N64, `invalid_scope` for N65, `access_denied`
+for N66 and `invalid_request` for N69. N67 fails because
+it then answers HTTP 503 though the expired grant is an earlier
+failure, and N68 because it then reports `invalid_grant` for lookups
+that could not complete. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
 token, P8 to P10 because the server then accepts a nonce it never
 provided, P12 and P16 because the grant then outlives the platform JWT
 or the ID Token, and P13 because the disabled agent's grant is then
 redeemed. N36
 fails because the IdP then falls back to the shared client's own
-authentication, which resolves no agent (`invalid_grant`). N11 fails because the RAS's
-access-token protection check then
-rejects the redemption with `invalid_request`; Access-Token Protection
-states that Grant Protection's checks come first, so the case requires
-`invalid_grant` or `invalid_dpop_proof`, the two codes Grant Protection
-permits, and no longer depends on the reference's own order. Its second
-step makes the resource permit bearer tokens, where access-token
-protection would issue a bearer token, so only Grant Protection can
-refuse the bound grant. N27 fails
+authentication, which resolves no agent (`invalid_grant`). N11
+requires `invalid_grant` or `invalid_dpop_proof`, the two codes Grant
+Protection permits whatever protection the resource requires. Its
+second step makes the resource permit bearer tokens, so only Grant
+Protection can refuse the bound grant. N27 fails
 because the RAS's actor gate then refuses the uncorrelated agent with
 `actor_unauthorized`, the code Redemption Errors
 keeps for an actor-gate refusal of a valid ID-JAG's agent. N31 fails
@@ -281,7 +300,8 @@ RAS then admits a WAG that its policy does not permit.
 The D cases fail without their check in these ways:
 
 * the RAS issues a token it must not: D01, D02 (a second token), D05,
-  D11, D14, D20, D21, D22 (after the actor gate reopens), D25 and D26;
+  D11, D14, D20, D21, D22 (after the actor gate reopens), D25, D26 and
+  D29 (a refresh after the agent is re-enabled);
 * it returns or keeps a deferral where an error is required: D03, D06
   (a new deferral after the denial), D08, D18, D19 and D23;
 * it returns another error: D07 (`access_denied`), and D27 and D28
@@ -581,8 +601,11 @@ Some cases depend on choices made for the reference:
 The suite tests nothing outside the path above, including:
 
 * governed agent access with unbound grants, except bearer issuance
-  (P5 to P7), the single use of an unbound grant (N50, N51), and as
-  the setup for N10, N30, and D08;
+  (P5 to P7), the single use of an unbound grant (N50, N51, N59), the
+  proof a DPoP-only resource requires (N60, N61), and as the setup for
+  N10, N30, and D08;
+* the RAS's error precedence beyond the pairs N62 to N69 test,
+  including client authentication against an invalid DPoP proof;
 * the existing platform JWT input beyond P11, P12 and N36 to N39: JSON
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
@@ -668,7 +691,12 @@ another IdP, RAS or API:
    `agent_record`, and `set:ras.remove_correlation`; N55 and N56 run
    only where `multi_tenant_issuer` is set and need
    `set:ras.multi_tenant_issuer`, N55 with `mint_grant` and N56 with
-   `self_acting_client_key` and `mint_wag`. D10 and D11 need
+   `self_acting_client_key` and `mint_wag`. N59 needs the controls
+   of N50; N60 needs those and `set:ras.resource_protection`, and N61
+   those of N51 and `set:ras.resource_protection`; N62, N64 and N67 need
+   `mint_grant`; N63 needs `mint_wag`, `uncorrelated_agent` and the
+   just-in-time controls of N47 except `agent_record`; N65 needs
+   `extra_scope`. D10 and D11 need
    `second_agent`, another agent the RAS correlates and lets act for
    the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28

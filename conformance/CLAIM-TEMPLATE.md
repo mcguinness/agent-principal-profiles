@@ -36,17 +36,17 @@ implementation](README.md#running-against-another-implementation)).
 | Claim | Cases |
 |---|---|
 | IdP: delegated access, dedicated client, ID Token subjects | P1, P16, N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
-| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50, N55 |
+| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50, N55, N57 to N60, N62, N64 to N69 |
 | API: delegated access | P3, P4, N17 to N20, N24, N35, N53; reference-implementation tests: S32, S33, S35, S36 |
 | Generic shared-client interoperability (IdP) | P11 to P13 (P13 with a second IdP client), N36 to N39 |
-| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52, N54, N56 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
+| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52, N54, N56, N61, N63 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
 | Bearer access tokens | P5 to P7, N35; reference-implementation tests: S38, S39 |
 | DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
 | Just-in-time correlation | N34, N47 to N49, N52, N54 |
 | Opaque access tokens and introspection | Reference-implementation tests: S10 to S13, S20, S21, S31, S34, S38 |
 | Policy services | Reference-implementation tests: S01 to S11, S14 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | N20, N53; reference-implementation tests: S14 to S31 |
-| Deferred redemption (RAS) | D01, D03, D07, D08, D18 (configuration only); reference-implementation tests: D02, D04 to D06, D09 to D17, D19 to D28 |
+| Deferred redemption (RAS) | D01, D03, D07, D08, D18 (configuration only); reference-implementation tests: D02, D04 to D06, D09 to D17, D19 to D29 |
 | RAS refresh tokens | Reference-implementation tests, within a deferred redemption only: D13 to D15, D21, D22, D26 |
 | Client ID Metadata Documents | None |
 | Mutual-TLS access tokens; re-redemption under policy | None |

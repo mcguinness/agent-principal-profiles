@@ -929,7 +929,8 @@ Validators MUST enforce:
 * **Replay protection:** Apply each credential, proof, and grant
   mechanism independently. Where a mechanism retains replay state, that
   state MUST remain in effect for as long as the credential, proof, or
-  grant would otherwise be accepted, including the maximum allowed skew.
+  grant would otherwise be acceptable, including the maximum allowed
+  skew.
 
 Key lookup MUST retain the issuer or trust-domain association
 ({{Section 3.8 of RFC8725}}).
@@ -1753,9 +1754,21 @@ Both grants use these checks. {{redemption-validation}} and
      `authorization_details`. Reject the grant with `invalid_grant` if
           its authority extends beyond that resource.
 
-**Grant replay:** For a grant without an enforced grant-level sender
-constraint, the RAS MUST reject a grant whose validated (`iss`, `jti`)
-it has already accepted while that grant remains acceptable. A proof
+**Grant replay:** The RAS accepts a grant when every check required for
+issuance has passed and it issues an access token, or when every check
+required for admission to deferral has passed and it records a pending
+governed redemption ({{OVERSIGHT}}). A grant is accepted only once when
+it has no enforced grant-level sender constraint, when the RAS admits it
+to deferral, or when it is bound and no explicit policy lets the RAS
+accept it again. For such a grant, the RAS MUST record its (`iss`,
+`jti`) as accepted atomically with that commitment, so that of
+concurrent presentations at most one is accepted. A request rejected
+before acceptance MUST NOT record the grant as accepted or change an
+existing record, so a client can correct the request, such as a missing
+proof or a wrong `resource`, and present the same grant again. For a
+grant without an enforced grant-level sender constraint, the RAS MUST
+reject a grant whose validated (`iss`, `jti`) it has already accepted
+while that grant remains acceptable. A proof
 used only for client authentication or access-token binding is not such
 a constraint. The RAS MAY accept a bound grant again under explicit
 policy, each time with a fresh proof that matches its `cnf.jkt`
@@ -1796,7 +1809,8 @@ disabled by default and enabled per governing issuer, or per issuer and
 Tenant.
 When it applies, the RAS:
 
-* MUST key the created record by that exact pair;
+* MUST key the created record by that exact pair, creating one record
+  for the pair even under concurrent requests;
 * MUST give the created record a local principal that no other
   qualified pair maps to, so agents of two issuers with one identifier
   remain two principals;
@@ -1902,7 +1916,8 @@ The RAS:
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
 3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
-4. **Correlation:** Resolve the pair (`iss`, `sub`) under
+4. **Authority:** Apply the authority checks of {{redemption-common}}.
+5. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
    issuance. It is provisioned in advance or, where resource policy
@@ -1910,10 +1925,10 @@ The RAS:
    a RAS can accept a previously unseen agent's first WAG as
    {{Section 3 of WAG}} describes; creating the record does not
    authorize the agent.
-5. **Authority:** Apply the authority checks of {{redemption-common}}
-   and current RAS policy for the agent, client, tenant, and resource. A
-   valid grant sets an authority ceiling; it does not require issuance.
-6. **Output:** Issue an access token under {{access-token-response}} and
+6. **Policy:** Apply current RAS policy for the agent, client, tenant,
+   and resource. A valid grant sets an authority ceiling; it does not
+   require issuance.
+7. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`
    and no `act`. The RAS MUST NOT issue a refresh token for a WAG
    redemption.
@@ -1979,10 +1994,16 @@ validation failure MUST NOT trigger a weaker mode.
   any DPoP proof, including the grant proof required below.
 
 A proof never selects a protection that configuration does not permit.
-The RAS selects access-token protection only after the checks of
-{{grant-protection}} succeed, so a bound grant redeemed without its
-proof fails as {{grant-protection}} specifies, with `invalid_grant` or
-`invalid_dpop_proof`, whatever protection the resource requires.
+When a grant without `cnf` is redeemed without the proof that the
+access-token protection of the grant's resource requires, a DPoP proof
+or, for mutual TLS, the client certificate, the RAS MUST reject the
+request with `invalid_grant` ({{Section 9.11.1.2.4 of ID-JAG}}), for a
+WAG as for an ID-JAG. That refusal is one of the grant's checks,
+reported before replay and authority failures
+({{redemption-precedence}}). The RAS selects access-token protection
+only after the proof checks succeed, so a bound grant redeemed without
+its proof fails as {{grant-protection}} specifies, with `invalid_grant`
+or `invalid_dpop_proof`, whatever protection the resource requires.
 
 | Selected protection | Access token |
 |---|---|
@@ -2041,6 +2062,7 @@ RAS uses these errors:
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
 | Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
+| Grant without `cnf`, redeemed without the proof that its resource's access-token protection requires ({{access-token-protection}}) | `invalid_grant` |
 | ID-JAG whose `act` agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction ({{applied-changes}}) | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction | `invalid_grant` |
 | Invalid WAG, including one without `typ` `oauth-wag+jwt` or one that contains `act` | `invalid_grant` |
@@ -2048,6 +2070,52 @@ RAS uses these errors:
 | Other current RAS policy refuses a valid ID-JAG for the user, client, tenant, or resource | `access_denied` ({{Section 4.4.1 of ID-JAG}}) |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
 {: title="Redemption errors"}
+
+### Redemption Error Precedence {#redemption-precedence}
+
+This order applies to a redemption request other than one that
+{{OVERSIGHT}} treats as recovery of, or a poll for, a pending governed
+redemption, which follows that document. The steps of
+{{redemption-validation}} and {{wag-redemption}} name the checks; this
+order selects the failure reported.
+
+When such a request fails more than one check, the RAS MUST report the
+earliest failure in this order, whatever order it evaluates the checks
+in:
+
+1. Client authentication (`invalid_client`), then the DPoP proof,
+   whether one presented is invalid or one the `jwt-dpop` grant type
+   requires ({{Section 5 of JWT-DPOP-GRANT}}) is missing
+   (`invalid_dpop_proof`, or `use_dpop_nonce` where a nonce is required,
+   except that a bound grant presented without its proof fails with
+   `invalid_grant` or `invalid_dpop_proof` under {{grant-protection}}),
+   then a malformed request, such as one without exactly one `assertion`
+   (`invalid_request`).
+2. The grant: its validation, its own claims, its binding, and a proof
+   that its binding or its resource's access-token protection requires
+   (`invalid_grant`).
+3. Replay (`invalid_grant`).
+4. The requested resource (`invalid_target`), then the requested scope
+   (`invalid_scope`).
+5. User resolution, then agent correlation and eligibility
+   (`invalid_grant`).
+6. The actor gate (`actor_unauthorized`), then other current RAS policy
+   (`access_denied` for an ID-JAG, `invalid_target` for a WAG).
+7. Approval ({{OVERSIGHT}}).
+
+The RAS MUST NOT create a record under {{jit-correlation}} for a
+request that fails a check that precedes correlation in this order.
+
+If a check cannot complete, for example because the state that
+correlation or the actor gate reads is unavailable, the RAS MUST NOT
+issue an access token or admit the request to deferral. If it has
+established a failure and no check that did not complete precedes it in
+this order, it reports that failure. Otherwise it responds with HTTP
+status code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}),
+SHOULD include a `Retry-After` header field
+({{Section 10.2.3 of RFC9110}}), and MUST NOT include an `error`
+parameter, since no token endpoint error code describes a check that
+did not complete.
 
 # Access at the Resource Server {#api-processing}
 
@@ -2541,10 +2609,13 @@ cited are met.
   * `invalid_grant` at the IdP: a valid credential resolved no user, or
     no active Identity Binding, Agent Principal, or Governance Tenant;
     renewal cannot repair it.
-  * `invalid_grant` at the RAS: after correcting what it can detect
-    itself, such as a missing proof or a grant addressed to another
-    server, a client can make one recovery attempt with a new grant for
-    the same identity and client ({{Section 4.4.4 of ID-JAG}}). The
+  * `invalid_grant` at the RAS: a rejected request does not consume
+    the grant ({{redemption-common}}). After correcting what it can
+    detect itself, such as a missing proof, including one that the
+    resource's access-token protection requires, or a grant addressed to
+    another server, a client can present the same grant again.
+    Otherwise it can make one recovery attempt with a new grant for the
+    same identity and client ({{Section 4.4.4 of ID-JAG}}). The
     code does not say which check failed ({{security-errors}}), and
     renewal cannot repair a disabled agent, a missing proof, a resource
     the RAS does not govern, or a malformed grant.
@@ -3198,6 +3269,7 @@ last column is the required result. Token endpoint errors follow
 | The RAS has no authorized correlation for `agent-42`, or `agent-42` is disabled there | RAS | HTTP 400, `invalid_grant`, not `actor_unauthorized` ({{redemption-errors}}) |
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
 | Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant` or `invalid_dpop_proof`; grant binding enforced |
+| Governed agent access: the grant has no `cnf`, the resource requires DPoP-bound access tokens, and redemption omits the proof | RAS | HTTP 400, `invalid_grant`; no bearer token, and the same grant with a proof can still be redeemed ({{access-token-protection}}) |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
 | Governed agent access: the grant has no `cnf`, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key | RAS | HTTP 400, `invalid_grant`; an access-token proof does not make an unbound grant reusable ({{redemption-common}}) |
 | Self-acting variant ({{wag-example}}) under governed agent access: the WAG has no `cnf`, was redeemed once, and is presented again | RAS | HTTP 400, `invalid_grant`; an unbound WAG is single-use ({{redemption-common}}) |

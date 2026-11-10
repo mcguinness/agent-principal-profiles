@@ -134,6 +134,26 @@ CHECKS = {
     "idp.scope_ceiling": "the issued scope stays within the Delegation Authorization's scope set",
     "ras.client_id": "grant client_id matches the authenticated client",
     "ras.grant_replay": "a grant the RAS has accepted is refused when presented again",
+    "ras.commit_point": "a grant is accepted when the RAS issues a token or defers, so a "
+                        "request rejected before then leaves the grant redeemable",
+    "ras.unbound_proof_required": "a grant without cnf, redeemed without a DPoP proof for a "
+                                  "resource that requires DPoP, fails with invalid_grant before "
+                                  "replay and authority",
+    "ras.grant_class_first": "the grant's own failures are reported before the request's "
+                             "resource and scope",
+    "ras.within_class_order": "a wrong requested resource is reported before an excessive "
+                              "requested scope",
+    "ras.proof_before_request": "a DPoP proof the jwt-dpop grant type requires is reported "
+                                "missing before a malformed request",
+    "ras.request_before_correlation": "the request's resource and scope are checked before "
+                                      "correlation, which creates no record for a request they "
+                                      "fail",
+    "ras.unfinished_503": "a redemption whose correlation lookups cannot complete gets HTTP 503 "
+                          "without an error, not a denial",
+    "ras.established_failure_first": "a failure that precedes an unfinished check is reported, "
+                                     "not HTTP 503",
+    "ras.disable_invalidates": "disabling an agent invalidates its refresh authorizations, and "
+                               "re-enabling does not restore them",
     "ras.explicit_type": "the RAS tells an ID-JAG from a WAG by typ, never by whether it "
                          "carries act",
     "ras.grant_time": "grant iat and nbf are not in the future",
@@ -969,7 +989,7 @@ class RAS(Server):
                               (IDP_ISSUER, "agent-43"): {"analysis-api"}}
         # Self-acting policy: (issuer, agent) and Target Tenant -> the scopes
         # RAS policy permits the agent's own access (core: Self-Acting
-        # Redemption: WAG, step 5). Unlike user_links, the key carries no
+        # Redemption: WAG, step 6). Unlike user_links, the key carries no
         # issuer tenant: an agent identifier is unique across its issuer
         # (core: Canonical Identity and Tenant Boundaries), while a user
         # subject is unique only within its tenant.
@@ -1024,6 +1044,8 @@ class RAS(Server):
             what, value = body["what"], body["value"]
             if what == "agent_active":
                 self.agents[(IDP_ISSUER, "agent-42")]["active"] = value
+                if not value:
+                    self.invalidate_refresh((IDP_ISSUER, "agent-42"))
             elif what == "agent_local":
                 self.agents[(IDP_ISSUER, "agent-42")]["local"] = value
             elif what == "actor_gate":
@@ -1063,6 +1085,7 @@ class RAS(Server):
                 pair = (value[0], value[1])
                 self.agents.pop(pair, None)
                 self.removed_correlations.add(pair)
+                self.invalidate_refresh(pair)
             elif what == "multi_tenant_issuer":
                 # value: false has the RAS treat the IdP's issuer as
                 # single-tenant, trusting it without tenant configuration
@@ -1175,8 +1198,13 @@ class RAS(Server):
 
     def redeem(self, environ, form, grant_type=JWT_BEARER):
         client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
+        if not self.on("ras.proof_before_request"):
+            # Non-conforming: a malformed request is reported before the proof.
+            _one(form, "assertion")
         jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
-        # JWT DPoP Grant Section 5, step 1: jwt-dpop requires a DPoP proof.
+        # JWT DPoP Grant Section 5, step 1: jwt-dpop requires a DPoP proof. It
+        # is missing whatever the request holds, so it is reported before a
+        # malformed request (core: Redemption Error Precedence, class 1).
         if grant_type == JWT_DPOP and jkt is None and self.on("ras.require_proof"):
             raise OAuthError("invalid_dpop_proof", description="jwt-dpop requires a DPoP proof")
         assertion = _one(form, "assertion")
@@ -1192,6 +1220,10 @@ class RAS(Server):
                 raise Deferred(self.deferred_body(pending))
             if self.on("ras.grant_consumed"):
                 raise OAuthError("invalid_grant", description="grant consumed by a deferred redemption")
+        if self.resolution_unavailable and not self.on("ras.established_failure_first"):
+            # Non-conforming: an unfinished check is reported as HTTP 503 even
+            # where a failure that precedes it is established.
+            raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
         claims, wag = self.validate_grant(assertion)
         if claims.get("client_id") != client_id and self.on("ras.client_id"):
             raise OAuthError("invalid_grant", description="client_id mismatch")
@@ -1221,33 +1253,27 @@ class RAS(Server):
                 self.on("ras.grant_type_binding"):
             raise OAuthError("invalid_grant", description="grant type does not match the "
                              "grant's binding")
-        # Replay: this reference accepts each grant once, bound or not. It
-        # records a grant as accepted when it issues an access token, or
-        # when it defers the redemption.
-        grant_key, now = (claims["iss"], claims["jti"]), self.now()
-        if self.accepted_grants.get(grant_key, 0) > now and self.replay_refused(grant_key):
-            raise OAuthError("invalid_grant", description="grant already redeemed")
-        # Authority.
+        # The grant's own claims, then its resource and tenant, then a proof its
+        # resource's protection requires: class 2 of Redemption Error
+        # Precedence (core), reported before replay and the request's checks.
         resource = claims.get("resource")
         if isinstance(resource, list) and len(resource) == 1:
             resource = resource[0]
         if not isinstance(resource, str) or not resource:
             raise OAuthError("invalid_grant", description="resource claim")
-        requested = form.get("resource", [])
-        if len(requested) != 1 or (requested[0] != resource and self.on("ras.resource_match")):
-            raise OAuthError("invalid_target")
         grant_scope = claims.get("scope")
         if not isinstance(grant_scope, str) or not grant_scope.split():
             if self.on("ras.scope_claim"):
                 raise OAuthError("invalid_grant", description="scope claim")
             # Non-conforming: the resource's default scope stands in.
             grant_scope = (self.resources.get(resource) or {}).get("default_scope", "")
-        scope = grant_scope
-        if "scope" in form:
-            asked = _one(form, "scope", "invalid_scope").split()
-            if not asked or not set(asked) <= set(grant_scope.split()):
-                raise OAuthError("invalid_scope")
-            scope = " ".join(asked)
+        requested = form.get("resource", [])
+        wrong_target = len(requested) != 1 or \
+            (requested[0] != resource and self.on("ras.resource_match"))
+        if wrong_target and not self.on("ras.grant_class_first"):
+            # Non-conforming: the request's resource is reported before the
+            # grant's own failures.
+            raise OAuthError("invalid_target")
         # A grant whose resource this RAS does not govern (core: Token
         # Endpoint Errors; ID-JAG Section 4.4.1).
         config = self.resources.get(resource)
@@ -1260,17 +1286,65 @@ class RAS(Server):
         if not self.tenant_trusted(claims["iss"], issuer_tenant, config["tenant"]) and \
                 self.on("ras.tenant_trust"):
             raise OAuthError("invalid_grant", description="tenant not trusted for the Target Tenant")
+        # A grant without cnf, redeemed without the proof its resource's
+        # access-token protection requires (core: Access-Token Protection;
+        # ID-JAG Section 9.11.1.2.4). Without this check the RAS would issue
+        # a bearer token for a resource that permits only DPoP.
+        if cnf is None and jkt is None and config["protection"] == "dpop" and \
+                self.on("ras.unbound_proof_required"):
+            raise OAuthError("invalid_grant", description="sender-constrained access token "
+                             "required for this resource")
+        # Replay. A grant is accepted when the RAS issues a token or defers
+        # the redemption (core: Common Grant Validation, Grant replay); a
+        # request rejected before then records nothing. This reference
+        # accepts each grant once, bound or not.
+        grant_key, now = (claims["iss"], claims["jti"]), self.now()
+        if self.accepted_grants.get(grant_key, 0) > now and self.replay_refused(grant_key):
+            raise OAuthError("invalid_grant", description="grant already redeemed")
+        if not self.on("ras.commit_point"):
+            # Non-conforming: passing validation consumes the grant.
+            self.accepted_grants[grant_key] = claims["exp"] + SKEW
+        agent_key = (claims["iss"], claims["sub"]) if wag else (act["iss"], act["sub"])
+        if not self.on("ras.request_before_correlation"):
+            # Non-conforming: correlation, and any record it creates, comes
+            # before the request's checks.
+            user = None if wag else self.resolve_user(claims["iss"], issuer_tenant,
+                                                      config["tenant"], claims["sub"])
+            if not wag and user is None:
+                raise OAuthError("invalid_grant", description="user not resolved")
+            agent = self.correlate(agent_key, config["tenant"], user=user, scope=grant_scope)
+            if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
+                raise OAuthError("invalid_grant", description="agent not eligible")
+        # The request against the grant: its resource, then its scope.
+        asked = None
+        if "scope" in form:
+            values = form["scope"]
+            asked = values[0].split() if len(values) == 1 else []
+        excess = asked is not None and (not asked or not set(asked) <= set(grant_scope.split()))
+        failures = [("invalid_target", wrong_target), ("invalid_scope", excess)]
+        if not self.on("ras.within_class_order"):
+            # Non-conforming: the scope is reported before the resource.
+            failures.reverse()
+        for error, failed in failures:
+            if failed:
+                raise OAuthError(error)
+        scope = " ".join(asked) if asked else grant_scope
+        # User resolution and correlation read state that may be unavailable.
+        # A check that cannot complete has not failed: with no earlier
+        # failure established, the response is HTTP 503 without an error
+        # (core: Redemption Error Precedence).
+        if self.resolution_unavailable:
+            if self.on("ras.unfinished_503"):
+                raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
+            # Non-conforming: an unfinished lookup is taken as finding no record.
+            raise OAuthError("invalid_grant", description="agent not eligible")
         if wag:
             return self.redeem_wag(claims, client_id, jkt, config, resource, scope, grant_key, now)
         # Local authorization: user, agent correlation, actor gate.
         user = self.resolve_user(claims["iss"], issuer_tenant, config["tenant"], claims["sub"])
         if user is None:
             raise OAuthError("invalid_grant", description="user not resolved")
-        agent = self.agents.get((act["iss"], act["sub"]))
-        if agent is None and (act["iss"], config["tenant"]) in self.jit and \
-                not self.removal_applies((act["iss"], act["sub"])):
-            agent = self.correlate_just_in_time((act["iss"], act["sub"]), config["tenant"],
-                                                user=user)
+        agent = self.correlate(agent_key, config["tenant"], user=user)
         ineligible = agent is None or not agent["active"]
         if agent is not None and not self.on("ras.restriction_follows_agent"):
             # Non-conforming: the restriction holds only through the clients
@@ -1291,8 +1365,6 @@ class RAS(Server):
                 raise OAuthError("access_denied", description="RAS policy requires approval")
             raise Deferred(self.defer(form, digest, grant_key, claims, client_id, jkt, act,
                                       user, config, resource, scope, now))
-        if config["protection"] == "dpop" and jkt is None:
-            raise OAuthError("invalid_request", description="DPoP-bound access token required")
         # Where the resource permits DPoP or bearer, a valid proof binds the
         # token, and bearer issues only without one (core: Access-Token
         # Protection).
@@ -1313,14 +1385,11 @@ class RAS(Server):
                 "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
 
     def redeem_wag(self, claims, client_id, jkt, config, resource, scope, grant_key, now):
-        """Self-Acting Redemption: WAG, steps 4 to 6 (core): the correlated
+        """Self-Acting Redemption: WAG, steps 5 to 7 (core): the correlated
         agent's own access, with the local agent principal as sub, no act and
         no refresh token. The reference does not defer a WAG."""
         agent_key = (claims["iss"], claims["sub"])
-        agent = self.agents.get(agent_key)
-        if agent is None and (claims["iss"], config["tenant"]) in self.jit and \
-                not self.removal_applies(agent_key):
-            agent = self.correlate_just_in_time(agent_key, config["tenant"], scope=scope)
+        agent = self.correlate(agent_key, config["tenant"], scope=scope)
         if (agent is None or not agent["active"]) and self.on("ras.agent_eligibility"):
             raise OAuthError("invalid_grant", description="agent not eligible")
         permitted = self.self_acting.get((agent_key, config["tenant"]), set()) | \
@@ -1332,8 +1401,6 @@ class RAS(Server):
         # Redemption Opt-In). This RAS's policy defers no WAG.
         if set(scope.split()) & self.approval_required:
             raise OAuthError("invalid_target", description="RAS policy requires approval")
-        if config["protection"] == "dpop" and jkt is None:
-            raise OAuthError("invalid_request", description="DPoP-bound access token required")
         bind = jkt is not None and (config["protection"] == "dpop" or
                                     self.on("ras.bind_when_proven"))
         token_claims = {"iss": self.issuer, "sub": agent["local"] if agent else claims["sub"],
@@ -1369,6 +1436,16 @@ class RAS(Server):
         if self.introspection_omit_act:
             response.pop("act", None)
         return response
+
+    def invalidate_refresh(self, agent_key):
+        """Applied disablement or correlation removal invalidates the agent's
+        refresh authorizations, and reactivation does not restore them (core:
+        Applied Disablement and Revocation). With ras.disable_invalidates off,
+        refresh re-checks only current state, so a re-enable revives them."""
+        if self.on("ras.disable_invalidates"):
+            for token in [t for t, auth in self.refresh_tokens.items()
+                          if auth["agent"] == agent_key]:
+                del self.refresh_tokens[token]
 
     def removal_applies(self, agent_key):
         """Whether the RAS removed this pair's correlation, which a record created
@@ -1668,6 +1745,15 @@ class RAS(Server):
         """The actor gate: an entry for this user and agent, or an issuer-wide rule."""
         return (user, iss, sub, tenant) in self.actor_gate or \
             (iss, tenant) in self.actor_gate_rules
+
+    def correlate(self, agent_key, tenant, user=None, scope=""):
+        """The agent record for the exact pair, created just in time where
+        resource policy permits and no retained removal forbids it."""
+        agent = self.agents.get(agent_key)
+        if agent is None and (agent_key[0], tenant) in self.jit and \
+                not self.removal_applies(agent_key):
+            agent = self.correlate_just_in_time(agent_key, tenant, user=user, scope=scope)
+        return agent
 
     def correlate_just_in_time(self, agent_key, tenant, user=None, scope=""):
         """Optional Just-in-Time Correlation: a record keyed by the exact pair.
