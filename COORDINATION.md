@@ -257,12 +257,15 @@ Two differences found in assessing the 2026-11-07 revisions:
   CIMD-03 Section 6 rejects a request with `invalid_client` when the
   `response_types` that a document declares and the server supports do
   not intersect. Read literally, a server with no authorization
-  endpoint, such as the RAS, rejects every token request from a CIMD
-  client. The drafts therefore hold CIMD at -02. Re-pinning to a fixed
-  revision also moves the core's rule to Section 5 of CIMD-03, which
-  lists methods in `token_endpoint_auth_methods_supported`, treats a
-  document that lists none as `none`, and requires a declared
-  `private_key_jwt` only where the server supports it.
+  endpoint, such as a RAS without one, rejects every token request from
+  a CIMD client, and every server rejects a document whose
+  `response_types` is empty. The drafts pin CIMD-03 anyway (ruling R5,
+  2026-11-10) for its Section 5, where a client lists its methods in
+  `token_endpoint_auth_methods_supported`, so one document can serve an
+  IdP and a RAS that accept different methods. The core makes no
+  exception to Section 6: its Upstream Dependencies table states the
+  consequence, a separate registration at such a server. Open until the
+  issue is resolved.
 
 #### Shared Signals: WISE and CAEP
 

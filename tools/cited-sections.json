@@ -18,6 +18,7 @@
   "I-D.ietf-oauth-client-id-metadata-document-03": {
     "4": "Client ID Metadata Document",
     "5": "Client Authentication",
+    "6": "Client Information Discovery",
     "8": "Authorization Server Metadata"
   },
   "I-D.ietf-oauth-deferred-token-response-01": {

@@ -3412,6 +3412,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | WAG | Alignment on protection ({{wag-gaps}}) | Generic WAG support does not imply the governed composition ({{wag-flow}}) |
 | ID-JAG and JWT DPoP Grant | One error for a bound grant redeemed without a proof: `invalid_grant` in {{Section 9.11.1.2.2 of ID-JAG}}, `invalid_dpop_proof` in {{Section 5 of JWT-DPOP-GRANT}} | Either error is permitted ({{grant-protection}}) |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
+| CIMD | {{Section 6 of CIMD}} to apply its `response_types` intersection to authorization requests only; it rejects, with `invalid_client`, any request whose document and server share no response type | A server that supports no response type, such as one without an authorization endpoint, rejects every Client ID Metadata Document client, which registers separately there ({{client-metadata}}); every server rejects a document whose `response_types` is empty |
 {: title="Upstream dependencies"}
 
 ### WAG {#wag-gaps}
