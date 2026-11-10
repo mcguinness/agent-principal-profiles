@@ -39,7 +39,7 @@ normative:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile-01
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
-  RFC7523bis: I-D.ietf-oauth-rfc7523bis-11
+  RFC10070:
   CIMD: I-D.ietf-oauth-client-id-metadata-document-02
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
@@ -1157,7 +1157,7 @@ input.
   An additional agent claim in a self-signed client assertion MUST NOT
   select another Agent Principal under this input.
 * **Audience:** RFC 7523 client authentication at the IdP and the RAS
-  MUST follow {{Section 4 of RFC7523bis}}: `aud` has the authorization
+  MUST follow {{Section 4 of RFC10070}}: `aud` has the authorization
   server's issuer identifier as its sole value, never its token endpoint
   URL, and the server rejects any other audience. This profile adds no
   alternative audience configuration and leaves other credential
@@ -3341,7 +3341,7 @@ referenced sections define each requirement.
 | Area | Profile requirement | Defined in |
 |---|---|---|
 | Actor extension | Identity Binding resolves the agent; a separate Client Association authorizes client use | {{identity-binding}} |
-| Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
+| Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC10070}} |
 | Other authentication-context inputs | Resolved from the identity validated by SPIFFE or Client Attestation authentication | {{actor-inputs}}; the inputs are defined in {{INPUTS}} |
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |

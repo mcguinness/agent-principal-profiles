@@ -18,8 +18,9 @@ Revisions read in full against the family's use: WAG-02, ID-JAG-06,
 and JWT DPoP Grant-02 (2026-11-04); DTR-01, SPIFFE OAuth-03, WIT-03,
 ATTEST-12, CIMD-03, Client Instance Identifiers-01, and Client Attester
 Endorsement-01 (2026-11-07); and, earlier, ICA-02, Actor Profile-01,
-CIMD-02, and WISE draft 03. For RFC 7523bis-11 and AIMS-01, only the
-cited sections were assessed.
+CIMD-02, and WISE draft 03. For RFC 10070, published from RFC 7523bis-11
+with the cited section unchanged, and AIMS-01, only the cited sections
+were assessed.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
