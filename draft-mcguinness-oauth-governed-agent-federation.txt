@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         9 November 2026
-Expires: 13 May 2027
+Intended status: Standards Track                        10 November 2026
+Expires: 14 May 2027
 
 
             OAuth 2.0 Profile for Agent Principal Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 13 May 2027.
+   This Internet-Draft will expire on 14 May 2027.
 
 Copyright Notice
 
@@ -1182,7 +1182,9 @@ Table of Contents
    registration tells the two token populations apart (Section 7.1).
    The association then names a registration for each acting
    relationship, and a grant's client_id is the registration for its
-   own.
+   own.  The client still holds both acting relationships at the IdP;
+   Section 12.7 describes the separation that limits an agent refused
+   for a user.
 
 5.2.  Token Exchange Request
 
@@ -2129,14 +2131,21 @@ Table of Contents
 
    *  MUST key the created record by that exact pair;
 
+   *  MUST give the created record a local principal that no other
+      qualified pair maps to, so agents of two issuers with one
+      identifier remain two principals;
+
    *  MUST NOT attach the pair to an existing record by name or other
       descriptive match;
 
    *  MUST apply local restrictions, retained revocation state under
-      Section 8.3, and local policy before issuance; and
+      Section 8.3 (which includes a correlation the RAS has removed, so
+      creating the record again does not undo a removal), and local
+      policy before issuance; and
 
    *  sets the record's initial eligibility by local policy; a record
-      created ineligible denies the triggering request.
+      created ineligible denies the triggering request with
+      invalid_grant (Section 6.9).
 
    Creating the record is correlation, not authorization.  Resource
    policy still applies, and for delegated access so does the actor gate
@@ -3284,8 +3293,12 @@ Table of Contents
    apply.  A client that holds both kinds of Client Association can
    therefore serve a user with the agent's own authority.  A rule on
    clients would bind only clients that follow it.  The control is
-   separation: a client that acts for users holds no self-acting Client
-   Association, and self-acting work uses another client registration.
+   separation at the IdP: a client that acts for users holds no self-
+   acting Client Association, and self-acting work uses another IdP
+   client with its own Client Association.  A separate RAS registration
+   for one IdP client's self-acting grants (Section 5.1) tells the token
+   populations apart but leaves both acting relationships with that
+   client, so it is not this separation.
 
    It does not distinguish an induced request from an intended one,
    inspect content, or constrain how authority is used within its scope.
@@ -4158,9 +4171,11 @@ A.1.5.  Renewal and Negative Tests
 A.1.6.  Self-Acting Variant
 
    This non-normative variant issues a WAG to the same dedicated client
-   under Section 5.7.  The client authenticates with a fresh assertion,
-   analysis-auth-3, and repeats the same compact JWT as the subject
-   token as Section 5.7.1 defines:
+   under Section 5.7, which then holds both kinds of Client Association;
+   a deployment that wants the separation of Section 12.7 issues self-
+   acting grants to another IdP client.  The client authenticates with a
+   fresh assertion, analysis-auth-3, and repeats the same compact JWT as
+   the subject token as Section 5.7.1 defines:
 
    POST /token HTTP/1.1
    Host: idp.example
@@ -4520,8 +4535,10 @@ B.1.  Differences from Base Specifications
    |                |                    | time correlation, off by    |
    |                |                    | default; the created        |
    |                |                    | record is keyed by the      |
-   |                |                    | exact pair and authorizes   |
-   |                |                    | nothing (Section 6.3.1)     |
+   |                |                    | exact pair, has a local     |
+   |                |                    | principal of its own, and   |
+   |                |                    | authorizes nothing          |
+   |                |                    | (Section 6.3.1)             |
    +----------------+--------------------+-----------------------------+
    | Shared issuers | A claim registered | tenant, set to the agent's  |
    |                | for each Workload  | Governance Tenant,          |

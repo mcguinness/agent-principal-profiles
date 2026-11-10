@@ -1065,7 +1065,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 13 May 2027</td>
+<td class="center">Expires 14 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1078,12 +1078,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-federation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-09" class="published">9 November 2026</time>
+<time datetime="2026-11-10" class="published">10 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-13">13 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-14">14 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1149,7 +1149,7 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 13 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 14 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -2828,7 +2828,9 @@ self-acting grants than for delegated grants, so that the client
 registration tells the two token populations apart
 (<a href="#api-applicability" class="auto internal xref">Section 7.1</a>). The association then names a registration for
 each acting relationship, and a grant's <code>client_id</code> is the registration
-for its own.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+for its own. The client still holds both acting relationships at the
+IdP; <a href="#security-authorized-misuse" class="auto internal xref">Section 12.7</a> describes the separation that
+limits an agent refused for a user.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="issuance-request">
@@ -4173,16 +4175,24 @@ When it applies, the RAS:<a href="#section-6.3.1-1" class="pilcrow">¶</a></p>
               <p id="section-6.3.1-2.1.1"><span class="bcp14">MUST</span> key the created record by that exact pair;<a href="#section-6.3.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.3.1-2.2">
-              <p id="section-6.3.1-2.2.1"><span class="bcp14">MUST NOT</span> attach the pair to an existing record by name or other
-descriptive match;<a href="#section-6.3.1-2.2.1" class="pilcrow">¶</a></p>
+              <p id="section-6.3.1-2.2.1"><span class="bcp14">MUST</span> give the created record a local principal that no other
+qualified pair maps to, so agents of two issuers with one identifier
+remain two principals;<a href="#section-6.3.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.3.1-2.3">
-              <p id="section-6.3.1-2.3.1"><span class="bcp14">MUST</span> apply local restrictions, retained revocation state under
-<a href="#applied-changes" class="auto internal xref">Section 8.3</a>, and local policy before issuance; and<a href="#section-6.3.1-2.3.1" class="pilcrow">¶</a></p>
+              <p id="section-6.3.1-2.3.1"><span class="bcp14">MUST NOT</span> attach the pair to an existing record by name or other
+descriptive match;<a href="#section-6.3.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.3.1-2.4">
-              <p id="section-6.3.1-2.4.1">sets the record's initial eligibility by local policy; a record
-created ineligible denies the triggering request.<a href="#section-6.3.1-2.4.1" class="pilcrow">¶</a></p>
+              <p id="section-6.3.1-2.4.1"><span class="bcp14">MUST</span> apply local restrictions, retained revocation state under
+<a href="#applied-changes" class="auto internal xref">Section 8.3</a> (which includes a correlation the RAS has
+removed, so creating the record again does not undo a removal), and
+local policy before issuance; and<a href="#section-6.3.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.3.1-2.5">
+              <p id="section-6.3.1-2.5.1">sets the record's initial eligibility by local policy; a record
+created ineligible denies the triggering request with
+<code>invalid_grant</code> (<a href="#redemption-errors" class="auto internal xref">Section 6.9</a>).<a href="#section-6.3.1-2.5.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="section-6.3.1-3">Creating the record is correlation, not authorization. Resource policy
@@ -5677,9 +5687,13 @@ request to a refusal elsewhere, and a self-acting token carries no user
 whose permissions the API could apply. A client that holds both kinds
 of Client Association can therefore serve a user with the agent's own
 authority. A rule on clients would bind only clients that follow it.
-The control is separation: a client that acts for users holds no
-self-acting Client Association, and self-acting work uses another
-client registration.<a href="#section-12.7-4" class="pilcrow">¶</a></p>
+The control is separation at the IdP: a client that acts for users
+holds no self-acting Client Association, and self-acting work uses
+another IdP client with its own Client Association. A separate RAS
+registration for one IdP client's self-acting grants
+(<a href="#flow-configuration" class="auto internal xref">Section 5.1</a>) tells the token populations apart but leaves
+both acting relationships with that client, so it is not this
+separation.<a href="#section-12.7-4" class="pilcrow">¶</a></p>
 <p id="section-12.7-5">It does not distinguish an induced request from an intended one,
 inspect content, or constrain how authority is used within its scope.
 Those controls belong to the agent's runtime, its platform, and
@@ -6567,7 +6581,10 @@ unbound grants.<a href="#appendix-A.1.5-4" class="pilcrow">¶</a></p>
 <a href="#appendix-A.1.6" class="section-number selfRef">A.1.6. </a><a href="#name-self-acting-variant" class="section-name selfRef">Self-Acting Variant</a>
           </h4>
 <p id="appendix-A.1.6-1">This non-normative variant issues a WAG to the same dedicated client
-under <a href="#wag-issuance" class="auto internal xref">Section 5.7</a>. The client authenticates with a fresh assertion,
+under <a href="#wag-issuance" class="auto internal xref">Section 5.7</a>, which then holds both kinds of Client
+Association; a deployment that wants the separation of
+<a href="#security-authorized-misuse" class="auto internal xref">Section 12.7</a> issues self-acting grants to another IdP
+client. The client authenticates with a fresh assertion,
 <code>analysis-auth-3</code>, and repeats the same compact JWT as the subject token
 as <a href="#wag-request" class="auto internal xref">Section 5.7.1</a> defines:<a href="#appendix-A.1.6-1" class="pilcrow">¶</a></p>
 <div class="lang-http-message sourcecode" id="appendix-A.1.6-2">
@@ -6986,7 +7003,7 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Previously unseen agents</td>
               <td class="text-left" rowspan="1" colspan="1">Accepted on first assertion</td>
-              <td class="text-left" rowspan="1" colspan="1">Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair and authorizes nothing (<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair, has a local principal of its own, and authorizes nothing (<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Shared issuers</td>
