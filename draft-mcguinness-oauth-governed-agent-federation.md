@@ -1038,7 +1038,9 @@ self-acting grants than for delegated grants, so that the client
 registration tells the two token populations apart
 ({{api-applicability}}). The association then names a registration for
 each acting relationship, and a grant's `client_id` is the registration
-for its own.
+for its own. The client still holds both acting relationships at the
+IdP; {{security-authorized-misuse}} describes the separation that
+limits an agent refused for a user.
 
 ## Token Exchange Request {#issuance-request}
 
@@ -1784,12 +1786,18 @@ Tenant.
 When it applies, the RAS:
 
 * MUST key the created record by that exact pair;
+* MUST give the created record a local principal that no other
+  qualified pair maps to, so agents of two issuers with one identifier
+  remain two principals;
 * MUST NOT attach the pair to an existing record by name or other
   descriptive match;
 * MUST apply local restrictions, retained revocation state under
-  {{applied-changes}}, and local policy before issuance; and
+  {{applied-changes}} (which includes a correlation the RAS has
+  removed, so creating the record again does not undo a removal), and
+  local policy before issuance; and
 * sets the record's initial eligibility by local policy; a record
-  created ineligible denies the triggering request.
+  created ineligible denies the triggering request with
+  `invalid_grant` ({{redemption-errors}}).
 
 Creating the record is correlation, not authorization. Resource policy
 still applies, and for delegated access so does the actor gate
@@ -2756,9 +2764,13 @@ request to a refusal elsewhere, and a self-acting token carries no user
 whose permissions the API could apply. A client that holds both kinds
 of Client Association can therefore serve a user with the agent's own
 authority. A rule on clients would bind only clients that follow it.
-The control is separation: a client that acts for users holds no
-self-acting Client Association, and self-acting work uses another
-client registration.
+The control is separation at the IdP: a client that acts for users
+holds no self-acting Client Association, and self-acting work uses
+another IdP client with its own Client Association. A separate RAS
+registration for one IdP client's self-acting grants
+({{flow-configuration}}) tells the token populations apart but leaves
+both acting relationships with that client, so it is not this
+separation.
 
 It does not distinguish an induced request from an intended one,
 inspect content, or constrain how authority is used within its scope.
@@ -3168,7 +3180,10 @@ unbound grants.
 ### Self-Acting Variant {#wag-example}
 
 This non-normative variant issues a WAG to the same dedicated client
-under {{wag-issuance}}. The client authenticates with a fresh assertion,
+under {{wag-issuance}}, which then holds both kinds of Client
+Association; a deployment that wants the separation of
+{{security-authorized-misuse}} issues self-acting grants to another IdP
+client. The client authenticates with a fresh assertion,
 `analysis-auth-3`, and repeats the same compact JWT as the subject token
 as {{wag-request}} defines:
 
@@ -3351,7 +3366,7 @@ For self-acting access, this profile composes {{WAG}} as follows
 | Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile; a bound WAG is redeemed with `jwt-dpop`, where {{Section 5 of WAG}} uses `jwt-bearer` ({{redemption-request}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
 | `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
-| Previously unseen agents | Accepted on first assertion | Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair and authorizes nothing ({{jit-correlation}}) |
+| Previously unseen agents | Accepted on first assertion | Accepted where resource policy permits just-in-time correlation, off by default; the created record is keyed by the exact pair, has a local principal of its own, and authorizes nothing ({{jit-correlation}}) |
 | Shared issuers | A claim registered for each Workload Identity Provider tells providers sharing one issuer apart; dedicated issuers, or else the ID-JAG `tenant` claim, are RECOMMENDED ({{Section 6.3 of WAG}}) | `tenant`, set to the agent's Governance Tenant, required in a WAG from a multi-tenant issuer; the RAS trusts `iss` and `tenant` together ({{canonical-identity}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}

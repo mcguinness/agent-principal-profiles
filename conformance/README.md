@@ -14,9 +14,9 @@ transaction](../EXAMPLES.md#first-delegated-transaction) traces it:
 * a DPoP-bound JWT access token, validated at the API.
 
 Beyond that path, it tests self-acting issuance and redemption (P14,
-P15, N44 to N49, N51, N52), the existing platform JWT input for a
+P15, N44 to N49, N51, N52, N54), the existing platform JWT input for a
 shared client (P11 to P13, N36 to N39), and just-in-time correlation
-(N34, N47 to N49). It also holds tests of the oversight companion's
+(N34, N47 to N49, N54). It also holds tests of the oversight companion's
 deferred redemption at the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
 Policy Services, error selection order, self-acting access and
@@ -141,6 +141,7 @@ single-tenant issuer omits.
 | N51 | RAS | With unbound grants, a WAG without `cnf` redeemed once and presented again fails with `invalid_grant` | core: Common Grant Validation (Grant replay); Renewal and Negative Tests | As N50, for the self-acting registration |
 | N52 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, an ID-JAG-typed grant without `act`, naming the self-acting registration, and a WAG-typed grant carrying `act` both fail with `invalid_grant`: the RAS tells the grants apart by `typ`, so neither becomes the other | core: Grant Validation (Actor); Self-Acting Redemption: WAG, step 1; Credential and Token Confusion | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; mint an ID-JAG and a WAG |
 | N53 | API | With the user delegating only `files.write` and the API's actor gate closed, a read with the resulting access token, which lacks `files.read`, fails with 403 `actor_unauthorized`, not `insufficient_scope`: the actor gate is reported first | core: Error Responses (selection order); Delegated Actor Authorization | Set the delegation's scopes at the IdP; close the API's actor gate |
+| N54 | RAS | With just-in-time correlation on, created records eligible and a self-acting rule set, a WAG for `agent-99` redeems and creates its record. After the RAS removes that correlation, each of the next two such WAGs fails with `invalid_grant`: the removal is retained revocation state, which just-in-time correlation does not undo. Whether the RAS keeps an ineligible record for the pair is not tested | core: Optional Just-in-Time Correlation; Applied Disablement and Revocation; Redemption Errors | Turn on just-in-time correlation; make created records eligible; set a self-acting rule; remove a correlation; mint WAGs |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `access_denied` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays pending until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -239,10 +240,10 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case but N32, and P2, P7 to P10, P12, P13, P16, D02,
 D09 and D24, name the reference checks they exercise (`CHECKS` in
-[reference.py](reference.py)). With `--vacuity`, each of these 122
+[reference.py](reference.py)). With `--vacuity`, each of these 123
 cases runs once for each check it names, with that check switched off;
-eight S cases, N40, N47 and N49 name two checks, so there are 133 runs,
-and every run fails. Forty-five N cases fail because the server then
+eight S cases, N40, N47 and N49 name two checks, so there are 134 runs,
+and every run fails. Forty-six N cases fail because the server then
 accepts the request, and N53 because the API then reports
 `insufficient_scope` first. P2 fails because the access token
 then carries a rewritten `act`, P7 because it is then a bearer
@@ -581,8 +582,8 @@ The suite tests nothing outside the path above, including:
   Pointer selectors, the binding of key-bound platform JWTs (which the
   reference refuses, N39), a configured maximum age, and self-acting
   presentation; and the inputs of the inputs draft;
-* WAG issuance and redemption beyond P14, P15, N44 to N49, N51 and
-  N52: presented evidence, the byte-identical subject token, the Agent
+* WAG issuance and redemption beyond P14, P15, N44 to N49, N51, N52
+  and N54: presented evidence, the byte-identical subject token, the Agent
   Authorization's scope ceiling, deferred WAG redemption, and the other
   WAG rows of Redemption Errors; S08 and S09 use minted self-acting
   tokens;
@@ -658,7 +659,8 @@ another IdP, RAS or API:
    `set:idp.client_profile` and `set:ras.client_profile`, N51 for the
    self-acting registration too; N52 needs `mint_grant`, `mint_wag` and
    the just-in-time controls of N47; N53 needs `extra_scope` and
-   `set:idp.delegation_scope`. D10 and D11 need
+   `set:idp.delegation_scope`; N54 needs the controls of N47 except
+   `agent_record`, and `set:ras.remove_correlation`. D10 and D11 need
    `second_agent`, another agent the RAS correlates and lets act for
    the user; D12 needs `extra_scope`, a
    scope beyond `scope` the RAS can require approval for, and N25 and N28

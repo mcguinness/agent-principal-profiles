@@ -538,7 +538,10 @@ decides what the local principal `service-principal-42` may do.
 
 **Operating model.** Self-acting, alongside the delegated recipe, with
 the same dedicated client, client registration, resource, and
-protection choices. Because both token populations share a client
+protection choices. One client for both acting relationships is the
+configuration the core's Misuse by an Authorized Agent names as the
+exposure for an agent refused for a user; a deployment that needs the
+separation uses another IdP client for self-acting work. Because both token populations share a client
 registration and an audience, the RAS and API need the additional
 bilateral contract the core's implementation considerations describe
 for that case. Here, the RAS records which acting relationship
