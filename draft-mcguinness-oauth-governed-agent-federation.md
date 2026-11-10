@@ -929,7 +929,8 @@ Validators MUST enforce:
 * **Replay protection:** Apply each credential, proof, and grant
   mechanism independently. Where a mechanism retains replay state, that
   state MUST remain in effect for as long as the credential, proof, or
-  grant would otherwise be accepted, including the maximum allowed skew.
+  grant would otherwise be acceptable, including the maximum allowed
+  skew.
 
 Key lookup MUST retain the issuer or trust-domain association
 ({{Section 3.8 of RFC8725}}).
@@ -1753,9 +1754,21 @@ Both grants use these checks. {{redemption-validation}} and
      `authorization_details`. Reject the grant with `invalid_grant` if
           its authority extends beyond that resource.
 
-**Grant replay:** For a grant without an enforced grant-level sender
-constraint, the RAS MUST reject a grant whose validated (`iss`, `jti`)
-it has already accepted while that grant remains acceptable. A proof
+**Grant replay:** The RAS accepts a grant when every check required for
+issuance has passed and it issues an access token, or when every check
+required for admission to deferral has passed and it records a pending
+governed redemption ({{OVERSIGHT}}). A grant is accepted only once when
+it has no enforced grant-level sender constraint, when the RAS admits it
+to deferral, or when it is bound and no explicit policy lets the RAS
+accept it again. For such a grant, the RAS MUST record its (`iss`,
+`jti`) as accepted atomically with that commitment, so that of
+concurrent presentations at most one is accepted. A request rejected
+before acceptance MUST NOT record the grant as accepted or change an
+existing record, so a client can correct the request, such as a missing
+proof or a wrong `resource`, and present the same grant again. For a
+grant without an enforced grant-level sender constraint, the RAS MUST
+reject a grant whose validated (`iss`, `jti`) it has already accepted
+while that grant remains acceptable. A proof
 used only for client authentication or access-token binding is not such
 a constraint. The RAS MAY accept a bound grant again under explicit
 policy, each time with a fresh proof that matches its `cnf.jkt`
