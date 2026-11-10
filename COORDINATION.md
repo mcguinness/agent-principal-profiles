@@ -282,7 +282,8 @@ Two differences found in assessing the 2026-11-07 revisions:
   lists it for the RAS. The one-document deployment of the core's Client
   Metadata relies on reading "supports" per client, through the same
   section's "MAY restrict the supported methods of client authentication
-  based on its own policies".
+  based on its own policies". The core's Client Metadata states both
+  points beside the one-document case.
 
 #### Shared Signals: WISE and CAEP
 

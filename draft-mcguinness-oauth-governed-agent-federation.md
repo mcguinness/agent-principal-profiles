@@ -2455,6 +2455,18 @@ methods, the client registers separately at the RAS, and the client
 registration association ({{flow-configuration}}) maps the two
 identifiers.
 
+Two points of {{Section 5 of CIMD}} bear on one document at both
+servers. First, a server that supports a declared `private_key_jwt`
+requires client authentication with it, and every IdP under this
+profile supports that method ({{metadata}}). An IdP that accepts another
+listed method, such as the `spiffe_jwt` method of {{SPIFFE-OAUTH}}, from
+a document that also lists `private_key_jwt` therefore relies on its
+policy restricting the methods it supports for that client. Second, the
+section requires `jwks` or `jwks_uri` with JWT-based methods without
+saying whether that includes methods whose keys come from elsewhere,
+such as `spiffe_jwt` or the methods of {{ATTEST}}; whether a document
+that lists only such methods needs a JWK Set is unsettled.
+
 ### Capability Discovery {#capability-discovery}
 
 Before using either grant path:
