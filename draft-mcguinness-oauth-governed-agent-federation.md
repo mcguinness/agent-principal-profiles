@@ -630,12 +630,21 @@ multi-tenant issuer:
   present and the RAS trusts `iss` and `tenant` together for the Target
   Tenant, as {{Section 4.4.1 of ID-JAG}} requires for an ID-JAG.
 
+Only a multi-tenant issuer includes `tenant` ({{Section 6.1 of ID-JAG}}),
+so a grant that carries it is from one, whatever the RAS's
+configuration says of the issuer. The RAS MUST reject such a grant with
+`invalid_grant` unless it trusts `iss` and that `tenant` together for
+the Target Tenant. A RAS configured with the issuer alone therefore
+fails closed instead of trusting every tenant of a shared issuer.
+
 A RAS's trust in a multi-tenant issuer to assert agents, including
 just-in-time correlation ({{jit-correlation}}) and an actor-gate rule
-that admits every agent an issuer asserts, is therefore trust in one of
-that issuer's tenants. The Agent Principal identifier remains unique
-across the issuer, and `tenant` does not become part of the agent's
-identity.
+that admits every agent an issuer asserts, is therefore trust in each
+issuer tenant the RAS trusts for the Target Tenant. The access token
+does not carry the issuer tenant, so an API that evaluates the actor
+gate itself cannot narrow such a rule to one of those tenants. The
+Agent Principal identifier remains unique across the issuer, and
+`tenant` does not become part of the agent's identity.
 
 ## Governance Boundary and Execution Independence {#governance-boundary}
 
@@ -3337,7 +3346,7 @@ referenced sections define each requirement.
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
-| Multi-tenant issuers | `tenant` also names the agent's Governance Tenant: no ID-JAG for an agent of a tenant other than the user's, `tenant` in every WAG, and the RAS's tenant rule of {{Section 4.4.1 of ID-JAG}} applied to a WAG | {{canonical-identity}} |
+| Multi-tenant issuers | `tenant` also names the agent's Governance Tenant: no ID-JAG for an agent of a tenant other than the user's, `tenant` in every WAG, and the RAS's tenant rule of {{Section 4.4.1 of ID-JAG}} applied to a WAG. A grant carrying `tenant` is from a multi-tenant issuer whatever the RAS's configuration says, where {{Section 4.4.1 of ID-JAG}} conditions its rule on the RAS knowing that | {{canonical-identity}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Grant binding | `cnf.jkt` from a DPoP proof, redeemed with `jwt-dpop`; no `x5t#S256` certificate binding ({{Section 9.11.2 of ID-JAG}}) | {{grant-protection}}, {{redemption-request}} |
 | Redemption client authentication | Required for every grant, including a bound grant; {{Section 4.4 of ID-JAG}} lets a bound ID-JAG stand in for it, and {{Section 4.1 of JWT-DPOP-GRANT}} makes it optional | {{redemption-common}} |
