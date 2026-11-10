@@ -385,6 +385,10 @@ class Adapter:
                                           client, RAS registration]: the
                                           client registration association)
                                      ras: agent_active, actor_gate,
+                                          multi_tenant_issuer (false: the
+                                          RAS's configuration treats the
+                                          IdP's issuer as single-tenant,
+                                          trusting it with no tenant),
                                           tenant_trust ([issuer tenant,
                                           Target Tenant, trusted]: whether
                                           the RAS trusts the IdP's tenant
@@ -2109,6 +2113,29 @@ def n54(ctx):
         resp = ctx.client.redeem(unseen_wag(ctx), as_self_acting=True)
         check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
               f"{attempt} WAG after the removal: expected HTTP 400 invalid_grant, got {resp}")
+        check("access_token" not in resp.json(), "an error response carried a token")
+
+
+
+@case("N55", "RAS", "Rejects with invalid_grant a grant naming a tenant the RAS does not trust, "
+      "even where its configuration treats the issuer as single-tenant",
+      "core: Canonical Identity and Tenant Boundaries; Redemption Errors",
+      needs=("mint_grant", "set:ras.multi_tenant_issuer"), defeats=("ras.tenant_claim",))
+def n55(ctx):
+    # Only a multi-tenant issuer includes tenant, so a RAS that registered
+    # the issuer alone must still refuse another tenant's grants rather
+    # than trust every tenant of it. The WAG leg runs where the deployment
+    # has a self-acting registration.
+    cfg = multi_tenant(ctx)
+    other = cfg.other_governance_tenant
+    ctx.adapter.set("ras", "multi_tenant_issuer", False)
+    grants = [("an ID-JAG", ctx.adapter.mint_grant(grant_claims(ctx, tenant=other)), False)]
+    if cfg.self_acting_client_key is not None:
+        grants.append(("a WAG", ctx.adapter.mint_wag(wag_claims(ctx, tenant=other)), True))
+    for label, grant, self_acting_grant in grants:
+        resp = ctx.client.redeem(grant, as_self_acting=self_acting_grant)
+        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+              f"{label} naming {other}: expected HTTP 400 invalid_grant, got {resp}")
         check("access_token" not in resp.json(), "an error response carried a token")
 
 

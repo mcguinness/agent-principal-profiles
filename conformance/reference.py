@@ -147,6 +147,8 @@ CHECKS = {
     "ras.agent_eligibility": "the correlated agent record exists and is active",
     "ras.tenant_trust": "a grant from a multi-tenant issuer names a tenant trusted with the "
                         "issuer for the Target Tenant",
+    "ras.tenant_claim": "a grant that carries tenant is from a multi-tenant issuer, whatever "
+                        "the RAS's configuration says of the issuer",
     "ras.user_tenant": "an ID-JAG's subject is resolved within its issuer tenant",
     "ras.wag_policy": "current RAS policy permits a WAG's agent its requested scope in the "
                       "Target Tenant",
@@ -1056,6 +1058,18 @@ class RAS(Server):
                 pair = (value[0], value[1])
                 self.agents.pop(pair, None)
                 self.removed_correlations.add(pair)
+            elif what == "multi_tenant_issuer":
+                # value: false has the RAS treat the IdP's issuer as
+                # single-tenant, trusting it without tenant configuration
+                # and linking its subjects without a tenant; true restores
+                # the multi-tenant configuration.
+                if value:
+                    self.multi_tenant_issuers.add(IDP_ISSUER)
+                else:
+                    self.multi_tenant_issuers.discard(IDP_ISSUER)
+                    self.user_links = {(iss, None if iss == IDP_ISSUER else tenant, target, sub):
+                                       user for (iss, tenant, target, sub), user
+                                       in self.user_links.items()}
             elif what == "user_link":
                 # value: [issuer tenant, sub, local user]: links the IdP's
                 # subject in that tenant to a local user in acme-data.
@@ -1603,15 +1617,21 @@ class RAS(Server):
                 "scope": auth["scope"]}
 
     def issuer_tenant(self, claims):
-        """The grant's tenant at a multi-tenant issuer; None at a single-tenant one."""
-        return claims.get("tenant") if claims["iss"] in self.multi_tenant_issuers else None
+        """The grant's tenant at an issuer the RAS knows to be multi-tenant, or wherever
+        the grant carries one, since only a multi-tenant issuer does (ID-JAG Section
+        6.1; core: Canonical Identity and Tenant Boundaries); None otherwise."""
+        if claims["iss"] in self.multi_tenant_issuers or \
+                ("tenant" in claims and self.on("ras.tenant_claim")):
+            return claims.get("tenant")
+        return None
 
     def tenant_trusted(self, iss, issuer_tenant, target_tenant):
-        """Whether the RAS trusts the issuer, in that tenant if it is multi-tenant, for the
-        Target Tenant (core: Canonical Identity and Tenant Boundaries)."""
-        return iss not in self.multi_tenant_issuers or (
-            isinstance(issuer_tenant, str) and
-            issuer_tenant in self.trusted_tenants.get((iss, target_tenant), ()))
+        """Whether the RAS trusts the issuer, in the grant's issuer tenant where it has
+        one, for the Target Tenant (core: Canonical Identity and Tenant Boundaries)."""
+        if iss not in self.multi_tenant_issuers and issuer_tenant is None:
+            return True
+        return isinstance(issuer_tenant, str) and \
+            issuer_tenant in self.trusted_tenants.get((iss, target_tenant), ())
 
     def resolve_user(self, iss, issuer_tenant, target_tenant, sub):
         """The local user an ID-JAG's subject links to, within its issuer tenant (core:
