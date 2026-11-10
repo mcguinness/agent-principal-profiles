@@ -674,10 +674,13 @@ The IdP MUST construct every onward grant of a governed chain so that:
 * it lists the chain's continuing clients in `continuation_via`
   ({{continuation-via}}).
 
-Where a target RAS distinguishes delegated and self-acting tokens by
-client registration ("Profile Applicability" under "Access at the
-Resource Server" in {{FEDERATION}}), the IdP selects the continuing
-client's registration there by the chain's acting relationship.
+Where the continuing client's client registration association names a
+registration for each acting relationship ("Issuance Prerequisites" in
+{{FEDERATION}}), as for a target RAS that tells delegated and
+self-acting tokens apart by client registration ("Profile
+Applicability" under "Access at the Resource Server" in
+{{FEDERATION}}), the IdP selects the registration there by the chain's
+acting relationship.
 
 The continuing client MUST NOT appear in the onward grant's `act`; it
 appears as the grant's client and in `continuation_via`, which disclose
@@ -1084,8 +1087,10 @@ intend.
   actor identities and CAI trust to one tenant. It selects the
   registration for a continuation by configuration. Where each
   Governance Tenant reaches the gateway through a Target Tenant that the
-  gateway's RAS trusts for that issuer tenant alone, the access token's
-  audience identifies the Governance Tenant. Where one Target Tenant is
+  gateway's RAS trusts for that issuer tenant alone, the Target Tenant
+  the access token carries ("Access Token Issuance and Response" in
+  {{FEDERATION}}; by default its audience) identifies the Governance
+  Tenant. Where one Target Tenant is
   trusted for several, the gateway obtains the tenant its RAS bound to
   the authorization ({{root-redemption}}) by deployment-specific means;
   this document defines no carrier for it. A continuation authenticated
