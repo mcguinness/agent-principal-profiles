@@ -524,8 +524,9 @@ order, whatever order it evaluates its checks in. Recovery of a
 deferred redemption and its polls follow the oversight companion
 instead.
 
-1. Client authentication, then a presented DPoP proof, then a malformed
-   request (`invalid_request`).
+1. Client authentication, then the DPoP proof, whether one presented is
+   invalid or one the `jwt-dpop` grant type requires is missing, then a
+   malformed request (`invalid_request`).
 2. The grant: its validation, claims, binding, and a proof that its
    binding or its resource's protection requires.
 3. Replay.

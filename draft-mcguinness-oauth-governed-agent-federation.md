@@ -1998,12 +1998,12 @@ When a grant without `cnf` is redeemed without the proof that the
 access-token protection of the grant's resource requires, a DPoP proof
 or, for mutual TLS, the client certificate, the RAS MUST reject the
 request with `invalid_grant` ({{Section 9.11.1.2.4 of ID-JAG}}), for a
-WAG as for an ID-JAG. That refusal is a proof check, reported before
-replay and authority failures ({{redemption-precedence}}). The RAS
-selects access-token protection only after the proof checks succeed, so
-a bound grant redeemed without its proof fails as {{grant-protection}}
-specifies, with `invalid_grant` or `invalid_dpop_proof`, whatever
-protection the resource requires.
+WAG as for an ID-JAG. That refusal is one of the grant's checks,
+reported before replay and authority failures
+({{redemption-precedence}}). The RAS selects access-token protection
+only after the proof checks succeed, so a bound grant redeemed without
+its proof fails as {{grant-protection}} specifies, with `invalid_grant`
+or `invalid_dpop_proof`, whatever protection the resource requires.
 
 | Selected protection | Access token |
 |---|---|
@@ -2083,15 +2083,17 @@ When such a request fails more than one check, the RAS MUST report the
 earliest failure in this order, whatever order it evaluates the checks
 in:
 
-1. Client authentication (`invalid_client`), then the validity of a
-   presented DPoP proof (`invalid_dpop_proof`, or `use_dpop_nonce` where
-   a nonce is required), then a malformed request, such as one without
-   exactly one `assertion` (`invalid_request`).
+1. Client authentication (`invalid_client`), then the DPoP proof,
+   whether one presented is invalid or one the `jwt-dpop` grant type
+   requires ({{Section 5 of JWT-DPOP-GRANT}}) is missing
+   (`invalid_dpop_proof`, or `use_dpop_nonce` where a nonce is required,
+   except that a bound grant presented without its proof fails with
+   `invalid_grant` or `invalid_dpop_proof` under {{grant-protection}}),
+   then a malformed request, such as one without exactly one `assertion`
+   (`invalid_request`).
 2. The grant: its validation, its own claims, its binding, and a proof
    that its binding or its resource's access-token protection requires
-   (`invalid_grant`, except that a bound grant presented without its
-   proof fails with `invalid_grant` or `invalid_dpop_proof` under
-   {{grant-protection}}).
+   (`invalid_grant`).
 3. Replay (`invalid_grant`).
 4. The requested resource (`invalid_target`), then the requested scope
    (`invalid_scope`).
