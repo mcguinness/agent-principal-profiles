@@ -519,12 +519,13 @@ N30, N34, N40, N42, N43, N46 to N52, and N54 to N68.
   resource is not the grant's.
 * `invalid_scope`: a requested scope outside the grant's.
 
-For a request that would accept a grant, the RAS reports the first
-failure in this order, whatever order it evaluates its checks in.
-Recovery of a deferred redemption and its polls follow the oversight
-companion instead.
+For a redemption request, the RAS reports the first failure in this
+order, whatever order it evaluates its checks in. Recovery of a
+deferred redemption and its polls follow the oversight companion
+instead.
 
-1. Client authentication, then a presented DPoP proof.
+1. Client authentication, then a presented DPoP proof, then a malformed
+   request (`invalid_request`).
 2. The grant: its validation, claims, binding, and a proof that its
    binding or its resource's protection requires.
 3. Replay.

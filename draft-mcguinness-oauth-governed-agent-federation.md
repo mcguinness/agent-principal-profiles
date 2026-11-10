@@ -2073,12 +2073,11 @@ RAS uses these errors:
 
 ### Redemption Error Precedence {#redemption-precedence}
 
-This order applies to a redemption request that would accept a grant
-({{redemption-common}}). A request that {{OVERSIGHT}} treats as
-recovery of, or a poll for, a pending governed redemption follows that
-document. The steps of {{redemption-validation}} and
-{{wag-redemption}} name the checks; this order selects the failure
-reported.
+This order applies to a redemption request other than one that
+{{OVERSIGHT}} treats as recovery of, or a poll for, a pending governed
+redemption, which follows that document. The steps of
+{{redemption-validation}} and {{wag-redemption}} name the checks; this
+order selects the failure reported.
 
 When such a request fails more than one check, the RAS MUST report the
 earliest failure in this order, whatever order it evaluates the checks
@@ -2086,7 +2085,8 @@ in:
 
 1. Client authentication (`invalid_client`), then the validity of a
    presented DPoP proof (`invalid_dpop_proof`, or `use_dpop_nonce` where
-   a nonce is required).
+   a nonce is required), then a malformed request, such as one without
+   exactly one `assertion` (`invalid_request`).
 2. The grant: its validation, its own claims, its binding, and a proof
    that its binding or its resource's access-token protection requires
    (`invalid_grant`, except that a bound grant presented without its
