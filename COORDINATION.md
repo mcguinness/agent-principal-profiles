@@ -274,6 +274,15 @@ Two differences found in assessing the 2026-11-07 revisions:
   document listing only such methods carries a JWK Set that no server
   uses or is rejected. The core requires `jwks` or `jwks_uri` only with
   a listed `private_key_jwt`, and `INPUTS` takes no side.
+* Not filed: the same section says that when a document declares
+  `private_key_jwt` "and the authorization server supports this method",
+  the server "MUST require client authentication according to Section
+  2.2 of [RFC7523]". The core has every IdP advertise `private_key_jwt`,
+  so read literally, an IdP must demand it from a SPIFFE client that
+  lists it for the RAS. The one-document deployment of the core's Client
+  Metadata relies on reading "supports" per client, through the same
+  section's "MAY restrict the supported methods of client authentication
+  based on its own policies".
 
 #### Shared Signals: WISE and CAEP
 

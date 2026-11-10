@@ -202,9 +202,9 @@ configuration object types are prescribed.
   both servers use the document and each accepts a method it lists in
   `token_endpoint_auth_methods_supported`. The client lists, for
   example, `spiffe_jwt` for the IdP and `private_key_jwt` for the RAS,
-  and uses at each server the method configured for it there. The IdP,
-  which also supports `private_key_jwt`, accepts only `spiffe_jwt` for
-  that client by policy. Otherwise the client registers separately at
+  and uses at each server the method configured for it there. The IdP's
+  policy restricts the methods it accepts for that client to
+  `spiffe_jwt`. Otherwise the client registers separately at
   the RAS, and a server that accepts no listed method other than `none`
   rejects requests under the document with `invalid_client` ([Client
   Metadata][client-metadata]). Until CIMD's `response_types` rule is
