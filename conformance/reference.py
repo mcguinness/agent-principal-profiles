@@ -150,6 +150,8 @@ CHECKS = {
                           "without an error, not a denial",
     "ras.established_failure_first": "a failure that precedes an unfinished check is reported, "
                                      "not HTTP 503",
+    "ras.disable_invalidates": "disabling an agent invalidates its refresh authorizations, and "
+                               "re-enabling does not restore them",
     "ras.explicit_type": "the RAS tells an ID-JAG from a WAG by typ, never by whether it "
                          "carries act",
     "ras.grant_time": "grant iat and nbf are not in the future",
@@ -1040,6 +1042,8 @@ class RAS(Server):
             what, value = body["what"], body["value"]
             if what == "agent_active":
                 self.agents[(IDP_ISSUER, "agent-42")]["active"] = value
+                if not value:
+                    self.invalidate_refresh((IDP_ISSUER, "agent-42"))
             elif what == "agent_local":
                 self.agents[(IDP_ISSUER, "agent-42")]["local"] = value
             elif what == "actor_gate":
@@ -1079,6 +1083,7 @@ class RAS(Server):
                 pair = (value[0], value[1])
                 self.agents.pop(pair, None)
                 self.removed_correlations.add(pair)
+                self.invalidate_refresh(pair)
             elif what == "multi_tenant_issuer":
                 # value: false has the RAS treat the IdP's issuer as
                 # single-tenant, trusting it without tenant configuration
@@ -1424,6 +1429,16 @@ class RAS(Server):
         if self.introspection_omit_act:
             response.pop("act", None)
         return response
+
+    def invalidate_refresh(self, agent_key):
+        """Applied disablement or correlation removal invalidates the agent's
+        refresh authorizations, and reactivation does not restore them (core:
+        Applied Disablement and Revocation). With ras.disable_invalidates off,
+        refresh re-checks only current state, so a re-enable revives them."""
+        if self.on("ras.disable_invalidates"):
+            for token in [t for t, auth in self.refresh_tokens.items()
+                          if auth["agent"] == agent_key]:
+                del self.refresh_tokens[token]
 
     def removal_applies(self, agent_key):
         """Whether the RAS removed this pair's correlation, which a record created

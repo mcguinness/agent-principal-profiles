@@ -2921,6 +2921,23 @@ def d28(ctx):
     expect_error(ctx.client.poll(body["deferral_code"]), 400, "expired_token")
 
 
+@case("D29", "RAS", "A refresh fails after the agent is disabled and re-enabled; a new grant "
+      "then succeeds",
+      "core: Applied Disablement and Revocation; oversight: Refresh and Continuation",
+      needs=("set:ras.approval_required", "set:ras.refresh_permitted", "set:ras.agent_active",
+             "tasks", "approve"),
+      defeats=("ras.disable_invalidates",))
+def d29(ctx):
+    # Applied disablement invalidates authorization derived from the
+    # agent's grants, refresh tokens included, and reactivation permits
+    # new decisions only: no refresh in between does not revive the token.
+    _, body, _ = approved_refresh(ctx, ctx.now() + HOUR)
+    ctx.adapter.set("ras", "agent_active", False)
+    ctx.adapter.set("ras", "agent_active", True)
+    expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
+    ctx.adapter.set("ras", "approval_required", [])
+    expect_token_response(ctx.client.redeem(ctx.grant()))
+
 # Policy services at the API ------------------------------------------------
 #
 # The core's Optional Policy Services and Error Responses. Test control
