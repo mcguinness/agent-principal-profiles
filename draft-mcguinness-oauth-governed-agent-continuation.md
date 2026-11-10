@@ -674,10 +674,13 @@ The IdP MUST construct every onward grant of a governed chain so that:
 * it lists the chain's continuing clients in `continuation_via`
   ({{continuation-via}}).
 
-Where a target RAS distinguishes delegated and self-acting tokens by
-client registration ("Profile Applicability" under "Access at the
-Resource Server" in {{FEDERATION}}), the IdP selects the continuing
-client's registration there by the chain's acting relationship.
+Where the continuing client's client registration association names a
+registration for each acting relationship ("Issuance Prerequisites" in
+{{FEDERATION}}), as for a target RAS that tells delegated and
+self-acting tokens apart by client registration ("Profile
+Applicability" under "Access at the Resource Server" in
+{{FEDERATION}}), the IdP selects the registration there by the chain's
+acting relationship.
 
 The continuing client MUST NOT appear in the onward grant's `act`; it
 appears as the grant's client and in `continuation_via`, which disclose
@@ -720,7 +723,9 @@ list is complete. Policy that narrows the disclosed depth of `act`
 under {{ICA}} does not narrow it, because a forwarding intermediary is
 disclosed, never hidden. The last entry and `client_id` identify the
 same continuing client, the entry by its canonical actor identity and
-`client_id` by its registration at the target.
+`client_id` by its registration at the target. Several clients can
+share one registration ("Issuance Prerequisites" in {{FEDERATION}}), so
+only the entry tells such clients apart.
 
 A recipient MUST NOT treat an entry as an actor: entries are not
 subject to the actor gate and authorize nothing. A target RAS MAY use
@@ -1084,8 +1089,10 @@ intend.
   actor identities and CAI trust to one tenant. It selects the
   registration for a continuation by configuration. Where each
   Governance Tenant reaches the gateway through a Target Tenant that the
-  gateway's RAS trusts for that issuer tenant alone, the access token's
-  audience identifies the Governance Tenant. Where one Target Tenant is
+  gateway's RAS trusts for that issuer tenant alone, the Target Tenant
+  the access token carries ("Access Token Issuance and Response" in
+  {{FEDERATION}}; by default its audience) identifies the Governance
+  Tenant. Where one Target Tenant is
   trusted for several, the gateway obtains the tenant its RAS bound to
   the authorization ({{root-redemption}}) by deployment-specific means;
   this document defines no carrier for it. A continuation authenticated
@@ -1155,7 +1162,10 @@ IdP, and so can an API whose RAS supports path disclosure; the IdP's
 hop records remain authoritative. A handle does not distinguish a
 root grant from an onward grant; a resource that must tell a gateway
 from the agent's own client uses the authenticated `client_id` or the
-presence of `continuation_via`, which only onward grants carry.
+presence of `continuation_via`, which only onward grants carry. Where
+the gateway shares a registration with agents' clients ("Issuance
+Prerequisites" in {{FEDERATION}}), only `continuation_via` tells them
+apart.
 
 ## Self-Acting Chains {#security-self-acting}
 

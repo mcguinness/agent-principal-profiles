@@ -39,7 +39,7 @@ normative:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile-01
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   JWT-DPOP-GRANT: I-D.parecki-oauth-jwt-dpop-grant-02
-  RFC7523bis: I-D.ietf-oauth-rfc7523bis-11
+  RFC10070:
   CIMD: I-D.ietf-oauth-client-id-metadata-document-02
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
@@ -207,7 +207,8 @@ difference shows in three cases. A resource domain that restricts an
 agent by its client identifier readmits it when the agent moves to
 another client; agents behind one shared client cannot be told apart;
 and a gateway that calls further resource domains is one client for
-every agent behind it. This profile's mandatory path starts from such
+every agent behind it ({{CONTINUATION}}). This profile's mandatory path
+starts from such
 a dedicated client ({{scope}}) and adds what the client identifier
 lacks. The IdP resolves the client
 to an Agent Principal through an Identity Binding ({{identity}}) and
@@ -1039,8 +1040,9 @@ several IdPs. The RAS then cannot tell those clients apart: its client
 policy, its audit, and any restriction keyed on `client_id` apply to all
 of them, while a restriction of an agent follows the agent
 ({{agent-correlation}}). Every holder of that registration's credentials
-can redeem a grant that names it, so only a grant bound under
-{{grant-protection}} stays with the key that obtained it.
+can redeem a grant that names it, and can use a refresh token bound only
+to that registration ({{ras-refresh}}), so only a grant or refresh token
+also bound to a key stays with the key that obtained it.
 
 An IdP client MAY also map to a different registration at a RAS for
 self-acting grants than for delegated grants, so that the client
@@ -1157,7 +1159,7 @@ input.
   An additional agent claim in a self-signed client assertion MUST NOT
   select another Agent Principal under this input.
 * **Audience:** RFC 7523 client authentication at the IdP and the RAS
-  MUST follow {{Section 4 of RFC7523bis}}: `aud` has the authorization
+  MUST follow {{Section 4 of RFC10070}}: `aud` has the authorization
   server's issuer identifier as its sole value, never its token endpoint
   URL, and the server rejects any other audience. This profile adds no
   alternative audience configuration and leaves other credential
@@ -1932,8 +1934,9 @@ with these claims under {{RFC9068}}, or equivalent context through
   {{access-token-protection}}.
 * **Tenant:** By default, the tenant-specific resource URI, which
   becomes the audience under {{Section 3 of RFC8707}}. A deployment MAY
-  instead carry the tenant in a configured tenant claim or authoritative
-  token context.
+  instead carry the Target Tenant in a configured claim that names it,
+  or in authoritative token context. The grant's `tenant`, an issuer
+  tenant ({{canonical-identity}}), is not that claim.
 * **Authorization details:** Effective `authorization_details`, when
   used, in the JWT claim or introspection member under
   {{Section 9 of RFC9396}}. Narrowing or translating authorization
@@ -2727,6 +2730,20 @@ trusted scope. Exact bindings, tenant boundaries, and issuer-scoped key
 lookup ({{time-validation}}) limit that scope. Neither `kid` alone nor a
 union of unrelated issuers' keys establishes the assertion's source.
 
+A RAS that trusts one tenant of a multi-tenant issuer relies on that
+issuer to keep its tenants apart: a grant's `tenant` is only as
+trustworthy as the issuer that signs for every tenant
+({{canonical-identity}}). Trust in one tenant does not extend to the
+issuer's others, but a compromise of the issuer's signing key reaches
+them all.
+
+Just-in-time correlation ({{jit-correlation}}) creates RAS state for
+each previously unseen agent that a trusted issuer asserts, as
+{{Section 10 of WAG}} notes. A RAS that enables it can cap the records
+created per issuer, or per issuer and tenant, and remove records that
+never become eligible. A created record authorizes nothing, so the
+exposure is state, not access.
+
 A holder of a shared private key can present any credential issued for
 that key. Agent isolation therefore depends on issuance controls and
 key custody as well as identity mapping. Sharing the grant proof key
@@ -3341,7 +3358,7 @@ referenced sections define each requirement.
 | Area | Profile requirement | Defined in |
 |---|---|---|
 | Actor extension | Identity Binding resolves the agent; a separate Client Association authorizes client use | {{identity-binding}} |
-| Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
+| Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC10070}} |
 | Other authentication-context inputs | Resolved from the identity validated by SPIFFE or Client Attestation authentication | {{actor-inputs}}; the inputs are defined in {{INPUTS}} |
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |

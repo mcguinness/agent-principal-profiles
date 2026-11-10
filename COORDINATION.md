@@ -18,8 +18,9 @@ Revisions read in full against the family's use: WAG-02, ID-JAG-06,
 and JWT DPoP Grant-02 (2026-11-04); DTR-01, SPIFFE OAuth-03, WIT-03,
 ATTEST-12, CIMD-03, Client Instance Identifiers-01, and Client Attester
 Endorsement-01 (2026-11-07); and, earlier, ICA-02, Actor Profile-01,
-CIMD-02, and WISE draft 03. For RFC 7523bis-11 and AIMS-01, only the
-cited sections were assessed.
+CIMD-02, and WISE draft 03. For RFC 10070, published from RFC 7523bis-11
+with the cited section unchanged, and AIMS-01, only the cited sections
+were assessed.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
@@ -30,6 +31,28 @@ checks that every cited section of a pinned RFC or draft still has the
 heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
 headings (`--fetch`, `--update`).
+
+### Downward References
+
+Three normative references are to documents of lower status than the
+Standards Track drafts that cite them, and none is in the IETF Downref
+Registry, so each needs a call-out in its Last Call (BCP 97):
+
+* The SCIM OAuth client management profile cites RFC 7592
+  (Experimental). Its requirements for a server that also offers the
+  RFC 7592 interface depend on it, so the reference stays normative, as
+  a reference needed to implement an optional feature is normative
+  (the IESG statement on normative and informative references, Note 1;
+  the same reasoning that made ICA and the continuation companion
+  normative in the oversight companion).
+* The lifecycle profile and the SCIM agent management profile cite the
+  SCIM Agent Resource draft (`draft-wzdk-scim-agent-resource-00`,
+  Informational). Both extend its Agent resource, so the reference
+  cannot become informative while they do. If that draft moves to the
+  Standards Track, the downref goes away.
+
+The core cites WAG (Informational) informatively, for the reason under
+WAG below.
 
 ### Upstream Dependencies
 

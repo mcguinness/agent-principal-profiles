@@ -62,9 +62,6 @@
     "9.11.1.2.2": "ID-JAG Contains cnf Claim but DPoP Proof is Not Presented",
     "9.11.2": "mTLS Certificate Binding"
   },
-  "I-D.ietf-oauth-rfc7523bis-11": {
-    "4": "Updates to RFC 7523"
-  },
   "I-D.ietf-oauth-spiffe-client-auth-03": {
     "3.1": "Client Identification",
     "3.2": "Client Authentication with JWT-SVIDs",
@@ -142,6 +139,9 @@
     "4.1": "Using DPoP-Bound JWT Assertions as Authorization Grants",
     "5": "JWT Format and Processing Requirements",
     "5.2": "Use with the JWT Bearer Grant Type"
+  },
+  "RFC10070": {
+    "4": "Updates to RFC 7523"
   },
   "RFC6749": {
     "2.1": "Client Types",
