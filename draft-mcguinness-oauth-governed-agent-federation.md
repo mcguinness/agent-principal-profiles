@@ -1933,8 +1933,9 @@ with these claims under {{RFC9068}}, or equivalent context through
   {{access-token-protection}}.
 * **Tenant:** By default, the tenant-specific resource URI, which
   becomes the audience under {{Section 3 of RFC8707}}. A deployment MAY
-  instead carry the tenant in a configured tenant claim or authoritative
-  token context.
+  instead carry the Target Tenant in a configured claim that names it,
+  or in authoritative token context. The grant's `tenant`, an issuer
+  tenant ({{canonical-identity}}), is not that claim.
 * **Authorization details:** Effective `authorization_details`, when
   used, in the JWT claim or introspection member under
   {{Section 9 of RFC9396}}. Narrowing or translating authorization
