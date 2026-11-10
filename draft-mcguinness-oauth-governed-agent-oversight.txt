@@ -292,8 +292,10 @@ Table of Contents
       the authenticated client and its registration at the target RAS;
       the acting relationship; the Governance and Target Tenants; the
       RAS, resource, and requested authority (scope and any
-      authorization details); for a continuation, the continuing client;
-      and the request's proof key.
+      authorization details); for a continuation, the chain's root
+      client, in whose context the onward grant is authorized
+      ("Validation" in [CONTINUATION]), and, separately, the continuing
+      client; and the request's proof key.
 
    Pending governed request:  IdP state for a governed token exchange
       request that passed every check of [FEDERATION] except an
@@ -349,9 +351,11 @@ Table of Contents
       governed request from trusted policy for the resolved agent,
       acting relationship, user, client, target, and requested
       authority, usually as a condition of the Delegation or Agent
-      Authorization; the RAS determines it for a redemption from its own
-      policy.  A request parameter or the client's opt-in to deferral
-      MUST NOT select a mode or lower one that policy requires.
+      Authorization.  For a continuation, the client is the chain's root
+      client, so the same policy applies to a continuation as to the
+      direct request; the RAS determines it for a redemption from its
+      own policy.  A request parameter or the client's opt-in to
+      deferral MUST NOT select a mode or lower one that policy requires.
 
    *  *Each decision point applies its own mode.* IdP issuance, IdP
       continuation, RAS redemption, and the API's decision on an action
@@ -455,17 +459,20 @@ Table of Contents
    include deferred, the IdP MUST NOT return a deferred response
    (Section 5.3 of [DTR]) and MUST NOT issue the grant.  It rejects the
    request (Section 5.2 of [RFC6749]) with actor_unauthorized for
-   delegated issuance or invalid_target for self-acting issuance.  These
-   are the errors [FEDERATION] assigns when approval requires a
-   condition the selected composition cannot enforce ("Issuance
-   Authorization" in [FEDERATION]); this document reuses them for an
-   approval that the request did not let the IdP obtain.  This document
-   defines no discovery of a target's oversight mode; a client learns to
-   opt in from configuration.  A client that can wait for an approver
-   and handle a deferred response can include deferred on every request
-   that policy might hold, since the IdP answers synchronously when it
-   does not defer.  A refusal of such a request is not a missing opt-in,
-   and the client does not retry it unchanged.
+   delegated root issuance, and with invalid_target for self-acting root
+   issuance and for any continuation.  These are the errors [FEDERATION]
+   assigns when approval requires a condition the selected composition
+   cannot enforce ("Issuance Authorization" in [FEDERATION]), and, for a
+   continuation, the code [CONTINUATION] uses for a target the chain's
+   authorization does not permit, since a continuation uses the error
+   codes of [ICA] ("Errors" in [CONTINUATION]); this document reuses
+   them for an approval that the request did not let the IdP obtain.
+   This document defines no discovery of a target's oversight mode; a
+   client learns to opt in from configuration.  A client that can wait
+   for an approver and handle a deferred response can include deferred
+   on every request that policy might hold, since the IdP answers
+   synchronously when it does not defer.  A refusal of such a request is
+   not a missing opt-in, and the client does not retry it unchanged.
 
 4.2.  Deferring
 
@@ -588,10 +595,16 @@ Table of Contents
       Authorization" in [FEDERATION]) withdraws any of these.
 
    If any check fails, the IdP returns access_denied and issues no
-   grant, as Section 11.7 of [DTR] requires.  A denial resolves to
-   access_denied, and a pending request that outlives expires_in
-   resolves to expired_token (Section 6.6 of [DTR]).  A client cancels a
-   pending request by revoking its deferral code (Section 8 of [DTR],
+   grant, as Section 11.7 of [DTR] requires.  A check that cannot be
+   completed, because state it depends on is unavailable, has not
+   failed: the IdP MUST NOT resolve the request on that basis, and
+   answers the poll with a pending response (Section 6.6 of [DTR]) until
+   it can complete the check or the request expires, as [CONTINUATION]
+   answers a continuation exchange it cannot confirm with HTTP 503
+   rather than ending the chain.  A denial resolves to access_denied,
+   and a pending request that outlives expires_in resolves to
+   expired_token (Section 6.6 of [DTR]).  A client cancels a pending
+   request by revoking its deferral code (Section 8 of [DTR],
    [RFC7009]).
 
    On success, the IdP MUST issue the governed grant that the request
@@ -794,7 +807,13 @@ Table of Contents
    resolution, and both RAS lifetime policy ("Authorization Lifetime" in
    [FEDERATION]) and the deadlines of Section 5.5 apply to its
    expiration: the approval expiry, any enforcement deadline, and the
-   absolute authorization expiration.
+   absolute authorization expiration.  This departs from the
+   recommendation of Section 4.1 of [RFC7521], which Section 5 of [WAG]
+   repeats and [FEDERATION] keeps for direct redemption, that an access
+   token not outlive the assertion's validity by a significant period.
+   For a deferred redemption, those deadlines bound the access token's
+   expiration instead, and the maximum pending lifetime bounds only how
+   long after receipt the token can issue.
 
    The RAS then accepts the grant.  It MUST record the grant's (iss,
    jti) as accepted, whether or not the grant is bound, and MUST NOT
@@ -972,7 +991,11 @@ Table of Contents
       Target Tenant, and resource.
 
    If any check fails, the RAS returns access_denied and issues no
-   token, as Section 11.7 of [DTR] requires.  A denial resolves to
+   token, as Section 11.7 of [DTR] requires.  As at the IdP
+   (Section 4.4), a check that cannot be completed has not failed: the
+   RAS MUST NOT resolve the redemption on that basis, and answers the
+   poll with a pending response until it can complete the check or the
+   pending governed redemption expires.  A denial resolves to
    access_denied, and a pending governed redemption that outlives
    expires_in resolves to expired_token (Section 6.6 of [DTR]).  Grant-
    derived revocation of the grant reaches "all redemptions" of it
@@ -1108,7 +1131,12 @@ Table of Contents
 
    *  *The approver is a person.* Resource policy designates approvers
       as in Section 4.3, and the API MUST NOT accept a decision from the
-      client, the agent, or another agent as an approval.
+      client, the agent, or another agent as an approval.  Where the API
+      reaches the approver through a URI that the client receives, such
+      as an MCP URL-mode elicitation (Section 8), the API MUST NOT
+      accept a decision made through it unless the approver
+      authenticated there after the action was held; an existing session
+      does not satisfy this, as at the IdP (Section 4.3).
 
    *  *The approval does not add authority.* It satisfies an additional
       condition within the token's authority and cannot expand it
@@ -1449,6 +1477,11 @@ Table of Contents
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,
               August 2013, <https://www.rfc-editor.org/rfc/rfc7009>.
 
+   [RFC7521]  Campbell, B., Mortimore, C., Jones, M., and Y. Goland,
+              "Assertion Framework for OAuth 2.0 Client Authentication
+              and Authorization Grants", RFC 7521, DOI 10.17487/RFC7521,
+              May 2015, <https://www.rfc-editor.org/rfc/rfc7521>.
+
    [RFC8417]  Hunt, P., Ed., Jones, M., Denniss, W., and M. Ansari,
               "Security Event Token (SET)", RFC 8417,
               DOI 10.17487/RFC8417, July 2018,
@@ -1782,6 +1815,14 @@ Appendix B.  Relationship to Other Specifications
    |                    | limits of Section 6.3 of [ICA] when the     |
    |                    | onward grant issues (Section 4.5)           |
    +--------------------+---------------------------------------------+
+   | [RFC7521], [WAG]   | Departed from for a deferred redemption:    |
+   |                    | the access token can outlive the assertion. |
+   |                    | The approval expiry, any enforcement        |
+   |                    | deadline, and the absolute authorization    |
+   |                    | expiration bound its expiration; the        |
+   |                    | maximum pending lifetime bounds only when   |
+   |                    | it can issue (Section 5.2)                  |
+   +--------------------+---------------------------------------------+
    | [CIBA]             | One way to reach a user for a decision; not |
    |                    | profiled                                    |
    +--------------------+---------------------------------------------+
@@ -1837,15 +1878,14 @@ Appendix C.  Open Items
        present the grant again.  Section 5.2 reads them as checked on
        receipt.
 
-   6.  *Continuation mode floor.* Whether a continuation's mode may be
-       lower than the mode policy requires for the same agent, user,
-       target, and authority requested directly.  Policy selects the
-       mode at each decision point (Section 3), so a deployment that
-       keys approval on the requesting client does not require it when a
-       gateway continues to the same target.  A negative test comes
-       before the choice between a rule and guidance: approval required
-       for a direct request, and the gateway's continuation without the
-       opt-in.
+   6.  *Continuation mode floor.* Mode policy takes the chain's root
+       client as a continuation's client (Section 3), so a continuation
+       meets the mode of the same request made directly.  Whether policy
+       may also lower the mode on account of the continuing client is
+       open.  A negative test comes before the choice between a rule and
+       guidance: approval required for a direct request, and the
+       gateway's continuation without the opt-in, which fails with
+       invalid_target (Section 4.1).
 
 Document History
 

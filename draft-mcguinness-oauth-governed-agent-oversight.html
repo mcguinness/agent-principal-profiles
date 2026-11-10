@@ -1549,7 +1549,9 @@ for delegated access, the resolved user; the authenticated client and
 its registration at the target RAS; the acting relationship; the
 Governance and Target Tenants; the RAS, resource, and requested
 authority (scope and any authorization details); for a continuation,
-the continuing client; and the request's proof key.<a href="#section-2-4.8.1" class="pilcrow">¶</a></p>
+the chain's root client, in whose context the onward grant is
+authorized ("Validation" in <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>), and, separately, the
+continuing client; and the request's proof key.<a href="#section-2-4.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-2-4.9">Pending governed request:</dt>
@@ -1637,7 +1639,9 @@ caching, and the lifetime of tokens accepted without a check.<a href="#section-2
           <p id="section-3-3.1.1"><strong>Policy selects the mode.</strong> The IdP determines the mode for a
 governed request from trusted policy for the resolved agent, acting
 relationship, user, client, target, and requested authority, usually
-as a condition of the Delegation or Agent Authorization; the RAS
+as a condition of the Delegation or Agent Authorization. For a
+continuation, the client is the chain's root client, so the same
+policy applies to a continuation as to the direct request; the RAS
 determines it for a redemption from its own policy. A request
 parameter or the client's opt-in to deferral <span class="bcp14">MUST NOT</span> select a mode or
 lower one that policy requires.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
@@ -1757,11 +1761,14 @@ the grant it yields are bound to one key.<a href="#section-4.1-1" class="pilcrow
 <code>deferred</code>, the IdP <span class="bcp14">MUST NOT</span> return a deferred response
 (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.3" class="relref">Section 5.3</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) and <span class="bcp14">MUST NOT</span> issue the grant. It rejects the
 request (<span><a href="https://rfc-editor.org/rfc/rfc6749#section-5.2" class="relref">Section 5.2</a> of [<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>) with <code>actor_unauthorized</code> for
-delegated issuance or <code>invalid_target</code> for self-acting issuance. These
-are the errors <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> assigns when approval requires a condition
-the selected composition cannot enforce ("Issuance Authorization" in
-<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>); this document reuses them for an approval that the
-request did not let the IdP obtain. This document defines no discovery
+delegated root issuance, and with <code>invalid_target</code> for self-acting root
+issuance and for any continuation. These are the errors <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
+assigns when approval requires a condition the selected composition
+cannot enforce ("Issuance Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and, for a
+continuation, the code <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span> uses for a target the chain's
+authorization does not permit, since a continuation uses the error
+codes of <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> ("Errors" in <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>); this document reuses
+them for an approval that the request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
 configuration. A
 client that can wait for an approver and handle a deferred response can
@@ -1902,7 +1909,13 @@ Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]
 </li>
         </ul>
 <p id="section-4.4-3">If any check fails, the IdP returns <code>access_denied</code> and issues no grant,
-as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-11.7" class="relref">Section 11.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A denial resolves to
+as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-11.7" class="relref">Section 11.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A check that cannot be completed,
+because state it depends on is unavailable, has not failed: the IdP
+<span class="bcp14">MUST NOT</span> resolve the request on that basis, and answers the poll with a
+pending response (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6.6" class="relref">Section 6.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) until it can complete the
+check or the request expires, as <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span> answers a
+continuation exchange it cannot confirm with HTTP 503 rather than
+ending the chain. A denial resolves to
 <code>access_denied</code>, and a pending request that outlives <code>expires_in</code>
 resolves to <code>expired_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6.6" class="relref">Section 6.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). A client cancels
 a pending request by revoking its deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-8" class="relref">Section 8</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>,
@@ -2142,7 +2155,14 @@ come after the grant's <code>exp</code>. The access token then issued has <code>
 set at resolution, and both RAS lifetime policy ("Authorization
 Lifetime" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) and the deadlines of
 <a href="#redemption-resolution" class="auto internal xref">Section 5.5</a> apply to its expiration: the approval expiry,
-any enforcement deadline, and the absolute authorization expiration.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+any enforcement deadline, and the absolute authorization expiration.
+This departs from the recommendation of <span><a href="https://rfc-editor.org/rfc/rfc7521#section-4.1" class="relref">Section 4.1</a> of [<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>,
+which <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> repeats and <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> keeps for
+direct redemption, that an access token not outlive the assertion's
+validity by a significant period. For a deferred redemption, those
+deadlines bound the access token's expiration instead, and the maximum
+pending lifetime bounds only how long after receipt the token can
+issue.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 <p id="section-5.2-4">The RAS then accepts the grant. It <span class="bcp14">MUST</span> record the grant's (<code>iss</code>,
 <code>jti</code>) as accepted, whether or not the grant is bound, and <span class="bcp14">MUST NOT</span>
 accept the grant again for another redemption. This narrows the
@@ -2342,7 +2362,11 @@ Target Tenant, and resource.<a href="#section-5.5-2.6.1" class="pilcrow">¶</a><
 </li>
         </ul>
 <p id="section-5.5-3">If any check fails, the RAS returns <code>access_denied</code> and issues no
-token, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-11.7" class="relref">Section 11.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A denial resolves to
+token, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-11.7" class="relref">Section 11.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. As at the IdP
+(<a href="#resolution" class="auto internal xref">Section 4.4</a>), a check that cannot be completed has not failed: the
+RAS <span class="bcp14">MUST NOT</span> resolve the redemption on that basis, and answers the poll
+with a pending response until it can complete the check or the pending
+governed redemption expires. A denial resolves to
 <code>access_denied</code>, and a pending governed redemption that outlives
 <code>expires_in</code> resolves to <code>expired_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6.6" class="relref">Section 6.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).
 Grant-derived revocation of the grant reaches "all redemptions" of it
@@ -2504,7 +2528,12 @@ policy requires for an action (<a href="#mcp" class="auto internal xref">Section
         <li class="normal" id="section-7-2.3">
           <p id="section-7-2.3.1"><strong>The approver is a person.</strong> Resource policy designates approvers as
 in <a href="#approval" class="auto internal xref">Section 4.3</a>, and the API <span class="bcp14">MUST NOT</span> accept a decision from the
-client, the agent, or another agent as an approval.<a href="#section-7-2.3.1" class="pilcrow">¶</a></p>
+client, the agent, or another agent as an approval. Where the API
+reaches the approver through a URI that the client receives, such as
+an MCP URL-mode elicitation (<a href="#mcp" class="auto internal xref">Section 8</a>), the API <span class="bcp14">MUST NOT</span> accept a
+decision made through it unless the approver authenticated there
+after the action was held; an existing session does not satisfy
+this, as at the IdP (<a href="#approval" class="auto internal xref">Section 4.3</a>).<a href="#section-7-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-7-2.4">
           <p id="section-7-2.4.1"><strong>The approval does not add authority.</strong> It satisfies an additional
@@ -2922,6 +2951,10 @@ polling response carries no personal data.<a href="#section-11-1" class="pilcrow
         <dd>
 <span class="refAuthor">Lodderstedt, T., Ed.</span>, <span class="refAuthor">Dronia, S.</span>, and <span class="refAuthor">M. Scurtescu</span>, <span class="refTitle">"OAuth 2.0 Token Revocation"</span>, <span class="seriesInfo">RFC 7009</span>, <span class="seriesInfo">DOI 10.17487/RFC7009</span>, <time datetime="2013-08" class="refDate">August 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7009">https://www.rfc-editor.org/rfc/rfc7009</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC7521">[RFC7521]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Mortimore, C.</span>, <span class="refAuthor">Jones, M.</span>, and <span class="refAuthor">Y. Goland</span>, <span class="refTitle">"Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants"</span>, <span class="seriesInfo">RFC 7521</span>, <span class="seriesInfo">DOI 10.17487/RFC7521</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7521">https://www.rfc-editor.org/rfc/rfc7521</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC8417">[RFC8417]</dt>
         <dd>
 <span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Denniss, W.</span>, and <span class="refAuthor">M. Ansari</span>, <span class="refTitle">"Security Event Token (SET)"</span>, <span class="seriesInfo">RFC 8417</span>, <span class="seriesInfo">DOI 10.17487/RFC8417</span>, <time datetime="2018-07" class="refDate">July 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8417">https://www.rfc-editor.org/rfc/rfc8417</a>&gt;</span>. </dd>
@@ -3310,6 +3343,12 @@ as eligible for continuation.<a href="#appendix-A.5-3" class="pilcrow">¶</a></p
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
+              <span>[<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>, <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Departed from for a deferred redemption: the access token can outlive the assertion. The approval expiry, any enforcement deadline, and the absolute authorization expiration bound its expiration; the maximum pending lifetime bounds only when it can issue (<a href="#redemption-deferring" class="auto internal xref">Section 5.2</a>)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
               <span>[<a href="#CIBA" class="cite xref">CIBA</a>]</span>
 </td>
             <td class="text-left" rowspan="1" colspan="1">One way to reach a user for a decision; not profiled</td>
@@ -3383,14 +3422,14 @@ the grant again. <a href="#redemption-deferring" class="auto internal xref">Sect
 receipt.<a href="#appendix-C-1.5.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-C-1.6">
-          <p id="appendix-C-1.6.1"><strong>Continuation mode floor.</strong> Whether a continuation's mode may be
-lower than the mode policy requires for the same agent, user,
-target, and authority requested directly. Policy selects the mode at
-each decision point (<a href="#modes" class="auto internal xref">Section 3</a>), so a deployment that keys approval
-on the requesting client does not require it when a gateway
-continues to the same target. A negative test comes before the
-choice between a rule and guidance: approval required for a direct
-request, and the gateway's continuation without the opt-in.<a href="#appendix-C-1.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-1.6.1"><strong>Continuation mode floor.</strong> Mode policy takes the chain's root
+client as a continuation's client (<a href="#modes" class="auto internal xref">Section 3</a>), so a continuation
+meets the mode of the same request made directly. Whether policy may
+also lower the mode on account of the continuing client is open. A
+negative test comes before the choice between a rule and guidance:
+approval required for a direct request, and the gateway's
+continuation without the opt-in, which fails with <code>invalid_target</code>
+(<a href="#opt-in" class="auto internal xref">Section 4.1</a>).<a href="#appendix-C-1.6.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>

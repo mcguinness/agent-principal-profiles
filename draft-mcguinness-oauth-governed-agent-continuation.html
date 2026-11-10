@@ -2654,9 +2654,11 @@ independent failure to validate the access token still leads to
 rate limit, the gateway can retry under that limit's policy. A
 temporary refusal is not an error response: the gateway retries as
 <a href="#continuation-errors" class="auto internal xref">Section 6.6</a> describes.<a href="#section-8-7" class="pilcrow">¶</a></p>
-<p id="section-8-8">After the IdP rejects a governed continuation for a request, the
-continuing client <span class="bcp14">MUST NOT</span> serve that request with its own authority or
-through a chain established without this document. This extends the
+<p id="section-8-8">When a governed continuation for a request fails, because the CAI
+refuses the assertion, the target lacks a capability the continuation
+needs, or the IdP rejects the exchange, the continuing client <span class="bcp14">MUST NOT</span>
+serve that request with its own authority or through a chain
+established without this document. This extends the
 no-fallback rule of "Profile Applicability and Downgrade Prevention" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, which covers retrying as ordinary access or without
 proof. Gateway-side tool filtering narrows what the gateway attempts
@@ -3886,6 +3888,11 @@ that anchors the chain also ends it (<span><a href="https://datatracker.ietf.org
               <td class="text-left" rowspan="1" colspan="1">GatewayRAS deferred the root redemption until an approver decided (<span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span>), and the gateway presents the resulting access token, or one refreshed from it</td>
               <td class="text-left" rowspan="1" colspan="1">CAI</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_request</code>; the authorization is not eligible for continuation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">The CAI refuses the assertion for either reason above, and the gateway holds client credentials of its own that the tool accepts</td>
+              <td class="text-left" rowspan="1" colspan="1">Gateway</td>
+              <td class="text-left" rowspan="1" colspan="1">The gateway fails the agent's request; it does not call the tool with its own authority (<a href="#gateway-reuse" class="auto internal xref">Section 8</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">The gateway redeems the onward ID-JAG without a proof of G</td>
