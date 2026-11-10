@@ -216,9 +216,11 @@ Receiver:
   {{AGENT-MANAGEMENT}}.
 
 Provisioning Domain:
-: Trusted configuration identifying one governing IdP issuer and one
-  receiving Target Tenant, together with the connectors authorized to
-  manage their correlation and administrative state. This is the
+: Trusted configuration identifying one governing IdP issuer, its
+  tenant where the issuer is multi-tenant ("Canonical Identity and
+  Tenant Boundaries" in {{FEDERATION}}), and one receiving Target
+  Tenant, together with the connectors authorized to manage their
+  correlation and administrative state. This is the
   resource-domain counterpart of the IdP-side Provisioning Domain.
 
 Authorization Session:
@@ -285,6 +287,10 @@ For this provisioning interface:
   of SCIM's client-scoped `externalId` behavior.
 * Once established, the pair MUST NOT change through a resource update.
   Attempts to change `externalId` use SCIM's `mutability` error.
+* At a multi-tenant issuer, an Agent belongs to the Provisioning Domain
+  of its Governance Tenant, the issuer tenant that the agent's grants
+  name in `tenant`. A connector authorized for another tenant of the
+  same issuer is authorized for another context.
 
 Thus, `externalId` alone is not a globally qualified identity. A
 deployment with multiple IdPs MUST retain the context with each
@@ -316,16 +322,18 @@ adds.
 ## Just-in-Time Correlation {#jit}
 
 {{FEDERATION}} defines just-in-time correlation: the resource-policy
-gate per governing issuer and Target Tenant, exact keying by the pair,
-and the local restrictions and retained revocation state applied before
-issuance. A Receiver that correlates agents that way without
+gate per governing issuer, or issuer and tenant at a multi-tenant
+issuer, and Target Tenant; exact keying by the pair; and the local
+restrictions and retained revocation state applied before issuance. A Receiver that correlates agents that way without
 supporting this interface uses those rules alone and does not conform
 to this profile.
 
 A conforming Receiver that permits just-in-time correlation MUST expose
-the created principal in its Provisioning Domain with `externalId` set
-to the agent identifier, and MUST subject it to the same provisioning,
-reconciliation, and disablement rules as a provisioned one. Local
+the created principal, with `externalId` set to the agent identifier,
+in the Provisioning Domain of the triggering grant's issuer and, at a
+multi-tenant issuer, its `tenant`, and MUST subject it to the same
+provisioning, reconciliation, and disablement rules as a provisioned
+one. Local
 Suspension is among the local restrictions Federation requires it to
 apply, and the initial `active` value reflects the initial eligibility
 set by local policy.
@@ -620,7 +628,8 @@ transaction or establish that a remote source replica is current
 ## Provisioning Writers {#security-writers}
 
 Provisioning writers can enable principals and change eligibility. Their
-authority MUST remain scoped to the configured issuer and Target Tenant.
+authority MUST remain scoped to the configured issuer, its tenant at a
+multi-tenant issuer, and Target Tenant.
 An event signature, matching display name, or equal `externalId` outside
 that context does not establish permission to correlate a principal.
 
@@ -701,8 +710,9 @@ Trusted stream configuration MUST establish:
 * The Transmitter, receiving Target Tenant, and audience.
 * For SCIM event reconciliation, the source SCIM service, retrieval
   authority, and source-resource correlation under {{recovery}}.
-* For grant-derived revocation, the governing ID-JAG issuer whose grants
-  the Transmitter may revoke, and agreement to apply {{grant-revocation}}.
+* For grant-derived revocation, the governing ID-JAG issuer, and its
+  tenant at a multi-tenant issuer, whose grants the Transmitter may
+  revoke, and agreement to apply {{grant-revocation}}.
 * For coarse user-and-tenant revocation, the authorized user namespace
   and revocation scope defined in {{grant-revocation}}.
 
@@ -824,7 +834,10 @@ event URI alone does not establish these receiver semantics.
   to revoke. The SET's own `jti` identifies the event, not the grant.
 * The Receiver MUST verify that the subject's `iss` matches the
   governing ID-JAG issuer authorized in the stream configuration. That
-  configuration supplies the Target Tenant. The revocation key is
+  configuration supplies the Target Tenant. At a multi-tenant issuer,
+  the Receiver MUST apply the revocation, including a denial retained
+  before redemption, only to a grant whose `tenant` is the tenant that
+  configuration authorizes. The revocation key is
   (ID-JAG issuer, ID-JAG `jti`, Target Tenant); it MUST NOT be matched as
   a bare RAS session identifier or used outside that tenant.
 * On redemption, a participating RAS MUST retain that key with every

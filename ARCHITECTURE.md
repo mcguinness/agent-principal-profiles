@@ -333,10 +333,11 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
 
 ### Lifecycle sender → receiver
 
-* **Configure:** a Provisioning Domain naming one governing IdP issuer,
-  one Target Tenant, and the connectors authorized for them. For events:
-  the stream's transmitter, audience, and source service, and the
-  ID-JAG issuer whose grants it may revoke.
+* **Configure:** a Provisioning Domain naming one governing IdP issuer
+  (and its tenant at a multi-tenant issuer), one Target Tenant, and the
+  connectors authorized for them. For events: the stream's transmitter,
+  audience, and source service, and the ID-JAG issuer (and tenant)
+  whose grants it may revoke.
 * **Validate:** the receiver takes the issuer from that configuration,
   never from a provisioned attribute, and authorizes changes to
   `active` separately from descriptive edits.
@@ -932,7 +933,7 @@ What each draft needs from the specifications it depends on is in
 | Identity Binding | An approved association from an exact client or workload identity to one agent; it resolves the agent and grants no permission | The core |
 | Local Suspension | A resource-domain restriction independent of the IdP's state; upstream activation cannot clear it | Lifecycle |
 | Onward grant | An ID-JAG or WAG issued on a continuation exchange | Continuation |
-| Provisioning Domain | In a resource domain, configuration naming one governing IdP issuer, one Target Tenant, and the connectors authorized to manage them. At the IdP, one connector's management authority within one Governance Tenant | Lifecycle; SCIM management |
+| Provisioning Domain | In a resource domain, configuration naming one governing IdP issuer, its tenant at a multi-tenant issuer, one Target Tenant, and the connectors authorized to manage them. At the IdP, one connector's management authority within one Governance Tenant | Lifecycle; SCIM management |
 | RAS | The resource domain's authorization server, which redeems grants and issues access tokens | The core |
 | Resource domain | A RAS and the APIs it issues access tokens for | This overview |
 | Target Tenant | The tenant at the RAS in which the agent or user exercises authority | The core |

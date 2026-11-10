@@ -36,10 +36,10 @@ implementation](README.md#running-against-another-implementation)).
 | Claim | Cases |
 |---|---|
 | IdP: delegated access, dedicated client, ID Token subjects | P1, P16, N01 to N09, N21, N22, N25, N28, N31 to N33, N41 |
-| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50 |
+| RAS: delegated access | P2, P5, P7, N10 to N16, N23, N26, N27, N29, N30, N40, N42, N43, N50, N55 |
 | API: delegated access | P3, P4, N17 to N20, N24, N35, N53; reference-implementation tests: S32, S33, S35, S36 |
 | Generic shared-client interoperability (IdP) | P11 to P13 (P13 with a second IdP client), N36 to N39 |
-| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52, N54 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
+| Self-acting access | P14, N44, N45 (IdP); P15, N46 to N49, N51, N52, N54, N56 (RAS); reference-implementation tests with minted tokens: S08 and S09 (API) |
 | Bearer access tokens | P5 to P7, N35; reference-implementation tests: S38, S39 |
 | DPoP nonces | P8 (IdP), P9 (RAS), P10 (API) |
 | Just-in-time correlation | N34, N47 to N49, N52, N54 |
