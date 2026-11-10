@@ -810,9 +810,10 @@ Table of Contents
    absolute authorization expiration.  This departs from the
    recommendation of Section 4.1 of [RFC7521], which Section 5 of [WAG]
    repeats and [FEDERATION] keeps for direct redemption, that an access
-   token not outlive the assertion's validity by a significant period:
-   for a deferred redemption, those deadlines and the maximum pending
-   lifetime bound the token instead.
+   token not outlive the assertion's validity by a significant period.
+   For a deferred redemption, those deadlines bound the access token's
+   expiration instead, and the maximum pending lifetime bounds only how
+   long after receipt the token can issue.
 
    The RAS then accepts the grant.  It MUST record the grant's (iss,
    jti) as accepted, whether or not the grant is bound, and MUST NOT
@@ -1815,11 +1816,12 @@ Appendix B.  Relationship to Other Specifications
    |                    | onward grant issues (Section 4.5)           |
    +--------------------+---------------------------------------------+
    | [RFC7521], [WAG]   | Departed from for a deferred redemption:    |
-   |                    | the access token can outlive the assertion, |
-   |                    | bounded instead by the approval expiry, any |
-   |                    | enforcement deadline, the absolute          |
-   |                    | authorization expiration, and the maximum   |
-   |                    | pending lifetime (Section 5.2)              |
+   |                    | the access token can outlive the assertion. |
+   |                    | The approval expiry, any enforcement        |
+   |                    | deadline, and the absolute authorization    |
+   |                    | expiration bound its expiration; the        |
+   |                    | maximum pending lifetime bounds only when   |
+   |                    | it can issue (Section 5.2)                  |
    +--------------------+---------------------------------------------+
    | [CIBA]             | One way to reach a user for a decision; not |
    |                    | profiled                                    |

@@ -2159,8 +2159,10 @@ any enforcement deadline, and the absolute authorization expiration.
 This departs from the recommendation of <span><a href="https://rfc-editor.org/rfc/rfc7521#section-4.1" class="relref">Section 4.1</a> of [<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>,
 which <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-02#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> repeats and <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> keeps for
 direct redemption, that an access token not outlive the assertion's
-validity by a significant period: for a deferred redemption, those
-deadlines and the maximum pending lifetime bound the token instead.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+validity by a significant period. For a deferred redemption, those
+deadlines bound the access token's expiration instead, and the maximum
+pending lifetime bounds only how long after receipt the token can
+issue.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 <p id="section-5.2-4">The RAS then accepts the grant. It <span class="bcp14">MUST</span> record the grant's (<code>iss</code>,
 <code>jti</code>) as accepted, whether or not the grant is bound, and <span class="bcp14">MUST NOT</span>
 accept the grant again for another redemption. This narrows the
@@ -3343,7 +3345,7 @@ as eligible for continuation.<a href="#appendix-A.5-3" class="pilcrow">¶</a></p
             <td class="text-left" rowspan="1" colspan="1">
               <span>[<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>, <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>
 </td>
-            <td class="text-left" rowspan="1" colspan="1">Departed from for a deferred redemption: the access token can outlive the assertion, bounded instead by the approval expiry, any enforcement deadline, the absolute authorization expiration, and the maximum pending lifetime (<a href="#redemption-deferring" class="auto internal xref">Section 5.2</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Departed from for a deferred redemption: the access token can outlive the assertion. The approval expiry, any enforcement deadline, and the absolute authorization expiration bound its expiration; the maximum pending lifetime bounds only when it can issue (<a href="#redemption-deferring" class="auto internal xref">Section 5.2</a>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
