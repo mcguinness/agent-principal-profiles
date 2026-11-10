@@ -560,11 +560,12 @@ applies.
 * **Oversight, at the IdP and the RAS** ([Client Opt-In][ov-opt-in];
   [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery];
   [Redemption Resolution][ov-redemption-resolution]; [Refresh and
-  Continuation][ov-redemption-refresh]; cases D01 to D26, at the RAS
+  Continuation][ov-redemption-refresh]; cases D01 to D28, at the RAS
   only):
   * When policy requires approval, a request without the opt-in gets
     the IdP's ordinary refusal: `actor_unauthorized` for a delegated
-    grant, `invalid_target` for a self-acting one. A redemption without
+    root grant, and `invalid_target` for a self-acting one or any
+    continuation, which uses ICA's codes. A redemption without
     the opt-in, or one the RAS cannot defer, gets the RAS's ordinary
     refusal: `access_denied` for an ID-JAG, `invalid_target` for a WAG.
     Without such a policy, a request without the opt-in can succeed at
@@ -686,7 +687,7 @@ A deployment that uses oversight adds this configuration to the
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
 
 The conformance suite tests deferred redemption against the reference,
-whose Access Request Service it controls: D01 to D26. WAG deferral,
+whose Access Request Service it controls: D01 to D28. WAG deferral,
 mutual-TLS resources, continuation ineligibility, and grant-derived
 revocation while pending are untested.
 

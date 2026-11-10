@@ -426,6 +426,9 @@ class Adapter:
                                           RAS policy requires approval for),
                                           refresh_permitted (refresh tokens for
                                           approved standing access),
+                                          resolution_unavailable (the
+                                          lookups resolution re-checks
+                                          cannot be completed),
                                           max_pending_lifetime and
                                           authorization_lifetime (seconds),
                                           introspection_omit_act (leave act
@@ -2668,6 +2671,48 @@ def d26(ctx):
     expect_token_response(ctx.client.refresh(body["refresh_token"]))
     ctx.adapter.set("ras", "tenant_trust", [cfg.governance_tenant, cfg.tenant, False])
     expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
+
+
+@case("D27", "RAS", "Keeps an approved redemption pending while resolution cannot complete, and "
+      "issues once when it can",
+      "oversight: Redemption Resolution (a check that cannot be completed)",
+      needs=("set:ras.approval_required", "set:ras.resolution_unavailable", "tasks", "approve"),
+      defeats=("ras.outage_pending",))
+def d27(ctx):
+    # An outage of the state resolution re-checks is not a failed check:
+    # the approval survives it, the poll stays pending, and the redemption
+    # issues once the check can complete.
+    require_approval(ctx)
+    code = defer(ctx, ctx.grant())["deferral_code"]
+    ctx.adapter.approve(only_task(ctx), ctx.now() + HOUR)
+    ctx.adapter.set("ras", "resolution_unavailable", True)
+    expect_pending(ctx.client.poll(code))
+    ctx.adapter.set("ras", "resolution_unavailable", False)
+    expect_token_response(ctx.client.poll(code))
+    expect_error(ctx.client.poll(code), 400, "invalid_grant")
+
+
+@case("D28", "RAS", "Ends a redemption pending through an outage when it expires, with "
+      "expired_token",
+      "oversight: Redemption Resolution (a check that cannot be completed); Deferring a "
+      "Redemption (maximum pending lifetime)",
+      needs=("set:ras.approval_required", "set:ras.resolution_unavailable",
+             "set:ras.max_pending_lifetime", "tasks", "approve", "advance_clock"),
+      defeats=("ras.outage_pending",))
+def d28(ctx):
+    # The pending response lasts until the check can complete or the
+    # request expires; an outage does not extend the pending lifetime, and
+    # the end of the outage does not revive an expired request.
+    require_approval(ctx)
+    ctx.adapter.set("ras", "max_pending_lifetime", HOUR)
+    body = defer(ctx, ctx.grant())
+    ctx.adapter.approve(only_task(ctx), ctx.now() + 4 * HOUR)
+    ctx.adapter.set("ras", "resolution_unavailable", True)
+    expect_pending(ctx.client.poll(body["deferral_code"]))
+    ctx.advance(body["expires_in"] + 60)
+    expect_error(ctx.client.poll(body["deferral_code"]), 400, "expired_token")
+    ctx.adapter.set("ras", "resolution_unavailable", False)
+    expect_error(ctx.client.poll(body["deferral_code"]), 400, "expired_token")
 
 # Policy services at the API ------------------------------------------------
 #

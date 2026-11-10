@@ -46,7 +46,7 @@ implementation](README.md#running-against-another-implementation)).
 | Opaque access tokens and introspection | Reference-implementation tests: S10 to S13, S20, S21, S31, S34, S38 |
 | Policy services | Reference-implementation tests: S01 to S11, S14 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | N20, N53; reference-implementation tests: S14 to S31 |
-| Deferred redemption (RAS) | D01, D03, D07, D08, D18 (configuration only); reference-implementation tests: D02, D04 to D06, D09 to D17, D19 to D26 |
+| Deferred redemption (RAS) | D01, D03, D07, D08, D18 (configuration only); reference-implementation tests: D02, D04 to D06, D09 to D17, D19 to D28 |
 | RAS refresh tokens | Reference-implementation tests, within a deferred redemption only: D13 to D15, D21, D22, D26 |
 | Client ID Metadata Documents | None |
 | Mutual-TLS access tokens; re-redemption under policy | None |
