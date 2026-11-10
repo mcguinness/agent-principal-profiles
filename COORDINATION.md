@@ -32,6 +32,28 @@ heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
 headings (`--fetch`, `--update`).
 
+### Downward References
+
+Three normative references are to documents of lower status than the
+Standards Track drafts that cite them, and none is in the IETF Downref
+Registry, so each needs a call-out in its Last Call (BCP 97):
+
+* The SCIM OAuth client management profile cites RFC 7592
+  (Experimental). Its requirements for a server that also offers the
+  RFC 7592 interface depend on it, so the reference stays normative, as
+  a reference needed to implement an optional feature is normative
+  (the IESG statement on normative and informative references, Note 1;
+  the same reasoning that made ICA and the continuation companion
+  normative in the oversight companion).
+* The lifecycle profile and the SCIM agent management profile cite the
+  SCIM Agent Resource draft (`draft-wzdk-scim-agent-resource-00`,
+  Informational). Both extend its Agent resource, so the reference
+  cannot become informative while they do. If that draft moves to the
+  Standards Track, the downref goes away.
+
+The core cites WAG (Informational) informatively, for the reason under
+WAG below.
+
 ### Upstream Dependencies
 
 | Specification | What this profile needs | Consequence until resolved |
