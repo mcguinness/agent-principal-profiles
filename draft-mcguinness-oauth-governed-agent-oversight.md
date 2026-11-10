@@ -685,8 +685,10 @@ any enforcement deadline, and the absolute authorization expiration.
 This departs from the recommendation of {{Section 4.1 of RFC7521}},
 which {{Section 5 of WAG}} repeats and {{FEDERATION}} keeps for
 direct redemption, that an access token not outlive the assertion's
-validity by a significant period: for a deferred redemption, those
-deadlines and the maximum pending lifetime bound the token instead.
+validity by a significant period. For a deferred redemption, those
+deadlines bound the access token's expiration instead, and the maximum
+pending lifetime bounds only how long after receipt the token can
+issue.
 
 The RAS then accepts the grant. It MUST record the grant's (`iss`,
 `jti`) as accepted, whether or not the grant is bound, and MUST NOT
@@ -1323,7 +1325,7 @@ Each case changes this variant as stated; all other checks succeed.
 | {{AROP}} | Token issuance completion profiled at the RAS ({{deferred-redemption}}): the approval expiry bounds what the RAS issues, every refresh is evaluated again with the approval, recovery replaces idempotent submission, and the authorization is not eligible for continuation. Not profiled at the IdP, where `approved_until` would bound tokens the RAS issues ({{open-items}}) |
 | {{ARAP}} | One way to route an approval; at the RAS, its `approval` object is the approval kept unchanged ({{redemption-approval}}) |
 | {{ICA}} | A deferred continuation holds the assertion's replay reservation while pending, replacing one transition of {{Section 5.5.7.1 of ICA}}, and counts the limits of {{Section 6.3 of ICA}} when the onward grant issues ({{deferred-continuation}}) |
-| {{RFC7521}}, {{WAG}} | Departed from for a deferred redemption: the access token can outlive the assertion, bounded instead by the approval expiry, any enforcement deadline, the absolute authorization expiration, and the maximum pending lifetime ({{redemption-deferring}}) |
+| {{RFC7521}}, {{WAG}} | Departed from for a deferred redemption: the access token can outlive the assertion. The approval expiry, any enforcement deadline, and the absolute authorization expiration bound its expiration; the maximum pending lifetime bounds only when it can issue ({{redemption-deferring}}) |
 | {{CIBA}} | One way to reach a user for a decision; not profiled |
 | {{MCP}} | Informative realization of per-action oversight ({{mcp}}) |
 | {{MISSION-APPROVAL}} | Approves a task, where this document approves a governed request. A Mission approval can be the basis of standing authorization under which requests are human out of the loop |
