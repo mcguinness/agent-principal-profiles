@@ -5219,22 +5219,40 @@ CIMD. Its <code>grant_types</code> <span class="bcp14">MUST</span> permit:<a hre
 redeems grants containing <code>cnf</code>.<a href="#section-9.2.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-9.2.2-3">When that metadata is a Client ID Metadata Document, its
-<code>token_endpoint_auth_method</code> <span class="bcp14">MUST</span> name a client authentication method,
-other than <code>none</code>, that each server using the document accepts for the
-client (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02#section-4" class="relref">Section 4</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span> lets a profile restrict it). A client that
-authenticates with an input of <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span> names that input's method. A
-document that names <code>private_key_jwt</code> makes that method required at
-each server (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02#section-8.2" class="relref">Section 8.2</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span>) and <span class="bcp14">MUST</span> publish the client's keys
-with <code>jwks</code> or <code>jwks_uri</code>. A server that accepts Client ID Metadata
-Documents under this profile <span class="bcp14">MUST</span> reject, with <code>invalid_client</code>, a
-request from a client whose metadata is such a document and names no
-method, names <code>none</code> or a method the server does not accept for that
-client, or names <code>private_key_jwt</code> without <code>jwks</code> or <code>jwks_uri</code>. Because the document
-names one method, a client whose IdP and RAS accept different methods
-cannot use one document at both: it registers separately at the RAS,
-and the client registration association (<a href="#flow-configuration" class="auto internal xref">Section 5.1</a>) maps
-the two identifiers.<a href="#section-9.2.2-3" class="pilcrow">¶</a></p>
+<p id="section-9.2.2-3">When that metadata is a Client ID Metadata Document, the client
+authentication methods it lists are those in its
+<code>token_endpoint_auth_methods_supported</code>, or, where that is absent, its
+<code>token_endpoint_auth_method</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-5" class="relref">Section 5</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span>). They <span class="bcp14">MUST</span> include,
+for each server using the document, a method other than <code>none</code> that the
+server accepts for the client (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-4" class="relref">Section 4</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span> lets a profile
+restrict them). A client that authenticates with an input of <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>
+lists that input's method. A document that lists <code>private_key_jwt</code> <span class="bcp14">MUST</span>
+publish the client's keys with <code>jwks</code> or <code>jwks_uri</code>.<a href="#section-9.2.2-3" class="pilcrow">¶</a></p>
+<p id="section-9.2.2-4">A server that accepts Client ID Metadata Documents under this profile
+selects a listed method that it accepts for the client, and its policy
+can restrict the methods it accepts (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-5" class="relref">Section 5</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span>); it <span class="bcp14">MUST NOT</span>
+select <code>none</code>. It <span class="bcp14">MUST</span> reject, with <code>invalid_client</code>, a request from a
+client whose metadata is such a document and lists no method other than
+<code>none</code> that the server accepts for that client, or lists
+<code>private_key_jwt</code> without <code>jwks</code> or <code>jwks_uri</code>. No response reports the
+selection, so the client uses at each server the method its
+configuration for that server names. A client whose IdP and RAS accept
+different methods can therefore use one document at both, listing a
+method that each accepts. Where the RAS accepts none of the listed
+methods, the client registers separately at the RAS, and the client
+registration association (<a href="#flow-configuration" class="auto internal xref">Section 5.1</a>) maps the two
+identifiers.<a href="#section-9.2.2-4" class="pilcrow">¶</a></p>
+<p id="section-9.2.2-5">Two points of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-5" class="relref">Section 5</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span> bear on one document at both
+servers. First, a server that supports a declared <code>private_key_jwt</code>
+requires client authentication with it, and every IdP under this
+profile supports that method (<a href="#metadata" class="auto internal xref">Section 9.2</a>). An IdP that accepts another
+listed method, such as the <code>spiffe_jwt</code> method of <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, from
+a document that also lists <code>private_key_jwt</code> therefore relies on its
+policy restricting the methods it supports for that client. Second, the
+section requires <code>jwks</code> or <code>jwks_uri</code> with JWT-based methods without
+saying whether that includes methods whose keys come from elsewhere,
+such as <code>spiffe_jwt</code> or the methods of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>; whether a document
+that lists only such methods needs a JWK Set is unsettled.<a href="#section-9.2.2-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="capability-discovery">
@@ -5986,7 +6004,7 @@ This document requests no registration for them.<a href="#section-14.2-3" class=
 <dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
-<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
+<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-03</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="OPENID">[OPENID]</dt>
         <dd>
@@ -6790,7 +6808,7 @@ of this document (<a href="#excluded-compositions" class="auto internal xref">Ap
 base specifications, what it depends on, and the compositions it does
 not define. They were assessed against WAG-02, ID-JAG-06, JWT DPoP
 Grant-02, ICA-02, Actor Profile-01, SPIFFE OAuth-03, ATTEST-12,
-CIMD-02, and Client Instance Identifiers-01.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+CIMD-03, and Client Instance Identifiers-01.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <div id="base-differences">
 <section id="appendix-B.1">
         <h3 id="name-differences-from-base-speci">
@@ -6923,7 +6941,7 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Client ID Metadata Document</td>
-              <td class="text-left" rowspan="1" colspan="1">A <code>token_endpoint_auth_method</code> other than <code>none</code> that each server using the document accepts; <code>jwks</code> or <code>jwks_uri</code> with <code>private_key_jwt</code>
+              <td class="text-left" rowspan="1" colspan="1">Listed methods include, for each server using the document, one other than <code>none</code> that it accepts; a server never selects <code>none</code>, and reads <code>token_endpoint_auth_method</code> where <code>token_endpoint_auth_methods_supported</code> is absent, which <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-5" class="relref">Section 5</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span> permits; <code>invalid_client</code> for a listed <code>private_key_jwt</code> without <code>jwks</code> or <code>jwks_uri</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
                 <a href="#client-metadata" class="auto internal xref">Section 9.2.2</a>
@@ -7077,6 +7095,12 @@ referenced sections define each requirement.<a href="#appendix-B.1-1" class="pil
               <td class="text-left" rowspan="1" colspan="1">A reusable principal-resolution extension point; <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01#section-6.4.1.2" class="relref">Section 6.4.1.2</a> of [<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> permits authentication-context reuse only with the same assertion as <code>actor_token</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">Local mapping (<a href="#actor-construction" class="auto internal xref">Section 5.6.4</a>); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CIMD</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-03#section-6" class="relref">Section 6</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span> to apply its <code>response_types</code> intersection to authorization requests only; it rejects, with <code>invalid_client</code>, any request whose document and server share no response type</td>
+              <td class="text-left" rowspan="1" colspan="1">A server that supports no response type, such as one without an authorization endpoint, rejects every Client ID Metadata Document client, which registers separately there (<a href="#client-metadata" class="auto internal xref">Section 9.2.2</a>); every server rejects a document whose <code>response_types</code> is empty</td>
             </tr>
           </tbody>
         </table>
