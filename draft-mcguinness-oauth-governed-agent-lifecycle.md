@@ -324,6 +324,14 @@ reactivation permits new decisions only. A disablement, a reactivation,
 and a second disablement reach it as one disablement, with no
 activation.
 
+A retried disablement can cost availability. If the success response
+to a disablement write is lost, the IdP still holds the pending
+invalidation and retries the write. When the Receiver's own
+reconciliation has meanwhile found the principal active, the retry
+invalidates the authorization issued in between. It restores no
+revoked authority, and once it succeeds the IdP delivers the current
+status, so new decisions follow.
+
 # Identity and Local Correlation {#identity}
 
 The federation identity remains the exact pair (IdP issuer, Agent
@@ -1063,6 +1071,7 @@ validation, not a new lifecycle cutoff.
 | Delayed activation notice | Retrieve current source state; do not apply the notice as an activation command |
 | Disable and re-enable while the Receiver is unreachable | The disablement is delivered, then the activation; sessions from before stay revoked |
 | Disable, re-enable, and disable while the Receiver is unreachable | One disablement is delivered, and no activation |
+| Disablement write retried after a lost success response, once reconciliation has found the principal active | The retry invalidates authorization issued in between; new decisions follow the IdP's next delivery |
 | Grant issued before a disablement, first redeemed after reactivation | Not invalidated by the disablement; grant-derived revocation can reach an ID-JAG |
 | Grant revocation arrives before redemption | Retain the denial; reject later redemption |
 | Grant subject issuer differs from the stream's authorized issuer | Reject; no cross-issuer revocation |
