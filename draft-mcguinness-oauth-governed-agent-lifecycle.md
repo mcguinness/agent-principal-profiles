@@ -414,10 +414,14 @@ disablement.
 
 The interface uses `/Agents` and the attributes of {{SCIM-AGENT}},
 including required `agentUserName`, plus the common attributes of
-{{RFC7643}}. It defines no extension schema. Receivers MUST support
-creation, retrieval, filtering by `externalId`, PUT, PATCH, and deletion using
-{{RFC7644}}. The Receiver MUST advertise filtering, PATCH, and ETag
-support in `/ServiceProviderConfig`.
+{{RFC7643}}. It defines no extension schema. The `agentUserName`
+uniqueness that {{SCIM-AGENT}} requires applies within the Provisioning
+Domain: this interface reads its `server` uniqueness that way, because
+access controls, not only a base URI, can select the context
+({{conformance}}). Receivers MUST support creation, retrieval,
+filtering by `externalId`, PUT, PATCH, and deletion using {{RFC7644}}.
+The Receiver MUST advertise filtering, PATCH, and ETag support in
+`/ServiceProviderConfig`.
 
 ## Creation and Updates
 
@@ -663,12 +667,14 @@ interfaces as follows; it does not copy the source Agent unchanged:
 | Configured governing issuer | Issuer established by the authenticated Provisioning Domain |
 | `AgentFederation.subject` | Exact value of the destination Agent's `externalId` |
 | Agent `active` | Upstream administrative state; local restrictions remain independent |
+| Agent `agentUserName` and `displayName` | The same descriptive values; they select nothing ({{scim}}) |
 | Agent `id` | Source-resource correlation, not the destination SCIM `id` |
 | Platform-assigned `externalId` | Platform correlation only; not the federated principal identifier |
 {: title="Mapping from the IdP-side Agent"}
 
 This mapping applies equally to direct provisioning and event-driven
-reconciliation. It introduces no additional destination attributes. A
+reconciliation. It introduces no destination attributes beyond those of
+{{SCIM-AGENT}}. A
 platform's `externalId` at the IdP remains its own provisioning
 correlation value. The mutability differs for the same reason: at the
 platform-to-IdP interface of {{AGENT-MANAGEMENT}} it is the connector's
