@@ -657,6 +657,49 @@ on propagation and enforcement, the drafts claim no finite end-to-end
 denial time; a deployment should document its expected and maximum
 delay.
 
+### Kill switch
+
+A trigger can start at an instance of the agent, the agent on its
+platform, the platform, or the Agent Principal. Each one stops at one of
+the relationships above. Solid arrows are effects the drafts define;
+dotted arrows are decisions that an administrator or IdP policy makes.
+
+```mermaid
+flowchart TB
+  inst["One instance compromised"]
+  pagent["Platform deactivates an agent"]
+  plat["Platform compromised or offboarded"]
+  sig["Platform credential and posture events"]
+  team["Identity team or IdP policy"]
+  owner["Resource owner"]
+  local["Stopped on that platform only"]
+  binding["Installation binding or credential refused"]
+  clients["Platform's clients and credential authority disabled"]
+  ap["Agent Principal disabled at the IdP"]
+  idp["IdP issues no new grant through it, and chains rooted there end"]
+  ras["RAS denies redemption and refresh"]
+  api["API rejects tokens within its enforcement delay"]
+  inst -.-> binding
+  pagent --> local
+  plat -.-> clients
+  sig -. "inform" .-> team
+  team -. "widen the incident" .-> ap
+  binding --> idp
+  clients --> idp
+  ap --> idp
+  ap -- "lifecycle delivery, sessions revoked" --> ras
+  owner -. "Local Suspension" .-> ras
+  ras --> api
+```
+
+Only a disablement of the Agent Principal reaches every resource domain
+by protocol. A platform's events, including its own deactivation of the
+agent, do not change the agent's state at the IdP. No stop scoped to
+one instance reaches tokens that a resource domain has already issued,
+because grants do not carry the instance. The playbook's [kill
+switch](PLAYBOOK.md#kill-switch) maps each trigger to its runbook and to
+what keeps working afterward.
+
 ### Failures
 
 A component that cannot reach another keeps the decisions it has
