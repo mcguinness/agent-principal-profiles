@@ -1427,16 +1427,14 @@ are:<a href="#section-1-4" class="pilcrow">¶</a></p>
 addition, profiled in <a href="#signals" class="auto internal xref">Appendix A</a> using existing event types. A
 deployment can use direct SCIM updates, event-driven reconciliation, or
 both, provided that they apply the same authoritative administrative
-decisions. Apart from the Governing IdP's deactivation, which the
-Receiver applies as a disablement (<a href="#scim-events" class="auto internal xref">Appendix A.2</a>), events trigger
-retrieval of current state rather than carrying it: a late notice
-resolves to the current decision, whereas a
+decisions. Events trigger retrieval of current state rather than
+carrying it: a late notice resolves to the current decision, whereas a
 late activation applied as an instruction would revive a principal that
 was since disabled. That asymmetry is the design's safety property.
 Current state alone would lose a disablement that a reactivation has
 since superseded, so the IdP delivers that disablement first, by a SCIM
-write or its deactivation event, and it invalidates the authorization
-issued before it (<a href="#delivery" class="auto internal xref">Section 3.1</a>).<a href="#section-1-7" class="pilcrow">¶</a></p>
+write, and it invalidates the authorization issued before it
+(<a href="#delivery" class="auto internal xref">Section 3.1</a>).<a href="#section-1-7" class="pilcrow">¶</a></p>
 <p id="section-1-8">Disabling a principal and revoking a session are separate actions. Once
 applied, disablement prevents new authorization and invalidates existing
 RAS authorization for that principal. Re-enablement permits new
@@ -1618,17 +1616,15 @@ before it (<a href="#application" class="auto internal xref">Section 5.2</a>); d
 lose it. For an Agent Principal and a Receiver, a pending invalidation
 exists from a decision to disable the principal, made once the IdP has
 provisioned the principal in that domain or owes provisioning there,
-until the Receiver accepts a disablement that the IdP delivered after
-the decision: it returns success for a SCIM write, or the transport
-acknowledges an event (<a href="#signal-trust" class="auto internal xref">Appendix A.1</a>).<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+until the Receiver returns success for a disablement that the IdP
+delivered after the decision.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
 <p id="section-3.1-3">When it delivers a principal's administrative status to a Receiver, the
 IdP:<a href="#section-3.1-3" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-3.1-4">
 <li id="section-3.1-4.1">
             <p id="section-3.1-4.1.1"><span class="bcp14">MUST</span> first deliver any pending invalidation as an applied
-disablement: a SCIM write that sets <code>active</code> to false, a
-<code>prov:deactivate</code> on its stream to that Receiver (<a href="#scim-events" class="auto internal xref">Appendix A.2</a>),
-or, when it provisions the principal, a create with <code>active</code> false.<a href="#section-3.1-4.1.1" class="pilcrow">¶</a></p>
+disablement: a SCIM write that sets <code>active</code> to false or, when it
+provisions the principal, a create with <code>active</code> false.<a href="#section-3.1-4.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-3.1-4.2">
             <p id="section-3.1-4.2.1"><span class="bcp14">MUST NOT</span> deliver an activation that a later decision superseded.<a href="#section-3.1-4.2.1" class="pilcrow">¶</a></p>
@@ -2139,9 +2135,14 @@ interfaces as follows; it does not copy the source Agent unchanged:<a href="#sec
               <td class="text-left" rowspan="1" colspan="1">Upstream administrative state; local restrictions remain independent</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Agent <code>agentUserName</code> and <code>displayName</code>
+              <td class="text-left" rowspan="1" colspan="1">Agent <code>displayName</code>
 </td>
-              <td class="text-left" rowspan="1" colspan="1">The same descriptive values; they select nothing (<a href="#scim" class="auto internal xref">Section 5</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">The same descriptive value; it selects nothing (<a href="#scim" class="auto internal xref">Section 5</a>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent <code>agentUserName</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">A value unique in the destination Provisioning Domain: the source value, or one the connector assigns; it selects nothing (<a href="#scim" class="auto internal xref">Section 5</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Agent <code>id</code>
@@ -2158,14 +2159,22 @@ interfaces as follows; it does not copy the source Agent unchanged:<a href="#sec
         </table>
 <p id="section-10.1-3">This mapping applies equally to direct provisioning and event-driven
 reconciliation. It introduces no destination attributes beyond those of
-<span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>. A
-platform's <code>externalId</code> at the IdP remains its own provisioning
-correlation value. The mutability differs for the same reason: at the
-platform-to-IdP interface of <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> it is the connector's
-record key and stays readWrite; here it carries the principal identifier
-and is immutable once established (<a href="#identity" class="auto internal xref">Section 4</a>).<a href="#section-10.1-3" class="pilcrow">¶</a></p>
-<p id="section-10.1-4">Connectors for <code>/Agents</code> are purpose-built for this resource; User and
-Group support alone is insufficient.<a href="#section-10.1-4" class="pilcrow">¶</a></p>
+<span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>. A platform's <code>externalId</code> at the IdP remains its own
+provisioning correlation value. The mutability differs for the same
+reason: at the platform-to-IdP interface of <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> it is
+the connector's record key and stays readWrite; here it carries the
+principal identifier and is immutable once established (<a href="#identity" class="auto internal xref">Section 4</a>).<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+<p id="section-10.1-4">Names follow the destination's uniqueness, not the source's. At the
+IdP, <code>agentUserName</code> is unique within a Provisioning Domain scoped to
+one Provisioning Client (<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>), so Agents of two such
+domains can share a name and still reach one destination Provisioning
+Domain, where it must be unique (<a href="#scim" class="auto internal xref">Section 5</a>). A <code>uniqueness</code> error on a
+create whose <code>externalId</code> query finds no Agent is such a collision. The
+connector then assigns a destination-unique <code>agentUserName</code>, and reuses
+the value it assigned when it retries. <code>displayName</code> is copied
+unchanged, and correlation stays on <code>externalId</code>.<a href="#section-10.1-4" class="pilcrow">¶</a></p>
+<p id="section-10.1-5">Connectors for <code>/Agents</code> are purpose-built for this resource; User and
+Group support alone is insufficient.<a href="#section-10.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="implementation-receiver">
@@ -2479,15 +2488,9 @@ discovery field. The table uses suffixes under
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>prov:activate</code>, <code>prov:delete</code>
+                <code>prov:activate</code>, <code>prov:deactivate</code>, <code>prov:delete</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">Reconcile current state or authoritative absence</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>prov:deactivate</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">From the Governing IdP, apply a disablement, then reconcile; otherwise reconcile current state</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">
@@ -2519,21 +2522,15 @@ redirect retrieval credentials to a caller-selected endpoint.<a href="#appendix-
 administratively. Acknowledgment <span class="bcp14">MUST NOT</span> discard pending work.<a href="#appendix-A.2-5.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="appendix-A.2-6">A <code>prov:deactivate</code> for an Agent, on a stream that configuration
-establishes as the Governing IdP's or its connector's for the
-Provisioning Domain, <span class="bcp14">MUST</span> be applied as a disablement under
-<a href="#application" class="auto internal xref">Section 5.2</a> before the Receiver reconciles that Agent. It
-invalidates existing authorization as setting <code>active</code> to false does,
-and remains pending work under step 3 until applied; reconciliation that
-then finds the principal active permits new decisions only. Any other
-authenticated <code>prov:deactivate</code>, and a <code>prov:delete</code>, <span class="bcp14">MAY</span> cause a
+<p id="appendix-A.2-6">An authenticated <code>prov:deactivate</code> or <code>prov:delete</code> <span class="bcp14">MAY</span> cause a
 provisional Local Suspension pending reconciliation. An activation event
 <span class="bcp14">MUST NOT</span> activate the principal directly. This asymmetry is deliberate:
-denial can contain risk; granting access requires current authoritative
-state and local authorization. Successful reconciliation can clear a
-provisional restriction under local policy, but not an independent
-Local Suspension. Feed removal and inaccessible sources follow the
-incomplete reconciliation rules; they are not deletion instructions.<a href="#appendix-A.2-6" class="pilcrow">¶</a></p>
+provisional denial can contain risk; granting access requires current
+authoritative state and local authorization. Successful reconciliation
+can clear that provisional restriction under local policy, but not an
+independent Local Suspension. Feed removal and inaccessible sources
+follow the incomplete reconciliation rules; they are not deletion
+instructions.<a href="#appendix-A.2-6" class="pilcrow">¶</a></p>
 <p id="appendix-A.2-7">A Receiver that accepts <span>[<a href="#WISE" class="cite xref">WISE</a>]</span> lifecycle events about a provisioned
 principal from a configured Transmitter applies the same asymmetry.
 <code>workload-disabled</code> and <code>workload-purged</code> <span class="bcp14">MAY</span> cause a provisional Local
@@ -2805,6 +2802,11 @@ validation, not a new lifecycle cutoff.<a href="#appendix-B.3-3" class="pilcrow"
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Create for a pair the RAS correlated just in time</td>
               <td class="text-left" rowspan="1" colspan="1">Adopted: one principal, keeping its local restrictions and revocation state</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Two Agents sharing an <code>agentUserName</code> from different IdP-side Provisioning Domains</td>
+              <td class="text-left" rowspan="1" colspan="1">Both provisioned; the connector assigns one a destination-unique name; each correlates by its own <code>externalId</code>
+</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Stale <code>If-Match</code>
