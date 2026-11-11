@@ -381,22 +381,33 @@ restrictions and retained revocation state applied before issuance. A Receiver t
 supporting this interface uses those rules alone and does not conform
 to this profile.
 
-A conforming Receiver that permits just-in-time correlation MUST expose
-the created principal, with `externalId` set to the agent identifier,
-in the Provisioning Domain of the triggering grant's issuer and, at a
-multi-tenant issuer, its `tenant`, and MUST subject it to the same
-provisioning, reconciliation, and disablement rules as a provisioned
-one. Local
-Suspension is among the local restrictions Federation requires it to
-apply, and the initial `active` value reflects the initial eligibility
-set by local policy.
+A conforming Receiver that permits just-in-time correlation MUST NOT
+expose a record it created that way through SCIM before the Governing
+IdP provisions its pair ({{delivery}}). Until then the record has no
+SCIM `active`. Its eligibility, which local policy sets, is one of the
+local restrictions that Federation requires the RAS to apply, as is
+Local Suspension.
 
-A later SCIM create for the same pair therefore fails with
-`uniqueness`; the connector finds the record with the `externalId`
-query in {{scim}} and updates it. Provisioning that lags the first
-grant thus converges on one principal rather than creating a second.
-A grant does not carry the IdP's administrative status, so
-just-in-time correlation does not replace SCIM provisioning for
+An otherwise valid and authorized create of an Agent whose `externalId`
+is that pair's agent identifier, in the Provisioning Domain of the
+triggering grant's issuer and, at a multi-tenant issuer, its `tenant`,
+MUST NOT fail solely because the record exists. The Receiver MUST bind
+the new resource to the record's local principal, creating no second
+one, and MUST keep that principal's local restrictions and retained
+revocation state. Ordinary SCIM validation still applies, including
+required attributes and `agentUserName` uniqueness. The create's
+`active` value is an administrative status change to that principal
+({{application}}), so an inactive create invalidates the authorization
+issued before it.
+
+Once the record is adopted this way, the Agent is provisioned like any
+other. A later create for the same pair fails with `uniqueness`, and
+the connector finds the resource with the `externalId` query in {{scim}}. Of
+concurrent creates for the pair, one binds the record and the others
+fail the same way ({{identity}}). A record not yet adopted has never
+been reconciled, so a stale-state interval claimed under {{recovery}}
+runs from its creation. A grant does not carry the IdP's administrative
+status, so just-in-time correlation does not replace provisioning for
 disablement.
 
 # SCIM Provisioning {#scim}
@@ -1019,6 +1030,7 @@ subject to normal grant validation, not a new lifecycle cutoff.
 | Case | Expected result |
 |---|---|
 | Equal `externalId` under a different IdP context | Distinct qualified identity; no automatic correlation |
+| Create for a pair the RAS correlated just in time | Adopted: one principal, keeping its local restrictions and revocation state |
 | Stale `If-Match` | HTTP 412; retrieve and reconcile before retrying |
 | Descriptive edit | Resource ETag may change; no implicit authorization change |
 | Applied disablement | New redemption and refresh denied; existing RAS sessions revoked |
