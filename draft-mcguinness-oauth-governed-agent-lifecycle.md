@@ -155,6 +155,10 @@ decisions. Events trigger retrieval of current state rather than
 carrying it: a late notice resolves to the current decision, whereas a
 late activation applied as an instruction would revive a principal that
 was since disabled. That asymmetry is the design's safety property.
+Current state alone would lose a disablement that a reactivation has
+since superseded, so the IdP delivers that disablement first, by a SCIM
+write, and it invalidates the authorization issued before it
+({{delivery}}).
 
 Disabling a principal and revoking a session are separate actions. Once
 applied, disablement prevents new authorization and invalidates existing
@@ -253,9 +257,10 @@ Before provisioning, the parties MUST establish:
 A connector authorized for one context MUST NOT modify another context's
 principal or correlation. Multiple writers MAY represent the same
 Governing IdP, but MUST reconcile against its current decisions rather
-than replay queued activation writes after newer disablement. SCIM
-conditional updates protect receiver resource versions; they do not
-order independent source decisions.
+than replay queued activation writes after newer disablement, and
+deliver a pending invalidation first ({{delivery}}). SCIM conditional
+updates protect receiver resource versions; they do not order
+independent source decisions.
 
 The IdP continues to enforce current eligibility when issuing grants under
 {{FEDERATION}}. This profile adds resource-domain application of that
@@ -265,12 +270,13 @@ authentication.
 The Governing IdP, directly or through its connector, MUST apply each
 change to a provisioned Agent Principal's administrative status to every
 resource domain it has provisioned for that principal, by a SCIM write
-or by a subscribed event that triggers reconciliation, and SHOULD do so
-promptly after the decision. Where grant-derived revocation under
-{{grant-revocation}} is enabled, the IdP MUST retain the identifiers of
-the ID-JAGs it issued under each delegation, Identity Binding, and Client
-Association, so that withdrawing any of them can be propagated to the
-authorization derived from those grants.
+or by a subscribed event that triggers reconciliation, as {{delivery}}
+requires, and SHOULD do so promptly after the decision. Where
+grant-derived revocation under {{grant-revocation}} is enabled, the IdP
+MUST retain the identifiers of the ID-JAGs it issued under each
+delegation, Identity Binding, and Client Association, so that
+withdrawing any of them can be propagated to the authorization derived
+from those grants.
 
 ## Delivering Administrative Status {#delivery}
 
@@ -284,6 +290,38 @@ domain ({{jit}}). It MUST do so even if it fails between issuing the
 grant and starting to provision. Recording the obligation durably
 before issuing the grant meets this; an obligation recorded for a grant
 that was never issued only provisions the agent early.
+
+A disablement that a later reactivation supersedes still has to take
+effect at the Receiver, because it invalidates the authorization issued
+before it ({{application}}); delivering only the current status would
+lose it. For an Agent Principal and a Receiver, a pending invalidation
+exists from a decision to disable the principal, made once the IdP has
+provisioned the principal in that domain or owes provisioning there,
+until the Receiver returns success for a disablement that the IdP
+delivered after the decision.
+
+When it delivers a principal's administrative status to a Receiver, the
+IdP:
+
+1. MUST first deliver any pending invalidation as an applied
+   disablement: a SCIM write that sets `active` to false or, when it
+   provisions the principal, a create with `active` false.
+2. MUST NOT deliver an activation that a later decision superseded.
+3. MUST serialize delivery for the principal and the Receiver, and MUST
+   NOT lose a pending invalidation when one writer replaces another. A
+   single writer per principal is one way to meet this.
+
+An event that only triggers reconciliation does not discharge a pending
+invalidation: the Receiver retrieves current state, in which the
+principal can be active again. After the applied disablement, the IdP
+delivers the current status by either means.
+
+A disablement and a reactivation that both occur while delivery is
+down therefore reach the Receiver as `active` false and then `active`
+true: the disablement invalidates the earlier authorization, and the
+reactivation permits new decisions only. A disablement, a reactivation,
+and a second disablement reach it as one disablement, with no
+activation.
 
 # Identity and Local Correlation {#identity}
 
