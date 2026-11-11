@@ -188,8 +188,9 @@ agents it hosts ({{platform-hosted}}). It does not define:
 * Automatic translation of binding or delegation withdrawal into all
   affected grants, or a WAG wire profile. A known ID-JAG can be revoked
   selectively under {{grant-revocation}}.
-* A guarantee that an unobserved disable-and-reenable cycle invalidates
-  all previously issued grants or sessions.
+* A guarantee that a disable-and-reenable cycle invalidates a grant
+  issued before the disablement and first redeemed after the
+  reactivation ({{missed-transitions}}).
 * Runtime containment: stopping executions, tool calls, or network
   access, or rejecting offline tokens before they expire. Administrative
   disablement stops new authorization and revokes RAS sessions;
@@ -729,17 +730,23 @@ Current state does not establish transition history. If disablement and
 reactivation both occur between successful observations, a later active
 resource does not reveal the missed revocation. A different ETag can
 also result from an ordinary descriptive edit; it does not identify that
-history.
+history. {{delivery}} therefore does not rely on observation: the
+Governing IdP delivers each disablement it decided as an applied one,
+even after it has reactivated the principal, so the Receiver
+invalidates the authorization issued before it.
 
-Consequently, this profile does not guarantee rejection after
-reactivation of an old unredeemed ID-JAG or an authorization session
-whose revocation was never observed. Grant validation, replay
-prevention, and expiration still apply. Sessions actually revoked by the
-RAS remain revoked.
+Two limits remain. Until the disablement is delivered, authorization
+issued before it stays usable, within the delays of {{api-enforcement}}.
+And a grant issued before the disablement and first redeemed after the
+reactivation has no derived authorization for the disablement to
+invalidate: grant-derived revocation ({{grant-revocation}}) can reach
+such an ID-JAG, and nothing in this profile reaches such a WAG. Grant
+validation, replay prevention, and expiration still apply. Sessions
+actually revoked by the RAS remain revoked.
 
-Deployments requiring revocation to survive every missed transition need
-retained revocation history, an authoritative authorization check, or a
-separately specified authorization-generation mechanism.
+Deployments requiring rejection of such grants need grant-derived
+revocation, retained revocation history, an authoritative authorization
+check, or a separately specified authorization-generation mechanism.
 
 ## Offline Tokens {#security-offline}
 
@@ -1026,10 +1033,11 @@ revocation targeting one ID-JAG; revocation need not disable the
 principal.
 
 At 12:03, reactivation permits new authorization decisions. It does not
-restore the sessions revoked at 12:02. If the Receiver missed the entire
-disable-and-reenable cycle, a later active GET alone cannot establish
-that those sessions were revoked. An old unredeemed grant is likewise
-subject to normal grant validation, not a new lifecycle cutoff.
+restore the sessions revoked at 12:02. Had the Receiver been
+unreachable from 12:02 to 12:03, the connector would still have
+delivered the disablement before the activation ({{delivery}}), with
+the same effect. An old unredeemed grant is subject to normal grant
+validation, not a new lifecycle cutoff.
 
 ## Acceptance Checklist {#acceptance-checklist}
 
@@ -1042,7 +1050,9 @@ subject to normal grant validation, not a new lifecycle cutoff.
 | Applied disablement | New redemption and refresh denied; existing RAS sessions revoked |
 | Reactivation after applied disablement | New decisions allowed; revoked sessions stay revoked |
 | Delayed activation notice | Retrieve current source state; do not apply the notice as an activation command |
-| Entire disable-and-reenable cycle missed | Current active state cannot recover revocation history |
+| Disable and re-enable while the Receiver is unreachable | The disablement is delivered, then the activation; sessions from before stay revoked |
+| Disable, re-enable, and disable while the Receiver is unreachable | One disablement is delivered, and no activation |
+| Grant issued before a disablement, first redeemed after reactivation | Not invalidated by the disablement; grant-derived revocation can reach an ID-JAG |
 | Grant revocation arrives before redemption | Retain the denial; reject later redemption |
 | Grant subject issuer differs from the stream's authorized issuer | Reject; no cross-issuer revocation |
 | Direct SCIM provisioning with CAEP revocation only | No SCIM event subscription or source GET required |
