@@ -707,6 +707,53 @@ The post lists five unresolved questions:
   lifecycle profile defines receiver actions for provisioning events and
   grant-derived revocation; the response to risk remains local policy.
 
+#### Workload Identity Metadata
+
+`draft-heigh-wimse-workload-identity-metadata-00` (Standards Track,
+individual submission to WIMSE, October 16, 2026) separates a
+workload's identifier from its attributes. It profiles the registered
+`groups`, `roles`, and `entitlements` claims for Workload Identity
+Credentials. It defines an authenticated metadata endpoint
+(`/.well-known/workload-metadata?sub=`), and a `metadata_uri` claim and
+an X.509 extension that locate it. It also forbids an identifier shared
+by workloads that need distinct identities, and treats an AI agent as a
+workload (Section 5). No draft in this family cites it. The principles
+largely agree with this family's; the wire formats barely overlap. Each
+counterpart below is the nearest mechanism here, not an equivalent.
+
+| The draft | Nearest counterpart here | Difference |
+|---|---|---|
+| Attributes are not encoded in identifiers (Section 3) | Exact resolution through an Identity Binding (`identity-binding`); in the lifecycle profile, names, owners, and groups do not select the governed identity or grant delegation | None in principle |
+| The Workload Identifier is the agent's identity (Sections 3.2 and 5) | The Agent Principal, which the IdP governs and an Identity Binding resolves from a workload identity (`model`) | A workload identifier is an input here. An agent can move between workloads through approved Identity Bindings (`governance-boundary`), and grants carry the Agent Principal, not the platform identity |
+| Workloads that need separate authorization or attribution need distinct identifiers; replicas need not (Sections 4.4 and 5) | Separate Agent Principals for actors that need independent authorization, attribution, or disablement, even on a shared runtime or credential; executions alone do not need them (`governance-boundary`) | None in principle |
+| An issuer distinguishes workloads on a shared execution credential by a means the workload does not control (Sections 4.4 and 11.2) | A shared IAM role needs distinct credential identities or additional trusted selectors; a caller-controlled claim distinguishes agents only under trusted issuance policy (`imported-jwt-input`, `aws-example`) | The draft constrains a credential issuer; here the IdP, like the exchanging issuer of Section 9, determines the agent but issues a grant naming the Agent Principal, not a Workload Identity Credential. Section 11.2 permits platform-assigned properties as selectors, as `imported-jwt-input` does |
+| An owner or operator association confers no authority to act for that principal (Section 4.2) | `owners` on the Agent resource (`SCIM-AGENT`); the lifecycle profile states that owners provide accountability and are not automatically user delegators | The draft leaves the association's representation open (Open Issue 1); here it is a provisioned attribute, not a credential claim |
+| Per-request delegation belongs in the authorization context (Sections 4.2 and 5) | The ID-JAG, with the user as subject and the Agent Principal as actor (`act`) | Section 5 cites Section 10.3 of AIMS-00, which puts the agent in an access token's `client_id` and the user in `sub`; AIMS-01 Section 10.3 says the same. Here the grant carries the agent in `act`, and each RAS issues its own access token |
+| Credentials carry coarse attributes, not grants; a relying party takes authorization from its own policy (Section 4.3) | Workload evidence identifies the agent; authority comes from IdP authorizations and RAS policy | None in principle |
+| An exchanging issuer's metadata is its own assertion (Section 9) | Grants carry the IdP-qualified Agent Principal (`model`) | The IdP's output is a grant, not a Workload Identity Credential |
+| `groups`, `roles`, and `entitlements` claims, the metadata endpoint, and `metadata_uri` | None in grants or access tokens. SCIM carries agent attributes from platform to IdP (the SCIM agent management profile) and from IdP to resource domain (`AGENT-LIFECYCLE`) | A different interface, caller, and trust model. The draft's endpoint serves metadata by Workload Identifier to a relying party it authorizes. The lifecycle profile's Receiver serves the Agent by `externalId`, set to the exact Agent Principal identifier, to an authenticated connector within its Provisioning Domain, which supplies the issuer context (`scim` in the lifecycle draft) |
+
+Points for its authors, not yet raised:
+
+* Open Issue 1 asks whether a durable principal association belongs in
+  Workload Metadata. This family gives one worked answer: owners are a
+  provisioned attribute of the governed agent, accountable without
+  delegating; an Identity Binding, not an owner, associates a workload
+  with the agent; and delegation travels in the grant.
+* A Workload Identifier can denote a logical workload rather than an
+  execution, and the Issuer that assigns it need not be the credential
+  issuer (Section 2). The draft does not define how execution
+  identities bind to a separately governed agent identity, as an
+  Identity Binding does here. Section 5 could say how the two compose,
+  and whether metadata then describes the workload or the governed
+  agent.
+* Section 4.4's remedy is to issue a Workload Identity Credential
+  asserting the distinguished identifier, and Section 9 extends the
+  issuer's obligations to an exchange. An IdP that resolves a shared
+  platform JWT to an Agent Principal makes the same determination but
+  issues an authorization grant. Sections 4.4 and 9 could say whether
+  they cover an exchange whose output is a grant.
+
 ## Identity Continuation Companion
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)
