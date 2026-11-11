@@ -669,7 +669,8 @@ flowchart TB
   inst["One instance compromised"]
   pagent["Platform deactivates an agent"]
   plat["Platform compromised or offboarded"]
-  sig["Platform credential and posture events"]
+  cred["Credential authority revokes a credential"]
+  posture["Platform posture events"]
   team["Identity team or IdP policy"]
   owner["Resource owner"]
   local["Stopped on that platform only"]
@@ -681,10 +682,12 @@ flowchart TB
   ras["RAS denies redemption and refresh"]
   api["API rejects tokens within its enforcement delay"]
   inst -.-> binding
+  inst -.-> cred
   inst -.-> grants
   pagent --> local
   plat -.-> clients
-  sig -. "inform" .-> team
+  cred -- "WISE event, where the IdP accepts them" --> binding
+  posture -. "inform" .-> team
   team -. "widen the incident" .-> ap
   binding --> idp
   clients --> idp
@@ -697,13 +700,17 @@ flowchart TB
 
 Only a disablement of the Agent Principal reaches every resource domain
 by protocol. A platform's events, including its own deactivation of the
-agent, do not change the agent's state at the IdP. Stopping an instance or
-disabling its binding does not itself revoke resource-domain tokens;
-where the IdP's issuance records identify the instance's ID-JAGs,
-grant-derived revocation invalidates the authorization derived from them
-at participating RASs. The playbook's [kill
-switch](PLAYBOOK.md#kill-switch) maps each trigger to its runbook and to
-what keeps working afterward.
+agent, do not change the agent's state at the IdP. Where the IdP
+accepts revocation events from a credential authority it trusts, such an
+event stops it accepting the credential the event names
+([core][core-time-validation]); the agent's other credentials keep
+working, and disabling the agent remains a policy decision. Stopping an
+instance or disabling its binding does not itself
+revoke resource-domain tokens; where the IdP's issuance records identify
+the instance's ID-JAGs, grant-derived revocation invalidates the
+authorization derived from them at participating RASs. The playbook's
+[kill switch](PLAYBOOK.md#kill-switch) maps each trigger to its runbook
+and to what keeps working afterward.
 
 ### Failures
 
@@ -999,6 +1006,7 @@ What each draft needs from the specifications it depends on is in
 [core]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-resource-errors]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
+[core-time-validation]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#time-validation
 [core-policy-services]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
 [core-security]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#security
 [arap]: https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html
