@@ -668,19 +668,29 @@ interfaces as follows; it does not copy the source Agent unchanged:
 | Configured governing issuer | Issuer established by the authenticated Provisioning Domain |
 | `AgentFederation.subject` | Exact value of the destination Agent's `externalId` |
 | Agent `active` | Upstream administrative state; local restrictions remain independent |
-| Agent `agentUserName` and `displayName` | The same descriptive values; they select nothing ({{scim}}) |
+| Agent `displayName` | The same descriptive value; it selects nothing ({{scim}}) |
+| Agent `agentUserName` | A value unique in the destination Provisioning Domain: the source value, or one the connector assigns; it selects nothing ({{scim}}) |
 | Agent `id` | Source-resource correlation, not the destination SCIM `id` |
 | Platform-assigned `externalId` | Platform correlation only; not the federated principal identifier |
 {: title="Mapping from the IdP-side Agent"}
 
 This mapping applies equally to direct provisioning and event-driven
 reconciliation. It introduces no destination attributes beyond those of
-{{SCIM-AGENT}}. A
-platform's `externalId` at the IdP remains its own provisioning
-correlation value. The mutability differs for the same reason: at the
-platform-to-IdP interface of {{AGENT-MANAGEMENT}} it is the connector's
-record key and stays readWrite; here it carries the principal identifier
-and is immutable once established ({{identity}}).
+{{SCIM-AGENT}}. A platform's `externalId` at the IdP remains its own
+provisioning correlation value. The mutability differs for the same
+reason: at the platform-to-IdP interface of {{AGENT-MANAGEMENT}} it is
+the connector's record key and stays readWrite; here it carries the
+principal identifier and is immutable once established ({{identity}}).
+
+Names follow the destination's uniqueness, not the source's. At the
+IdP, `agentUserName` is unique within a Provisioning Domain scoped to
+one Provisioning Client ({{AGENT-MANAGEMENT}}), so Agents of two such
+domains can share a name and still reach one destination Provisioning
+Domain, where it must be unique ({{scim}}). A `uniqueness` error on a
+create whose `externalId` query finds no Agent is such a collision. The
+connector then assigns a destination-unique `agentUserName`, and reuses
+the value it assigned when it retries. `displayName` is copied
+unchanged, and correlation stays on `externalId`.
 
 Connectors for `/Agents` are purpose-built for this resource; User and
 Group support alone is insufficient.
@@ -1045,6 +1055,7 @@ validation, not a new lifecycle cutoff.
 |---|---|
 | Equal `externalId` under a different IdP context | Distinct qualified identity; no automatic correlation |
 | Create for a pair the RAS correlated just in time | Adopted: one principal, keeping its local restrictions and revocation state |
+| Two Agents sharing an `agentUserName` from different IdP-side Provisioning Domains | Both provisioned; the connector assigns one a destination-unique name; each correlates by its own `externalId` |
 | Stale `If-Match` | HTTP 412; retrieve and reconcile before retrying |
 | Descriptive edit | Resource ETag may change; no implicit authorization change |
 | Applied disablement | New redemption and refresh denied; existing RAS sessions revoked |
