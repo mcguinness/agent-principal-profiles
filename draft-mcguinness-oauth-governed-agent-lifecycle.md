@@ -247,6 +247,8 @@ Before provisioning, the parties MUST establish:
 * The RAS and API token populations to which lifecycle enforcement applies.
 * Reconciliation responsibilities, stale-state policy, and resource
   enforcement settings under {{recovery}} and {{enforcement}}.
+* Whether the Receiver permits just-in-time correlation ({{jit}}) and,
+  if it does, the resources of its Target Tenant.
 
 A connector authorized for one context MUST NOT modify another context's
 principal or correlation. Multiple writers MAY represent the same
@@ -269,6 +271,19 @@ promptly after the decision. Where grant-derived revocation under
 the ID-JAGs it issued under each delegation, Identity Binding, and Client
 Association, so that withdrawing any of them can be propagated to the
 authorization derived from those grants.
+
+## Delivering Administrative Status {#delivery}
+
+Where a Receiver permits just-in-time correlation, an agent can hold
+authorization in its domain before the Governing IdP has provisioned it
+there. Once the IdP has issued a grant for an Agent Principal, as the
+`act` agent of an ID-JAG or the subject of a WAG, for a resource in the
+Target Tenant of a Provisioning Domain whose Receiver permits
+just-in-time correlation, the IdP MUST provision that principal in the
+domain ({{jit}}). It MUST do so even if it fails between issuing the
+grant and starting to provision. Recording the obligation durably
+before issuing the grant meets this; an obligation recorded for a grant
+that was never issued only provisions the agent early.
 
 # Identity and Local Correlation {#identity}
 
