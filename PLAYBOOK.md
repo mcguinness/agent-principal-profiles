@@ -1091,12 +1091,10 @@ stay revoked, and ended continuation chains stay ended.
      A failed or partial retrieval leaves reconciliation incomplete; it
      is never a deletion.
   2. Keep each failed reconciliation pending and retry it; an
-     acknowledgment does not discard pending work. A deactivation event
-     from the governing IdP is applied as a disablement, which
-     reconciliation does not undo. An authenticated deletion event, or
-     another source's deactivation event, may have caused a provisional
-     Local Suspension, which successful reconciliation can clear under
-     local policy. It never clears an independent Local Suspension.
+     acknowledgment does not discard pending work. An authenticated
+     deactivation or deletion event may have caused a provisional Local
+     Suspension, which successful reconciliation can clear under local
+     policy. It never clears an independent Local Suspension.
   3. Resend any grant revocation whose delivery is unconfirmed, under
      the transport's acknowledgment rules. Revocations are not SCIM
      state, so reconciliation cannot recover them. If the grant's
