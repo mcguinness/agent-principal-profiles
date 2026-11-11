@@ -17,7 +17,7 @@ builds.
 * [Operating steps](#operating-steps)
 * [Recipes](#recipes)
 * [Vendor evidence](#vendor-evidence)
-* [Runbooks: stop and restore](#runbooks-stop-and-restore)
+* [Kill switch](#kill-switch)
 * [Audit evidence](#audit-evidence)
 * [Where security tooling plugs in](#where-security-tooling-plugs-in)
 
@@ -321,7 +321,7 @@ actions, the API or MCP server holds the call until an approver decides.
 * Where supervised issuance is claimed for a target, each grant's issuer,
   `jti`, request context, and issuance time reach an overseer no later
   than the client receives the grant, and an intervention from the
-  [runbooks](#runbooks-stop-and-restore) stops the target accepting the
+  [kill switch](#kill-switch) stops the target accepting the
   authority within the documented intervention bound. The drafts require
   the bound to be documented; measuring it is a deployment requirement.
 * Where an API holds actions for approval, a confirmation shown only in
@@ -347,7 +347,7 @@ actions, the API or MCP server holds the call until an approver decides.
   * Agent Principals without an owner, or with no grant issued for a
     defined period.
 * **Respond.** Stop and restore access with the
-  [runbooks](#runbooks-stop-and-restore).
+  [kill switch](#kill-switch).
 * **Retire.** Follow [Retire an agent](#retire-an-agent): disable it
   everywhere first, so resource domains revoke its sessions, and then
   delete it and its relationships.
@@ -822,17 +822,58 @@ suite](conformance/README.md) runs many of them through an adapter; its
 "Test control" column says what control of the implementation each
 case needs.
 
-## Runbooks: stop and restore
+## Kill switch
 
-* [Disable an agent everywhere](#disable-an-agent-everywhere)
-* [Cut one agent off from one application](#cut-one-agent-off-from-one-application)
-* [Revoke one suspicious grant](#revoke-one-suspicious-grant)
-* [Respond to a compromised credential or key](#respond-to-a-compromised-credential-or-key)
-* [Offboard a user](#offboard-a-user)
-* [Handle an ownerless agent](#handle-an-ownerless-agent)
-* [Recover from lost event delivery](#recover-from-lost-event-delivery)
-* [Retire an agent](#retire-an-agent)
-* [Roll back an onboarding](#roll-back-an-onboarding)
+No single control stops an agent. The kill switch is a choice of where
+to stop it: each trigger, from one instance of an agent up to its Agent
+Principal, maps to the relationship that ends it. Start from what
+happened:
+
+| What happened | Stop it at | Stops | Still works until revoked or expired | Runbook |
+|---|---|---|---|---|
+| One instance of an agent is compromised or misbehaving | The instance on its platform; at the IdP, its Identity Binding if it is a managed installation behind a shared client, or its own credential once its credential authority revokes it with an event the IdP accepts; its ID-JAGs, by issuer and `jti` | New grants for that instance and, at participating RASs, authorization derived from its revoked ID-JAGs; the agent's other instances continue | Authority already issued to the instance | [Stop one instance](#stop-one-instance) |
+| A dedicated client's key, or a platform's signing key or credential authority, is exposed | The key or authority, at the IdP and at each RAS that accepts it | Resolution through it, for every agent bound to it | Grants already issued, and resource-domain tokens | [Respond to a compromised credential or key](#respond-to-a-compromised-credential-or-key) |
+| A platform deactivates one of its agents | The platform, locally | The agent on that platform | Authority already issued, and the agent's access through other platforms, until the identity team disables the agent at the IdP | [Disable an agent everywhere](#disable-an-agent-everywhere), if it must stop beyond the platform |
+| A platform is compromised or offboarded | Its OAuth clients, at the IdP and at each RAS; its credential authority, SCIM connector, and Continuation Associations, at the IdP | Every agent's use of that platform; the agents stay enabled elsewhere | Resource-domain tokens issued through the platform | [Stop a platform](#stop-a-platform) |
+| One ID-JAG is suspected stolen | The grant, by issuer and `jti` | Its redemption, and the sessions derived from it, at participating RASs | Onward grants already continued from it | [Revoke one suspicious grant](#revoke-one-suspicious-grant) |
+| The agent must stop in one application | A Local Suspension, or the authorization for that target | The agent there; its other access continues | Tokens already issued there | [Cut one agent off from one application](#cut-one-agent-off-from-one-application) |
+| The agent is compromised and must stop everywhere | The Agent Principal, at the IdP | Every binding, client, and continuation chain; each resource domain revokes the agent's sessions once it applies the change | Access at a domain that has not applied it; tokens accepted offline or from a cache | [Disable an agent everywhere](#disable-an-agent-everywhere) |
+| A user leaves | The user, at the IdP and in each resource domain | The user's delegations; the agents' self-acting access continues | Grants issued before the disablement, until stopped or past their acceptance window | [Offboard a user](#offboard-a-user) |
+
+A narrow trigger reaches a wider stop in one of two ways:
+
+* **Protocol, from the Agent Principal down.** Disabling the agent at
+  the IdP refuses its new grants and ends its continuation chains.
+  Under the lifecycle profile, the IdP delivers the disablement to each
+  resource domain, whose authorization server denies redemption and
+  refresh and revokes the agent's sessions.
+* **Policy, from an instance or a platform up.** A platform's events,
+  such as `workload-compromised` and its own `workload-disabled`,
+  inform IdP policy and monitoring. They do not change the agent's state
+  at the IdP. Widening an incident from an instance or a platform to the
+  agent is the identity team's decision: run the wider runbook.
+
+Credential events also act below the agent. An IdP that accepts OpenID
+WISE events from a credential authority it trusts, such as a platform
+that signs its agents' workload JWTs, stops accepting, for agent
+resolution, a credential that `credential-revoked` or
+`credential-compromised` identifies, within what its configuration
+trusts that authority for ([core][core-time-validation]). Other
+credentials that resolve to the same agent keep working.
+
+Stopping an instance or disabling its binding does not itself revoke
+resource-domain tokens. Where the IdP's issuance records identify the
+ID-JAGs issued to the instance, grant-derived revocation invalidates the
+authorization derived from them at participating RASs. Access derived
+from a WAG, onward grants already continued, and tokens accepted offline
+or from a cache remain; [Stop one instance](#stop-one-instance) lists
+everything that remains.
+
+The other runbooks are [Handle an ownerless
+agent](#handle-an-ownerless-agent), [Recover from lost event
+delivery](#recover-from-lost-event-delivery), [Retire an
+agent](#retire-an-agent), and [Roll back an
+onboarding](#roll-back-an-onboarding).
 
 Each change stops a defined set of authority. What it does not stop
 continues until its own revocation, validation, or expiry rule ends it.
@@ -1002,6 +1043,122 @@ stay revoked, and ended continuation chains stay ended.
 * **Completion evidence:** the key retirement and replacement records;
   the failed attempt with the old key and the successful one with the
   new key.
+
+### Stop one instance
+
+* **Trigger:** one instance of an agent, an installation or an
+  execution, is compromised or misbehaving, and the agent's other
+  instances should keep running.
+* **Scope:** that instance's credentials and the authority issued to
+  it. A managed installation behind a shared client resolves through
+  its own Identity Binding ([input profiles][inputs]), so the IdP can
+  refuse it alone. An execution, such as a process, replica, or
+  container, has no Identity Binding of its own: it resolves to the
+  agent through the same binding as the agent's other executions. Where
+  it holds a credential of its own, the IdP can still refuse that
+  credential alone once its credential authority revokes it with an
+  event the IdP accepts; where executions share one credential, the IdP
+  cannot refuse one without refusing the others.
+* **Prerequisites:** which instance it is, and the keys it holds; for a
+  managed installation, its Identity Binding; for an execution's own
+  credential, a credential authority whose WISE events the IdP accepts;
+  to revoke grants already issued to it, the IdP's record of those
+  grants, and resource domains that support the lifecycle profile's
+  grant-derived revocation.
+* **Owner:** platform engineering for the instance; identity team for
+  the binding and the grants.
+* **Action:**
+  1. Stop the instance on its platform, and stop its credential
+     authority (attester, SPIFFE server, or platform token service)
+     issuing it new credentials.
+  2. Refuse the instance at the IdP. For a managed installation,
+     disable its Identity Binding; its other installations keep their
+     own bindings. For an execution with a credential of its own, have
+     its credential authority send WISE `credential-revoked`, or
+     `credential-compromised`, for that credential. The IdP then stops
+     accepting it for agent resolution ([core][core-time-validation]),
+     and the other executions' credentials keep working.
+  3. Revoke each ID-JAG the IdP issued to the instance, as in [Revoke
+     one suspicious grant](#revoke-one-suspicious-grant). A bound
+     grant's `cnf.jkt` names the key that can redeem it.
+  4. If the instance's key is exposed beyond the instance, follow
+     [Respond to a compromised credential or
+     key](#respond-to-a-compromised-credential-or-key). If the agent
+     itself may be compromised, [disable it
+     everywhere](#disable-an-agent-everywhere).
+* **Verification:** the instance obtains no new credential. For a
+  managed installation, an exchange through its binding fails with
+  `invalid_grant`, while another installation of the same agent still
+  obtains grants. For a revoked execution credential, an exchange
+  presenting it is refused, while another execution's credential still
+  resolves the agent. Redemption and refresh of each revoked grant fail
+  at participating RASs.
+* **Residual access:** the instance's current credential, until it
+  expires or the IdP stops accepting it; where executions share one
+  credential, or no revocation the IdP accepts names it, the IdP cannot
+  refuse one execution alone. ID-JAGs not revoked in step 3, and the
+  authority derived from them, until they expire; authority derived from
+  a revoked ID-JAG at a RAS that does not participate in grant-derived
+  revocation. Onward grants already continued from the instance's
+  grants, and their tokens. Access derived from a WAG, whose selective
+  revocation is deployment-specific. Tokens accepted offline or from a
+  cache.
+* **Recovery:** a replacement instance runs with new credentials. A
+  re-enrolled installation receives a new identifier, which needs its
+  own approved Identity Binding. Revoked grants stay revoked.
+* **Completion evidence:** the platform's record of stopping the
+  instance; the binding change, or the credential authority's revocation
+  event, and the failed exchange through it; each grant revocation event
+  and the RAS's record of the revoked grant.
+
+### Stop a platform
+
+* **Trigger:** a platform is compromised beyond one key, or is being
+  offboarded.
+* **Scope:** every agent's use of that platform: its OAuth clients, the
+  credential authority it operates, its SCIM connector, and the
+  continuation it performs as a gateway, at the IdP and at each
+  resource domain that registered its clients. The agents themselves
+  stay enabled: disabling a shared client does not disable the agents
+  associated with it.
+* **Prerequisites:** the platform's OAuth clients at the IdP and at each
+  RAS; the credential authorities it operates (platform JWT issuer,
+  SPIFFE trust domain, or attester) and the Identity Bindings that rely
+  on them; its connector's management authority; its Continuation
+  Associations.
+* **Owner:** identity team at the IdP; each resource owner for its RAS;
+  platform engineering on the platform side.
+* **Action:**
+  1. Disable the platform's OAuthClients at the IdP. The IdP denies new
+     authorization and issuance through them, including refresh.
+  2. Remove the platform's credential authority from the IdP's trust
+     configuration, or disable the Identity Bindings that rely on it.
+  3. Withdraw its SCIM connector's authority, so that it can no longer
+     create or enable resources at the IdP.
+  4. Remove its Continuation Associations, if it continues chains as a
+     gateway.
+  5. Ask each resource owner to disable the platform's client
+     registrations at their RAS, which stops redemption and refresh
+     through them.
+  6. If the agents themselves may be compromised, [disable each one
+     everywhere](#disable-an-agent-everywhere).
+* **Verification:** a token request through each disabled client is
+  refused at the IdP and at each RAS. A platform JWT from the removed
+  authority fails with `invalid_request`, or with `invalid_grant` where
+  only its bindings were disabled. An agent with a binding through
+  another platform still obtains grants.
+* **Residual access:** resource-domain tokens issued through the
+  platform, until revoked or expired; each RAS documents how it treats
+  outstanding authorization when a client is disabled rather than
+  deleted. The agents' access through other platforms continues by
+  design.
+* **Recovery:** for a compromised platform, replace its keys first.
+  Then re-enable each client and binding explicitly, since re-enabling
+  needs separate administrative authorization, and restore the
+  connector's authority last. Revoked authorization stays revoked.
+* **Completion evidence:** each client's change record at the IdP and at
+  each RAS; the trust-configuration change; the refused token requests;
+  an agent's successful access through another platform, if it has one.
 
 ### Offboard a user
 
@@ -1295,7 +1452,9 @@ tooling can rely on.
 [core-aws-example]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [core-policy-services]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
 [core-resource-errors]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
+[core-time-validation]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#time-validation
 [continuation]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[inputs]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [continuation-scheduled]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [oversight-walkthrough]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough
 [lifecycle]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
