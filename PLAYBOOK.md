@@ -1284,17 +1284,17 @@ deployment-specific risk inputs ([guide][guide-risk]). In return, a
 disablement or revocation here has a defined effect that response
 tooling can rely on.
 
-[core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-[core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
-[core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
-[core-policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
-[core-resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
-[continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
-[continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
-[oversight-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough
-[lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
-[management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
+[core]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+[core-walkthrough]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
+[core-aws-example]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
+[core-policy-services]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
+[core-resource-errors]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
+[continuation]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[continuation-scheduled]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
+[oversight-walkthrough]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough
+[lifecycle]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+[management]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen
 [guide-risk]: IMPLEMENTERS-GUIDE.md#risk-signals
 [guide-oversight]: IMPLEMENTERS-GUIDE.md#human-oversight
-[oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
+[oversight]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html

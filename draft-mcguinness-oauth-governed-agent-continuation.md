@@ -19,8 +19,8 @@ venue:
   type: "Working Group"
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
-  github: "mcguinness/governed-agent-profiles"
-  latest: "https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html"
+  github: "mcguinness/agent-principal-profiles"
+  latest: "https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -33,7 +33,7 @@ normative:
     date: 2026-10-09
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
   ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-06
   RFC6749:
@@ -52,10 +52,10 @@ informative:
     date: false
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   AGENT-LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness
     seriesinfo:
@@ -67,7 +67,7 @@ informative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-agent-federation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
   EMA:
     title: "Enterprise-Managed Authorization"
     target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx
@@ -78,7 +78,7 @@ informative:
     author:
       - name: Karl McGuinness
     date: false
-    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
+    target: https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   ID-CHAINING: I-D.ietf-oauth-identity-chaining-17
   MCP:
     title: "Model Context Protocol Specification, Revision 2026-07-28"

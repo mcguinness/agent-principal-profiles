@@ -19,8 +19,8 @@ venue:
   type: "Working Group"
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
-  github: "mcguinness/governed-agent-profiles"
-  latest: "https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html"
+  github: "mcguinness/agent-principal-profiles"
+  latest: "https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -33,7 +33,7 @@ normative:
     date: false
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
   CONTINUATION:
     title: "Identity Continuation Profile for Agent Principal Federation"
     author:
@@ -41,7 +41,7 @@ normative:
     date: false
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   DTR: I-D.ietf-oauth-deferred-token-response-01
   ICA: I-D.mcguinness-oauth-id-continuation-assertion-02
   RFC6749:
@@ -55,7 +55,7 @@ informative:
     date: false
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
   AIMS: I-D.ietf-wimse-aims-01
   ARAP:
     title: "AuthZEN Access Request and Approval Profile - Draft 1"

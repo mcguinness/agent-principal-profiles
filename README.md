@@ -118,7 +118,7 @@ reference each other normatively and are published together.
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/mcguinness/governed-agent-profiles/blob/main/CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/mcguinness/agent-principal-profiles/blob/main/CONTRIBUTING.md).
 
 The contributing file also has tips on how to make contributions, if you
 don't already know how to do that.
@@ -161,10 +161,10 @@ the drafts define inline, such as the OpenID specifications, are not
 checked. Nor does it notice that a pinned Internet-Draft has been
 published as an RFC; idnits reports that.
 
-[core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
-[inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
-[continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
-[management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
-[lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
-[oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
-[oauth-client]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html
+[core]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+[inputs]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
+[continuation]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[management]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
+[lifecycle]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+[oversight]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
+[oauth-client]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-oauth-client-management.html

@@ -17,8 +17,8 @@ venue:
   type: "Working Group"
   mail: "scim@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/scim/"
-  github: "mcguinness/governed-agent-profiles"
-  latest: "https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html"
+  github: "mcguinness/agent-principal-profiles"
+  latest: "https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -31,7 +31,7 @@ normative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-oauth-client-management
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-oauth-client-management.html
   FEDERATION:
     title: "OAuth 2.0 Profile for Agent Principal Federation"
     author:
@@ -39,7 +39,7 @@ normative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
   INSTANCE: I-D.mcguinness-oauth-client-instance-id-01
   SCIM-AGENT: I-D.wzdk-scim-agent-resource-00
   RFC7643:
@@ -52,7 +52,7 @@ normative:
     date: 2026-10-09
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
@@ -61,13 +61,13 @@ informative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
   GUIDE:
     title: "Implementer's Guide for Agent Principal Federation"
     author:
       - name: Karl McGuinness
     date: false
-    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
+    target: https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md
 --- abstract
 
 This document profiles the System for Cross-domain Identity Management
