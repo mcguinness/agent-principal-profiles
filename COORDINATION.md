@@ -740,11 +740,13 @@ Points for its authors, not yet raised:
   provisioned attribute of the governed agent, accountable without
   delegating; an Identity Binding, not an owner, associates a workload
   with the agent; and delegation travels in the grant.
-* An agent can need an identity above any one workload, one that
-  survives a move between platforms and that resource domains
-  correlate. The draft has no place for it, and its endpoint cannot
-  look it up. Section 5 could say whether metadata describes the
-  workload or a governed agent the workload runs as.
+* A Workload Identifier can denote a logical workload rather than an
+  execution, and the Issuer that assigns it need not be the credential
+  issuer (Section 2). The draft does not define how execution
+  identities bind to a separately governed agent identity, as an
+  Identity Binding does here. Section 5 could say how the two compose,
+  and whether metadata then describes the workload or the governed
+  agent.
 * Section 4.4's remedy is to issue a Workload Identity Credential
   asserting the distinguished identifier, and Section 9 extends the
   issuer's obligations to an exchange. An IdP that resolves a shared
