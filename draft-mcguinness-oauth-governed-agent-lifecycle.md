@@ -151,14 +151,16 @@ SCIM is the provisioning baseline. Shared Signals is an optional
 addition, profiled in {{signals}} using existing event types. A
 deployment can use direct SCIM updates, event-driven reconciliation, or
 both, provided that they apply the same authoritative administrative
-decisions. Events trigger retrieval of current state rather than
-carrying it: a late notice resolves to the current decision, whereas a
+decisions. Apart from the Governing IdP's deactivation, which the
+Receiver applies as a disablement ({{scim-events}}), events trigger
+retrieval of current state rather than carrying it: a late notice
+resolves to the current decision, whereas a
 late activation applied as an instruction would revive a principal that
 was since disabled. That asymmetry is the design's safety property.
 Current state alone would lose a disablement that a reactivation has
 since superseded, so the IdP delivers that disablement first, by a SCIM
-write, and it invalidates the authorization issued before it
-({{delivery}}).
+write or its deactivation event, and it invalidates the authorization
+issued before it ({{delivery}}).
 
 Disabling a principal and revoking a session are separate actions. Once
 applied, disablement prevents new authorization and invalidates existing
@@ -298,15 +300,17 @@ before it ({{application}}); delivering only the current status would
 lose it. For an Agent Principal and a Receiver, a pending invalidation
 exists from a decision to disable the principal, made once the IdP has
 provisioned the principal in that domain or owes provisioning there,
-until the Receiver returns success for a disablement that the IdP
-delivered after the decision.
+until the Receiver accepts a disablement that the IdP delivered after
+the decision: it returns success for a SCIM write, or the transport
+acknowledges an event ({{signal-trust}}).
 
 When it delivers a principal's administrative status to a Receiver, the
 IdP:
 
 1. MUST first deliver any pending invalidation as an applied
-   disablement: a SCIM write that sets `active` to false or, when it
-   provisions the principal, a create with `active` false.
+   disablement: a SCIM write that sets `active` to false, a
+   `prov:deactivate` on its stream to that Receiver ({{scim-events}}),
+   or, when it provisions the principal, a create with `active` false.
 2. MUST NOT deliver an activation that a later decision superseded.
 3. MUST serialize delivery for the principal and the Receiver, and MUST
    NOT lose a pending invalidation when one writer replaces another. A
@@ -822,7 +826,8 @@ discovery field. The table uses suffixes under
 |---|---|
 | `prov:create:notice`, `prov:patch:notice`, `prov:put:notice` | Retrieve current authoritative state |
 | `prov:create:full`, `prov:patch:full`, `prov:put:full` | Retrieve current state; the included snapshot does not override it |
-| `prov:activate`, `prov:deactivate`, `prov:delete` | Reconcile current state or authoritative absence |
+| `prov:activate`, `prov:delete` | Reconcile current state or authoritative absence |
+| `prov:deactivate` | From the Governing IdP, apply a disablement, then reconcile; otherwise reconcile current state |
 | `feed:add`, `feed:remove` | Reconcile the resource and feed coverage; removal from a feed does not establish deletion or disablement |
 
 Transmitters MUST report administrative changes for resources covered by
@@ -842,15 +847,21 @@ MUST:
 3. Retain failed reconciliation as pending and retry or resolve it
    administratively. Acknowledgment MUST NOT discard pending work.
 
-An authenticated `prov:deactivate` or `prov:delete` MAY cause a
+A `prov:deactivate` for an Agent, on a stream that configuration
+establishes as the Governing IdP's or its connector's for the
+Provisioning Domain, MUST be applied as a disablement under
+{{application}} before the Receiver reconciles that Agent. It
+invalidates existing authorization as setting `active` to false does,
+and remains pending work under step 3 until applied; reconciliation that
+then finds the principal active permits new decisions only. Any other
+authenticated `prov:deactivate`, and a `prov:delete`, MAY cause a
 provisional Local Suspension pending reconciliation. An activation event
 MUST NOT activate the principal directly. This asymmetry is deliberate:
-provisional denial can contain risk; granting access requires current
-authoritative state and local authorization. Successful reconciliation
-can clear that provisional restriction under local policy, but not an
-independent Local Suspension. Feed removal and inaccessible sources
-follow the incomplete reconciliation rules; they are not deletion
-instructions.
+denial can contain risk; granting access requires current authoritative
+state and local authorization. Successful reconciliation can clear a
+provisional restriction under local policy, but not an independent
+Local Suspension. Feed removal and inaccessible sources follow the
+incomplete reconciliation rules; they are not deletion instructions.
 
 A Receiver that accepts {{WISE}} lifecycle events about a provisioned
 principal from a configured Transmitter applies the same asymmetry.
