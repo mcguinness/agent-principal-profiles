@@ -1644,6 +1644,13 @@ true: the disablement invalidates the earlier authorization, and the
 reactivation permits new decisions only. A disablement, a reactivation,
 and a second disablement reach it as one disablement, with no
 activation.<a href="#section-3.1-6" class="pilcrow">¶</a></p>
+<p id="section-3.1-7">A retried disablement can cost availability. If the success response
+to a disablement write is lost, the IdP still holds the pending
+invalidation and retries the write. When the Receiver's own
+reconciliation has meanwhile found the principal active, the retry
+invalidates the authorization issued in between. It restores no
+revoked authority, and once it succeeds the IdP delivers the current
+status, so new decisions follow.<a href="#section-3.1-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2836,6 +2843,10 @@ validation, not a new lifecycle cutoff.<a href="#appendix-B.3-3" class="pilcrow"
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Disable, re-enable, and disable while the Receiver is unreachable</td>
               <td class="text-left" rowspan="1" colspan="1">One disablement is delivered, and no activation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Disablement write retried after a lost success response, once reconciliation has found the principal active</td>
+              <td class="text-left" rowspan="1" colspan="1">The retry invalidates authorization issued in between; new decisions follow the IdP's next delivery</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Grant issued before a disablement, first redeemed after reactivation</td>

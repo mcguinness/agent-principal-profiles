@@ -382,6 +382,14 @@ Table of Contents
    reactivation, and a second disablement reach it as one disablement,
    with no activation.
 
+   A retried disablement can cost availability.  If the success response
+   to a disablement write is lost, the IdP still holds the pending
+   invalidation and retries the write.  When the Receiver's own
+   reconciliation has meanwhile found the principal active, the retry
+   invalidates the authorization issued in between.  It restores no
+   revoked authority, and once it succeeds the IdP delivers the current
+   status, so new decisions follow.
+
 4.  Identity and Local Correlation
 
    The federation identity remains the exact pair (IdP issuer, Agent
@@ -1361,79 +1369,83 @@ B.3.  Disable and Re-enable
 
 B.4.  Acceptance Checklist
 
-    +===============================+=================================+
-    | Case                          | Expected result                 |
-    +===============================+=================================+
-    | Equal externalId under a      | Distinct qualified identity; no |
-    | different IdP context         | automatic correlation           |
-    +-------------------------------+---------------------------------+
-    | Create for a pair the RAS     | Adopted: one principal, keeping |
-    | correlated just in time       | its local restrictions and      |
-    |                               | revocation state                |
-    +-------------------------------+---------------------------------+
-    | Two Agents sharing an         | Both provisioned; the connector |
-    | agentUserName from different  | assigns one a destination-      |
-    | IdP-side Provisioning Domains | unique name; each correlates by |
-    |                               | its own externalId              |
-    +-------------------------------+---------------------------------+
-    | Stale If-Match                | HTTP 412; retrieve and          |
-    |                               | reconcile before retrying       |
-    +-------------------------------+---------------------------------+
-    | Descriptive edit              | Resource ETag may change; no    |
-    |                               | implicit authorization change   |
-    +-------------------------------+---------------------------------+
-    | Applied disablement           | New redemption and refresh      |
-    |                               | denied; existing RAS sessions   |
-    |                               | revoked                         |
-    +-------------------------------+---------------------------------+
-    | Reactivation after applied    | New decisions allowed; revoked  |
-    | disablement                   | sessions stay revoked           |
-    +-------------------------------+---------------------------------+
-    | Delayed activation notice     | Retrieve current source state;  |
-    |                               | do not apply the notice as an   |
-    |                               | activation command              |
-    +-------------------------------+---------------------------------+
-    | Disable and re-enable while   | The disablement is delivered,   |
-    | the Receiver is unreachable   | then the activation; sessions   |
-    |                               | from before stay revoked        |
-    +-------------------------------+---------------------------------+
-    | Disable, re-enable, and       | One disablement is delivered,   |
-    | disable while the Receiver is | and no activation               |
-    | unreachable                   |                                 |
-    +-------------------------------+---------------------------------+
-    | Grant issued before a         | Not invalidated by the          |
-    | disablement, first redeemed   | disablement; grant-derived      |
-    | after reactivation            | revocation can reach an ID-JAG  |
-    +-------------------------------+---------------------------------+
-    | Grant revocation arrives      | Retain the denial; reject later |
-    | before redemption             | redemption                      |
-    +-------------------------------+---------------------------------+
-    | Grant subject issuer differs  | Reject; no cross-issuer         |
-    | from the stream's authorized  | revocation                      |
-    | issuer                        |                                 |
-    +-------------------------------+---------------------------------+
-    | Direct SCIM provisioning with | No SCIM event subscription or   |
-    | CAEP revocation only          | source GET required             |
-    +-------------------------------+---------------------------------+
-    | Reactivation without a        | HTTP 409; retrieve and use the  |
-    | version ETag, including If-   | current ETag                    |
-    | Match: *                      |                                 |
-    +-------------------------------+---------------------------------+
-    | Feed removal event            | Reconcile coverage; do not      |
-    |                               | infer deletion                  |
-    +-------------------------------+---------------------------------+
-    | Source unavailable            | No activation inferred; local   |
-    |                               | stale-state policy applies      |
-    +-------------------------------+---------------------------------+
-    | SCIM success or SET           | Does not establish immediate    |
-    | acknowledgment                | API denial                      |
-    +-------------------------------+---------------------------------+
-    | Offline JWT                   | May remain usable until         |
-    |                               | expiration unless separately    |
-    |                               | restricted                      |
-    +-------------------------------+---------------------------------+
+   +================================+=================================+
+   | Case                           | Expected result                 |
+   +================================+=================================+
+   | Equal externalId under a       | Distinct qualified identity; no |
+   | different IdP context          | automatic correlation           |
+   +--------------------------------+---------------------------------+
+   | Create for a pair the RAS      | Adopted: one principal, keeping |
+   | correlated just in time        | its local restrictions and      |
+   |                                | revocation state                |
+   +--------------------------------+---------------------------------+
+   | Two Agents sharing an          | Both provisioned; the connector |
+   | agentUserName from different   | assigns one a destination-      |
+   | IdP-side Provisioning Domains  | unique name; each correlates by |
+   |                                | its own externalId              |
+   +--------------------------------+---------------------------------+
+   | Stale If-Match                 | HTTP 412; retrieve and          |
+   |                                | reconcile before retrying       |
+   +--------------------------------+---------------------------------+
+   | Descriptive edit               | Resource ETag may change; no    |
+   |                                | implicit authorization change   |
+   +--------------------------------+---------------------------------+
+   | Applied disablement            | New redemption and refresh      |
+   |                                | denied; existing RAS sessions   |
+   |                                | revoked                         |
+   +--------------------------------+---------------------------------+
+   | Reactivation after applied     | New decisions allowed; revoked  |
+   | disablement                    | sessions stay revoked           |
+   +--------------------------------+---------------------------------+
+   | Delayed activation notice      | Retrieve current source state;  |
+   |                                | do not apply the notice as an   |
+   |                                | activation command              |
+   +--------------------------------+---------------------------------+
+   | Disable and re-enable while    | The disablement is delivered,   |
+   | the Receiver is unreachable    | then the activation; sessions   |
+   |                                | from before stay revoked        |
+   +--------------------------------+---------------------------------+
+   | Disable, re-enable, and        | One disablement is delivered,   |
+   | disable while the Receiver is  | and no activation               |
+   | unreachable                    |                                 |
+   +--------------------------------+---------------------------------+
+   | Disablement write retried      | The retry invalidates           |
+   | after a lost success response, | authorization issued in         |
+   | once reconciliation has found  | between; new decisions follow   |
+   | the principal active           | the IdP's next delivery         |
+   +--------------------------------+---------------------------------+
+   | Grant issued before a          | Not invalidated by the          |
+   | disablement, first redeemed    | disablement; grant-derived      |
+   | after reactivation             | revocation can reach an ID-JAG  |
+   +--------------------------------+---------------------------------+
+   | Grant revocation arrives       | Retain the denial; reject later |
+   | before redemption              | redemption                      |
+   +--------------------------------+---------------------------------+
+   | Grant subject issuer differs   | Reject; no cross-issuer         |
+   | from the stream's authorized   | revocation                      |
+   | issuer                         |                                 |
+   +--------------------------------+---------------------------------+
+   | Direct SCIM provisioning with  | No SCIM event subscription or   |
+   | CAEP revocation only           | source GET required             |
+   +--------------------------------+---------------------------------+
+   | Reactivation without a version | HTTP 409; retrieve and use the  |
+   | ETag, including If-Match: *    | current ETag                    |
+   +--------------------------------+---------------------------------+
+   | Feed removal event             | Reconcile coverage; do not      |
+   |                                | infer deletion                  |
+   +--------------------------------+---------------------------------+
+   | Source unavailable             | No activation inferred; local   |
+   |                                | stale-state policy applies      |
+   +--------------------------------+---------------------------------+
+   | SCIM success or SET            | Does not establish immediate    |
+   | acknowledgment                 | API denial                      |
+   +--------------------------------+---------------------------------+
+   | Offline JWT                    | May remain usable until         |
+   |                                | expiration unless separately    |
+   |                                | restricted                      |
+   +--------------------------------+---------------------------------+
 
-                                  Table 8
+                                 Table 8
 
 Appendix C.  Signal Examples
 
