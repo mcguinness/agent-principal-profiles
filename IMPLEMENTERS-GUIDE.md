@@ -721,7 +721,7 @@ A deployment that uses oversight adds this configuration to the
 | Client | `completion_mode=deferred`, with `deferred_interactive` as well when it can present an `interaction_uri` to the user, and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant and grant type, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
 | Gateway | The client behavior above for its continuation exchanges; reporting the wait to the agent through its own interface, such as an MCP task |
 | API or MCP server | Per-action policy and its approvers; holding a call, or refusing it in a way the agent can request; an approval page that authenticates the approver and binds the decision to the call, its arguments, and the token's subject, agent, client, and tenant |
-| Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
+| Overseers | Supervised-issuance notices, and the interventions of the [playbook's kill switch](PLAYBOOK.md#kill-switch), each with a documented intervention bound |
 
 The conformance suite tests deferred redemption against the reference,
 whose Access Request Service it controls: D01 to D29. WAG deferral,
