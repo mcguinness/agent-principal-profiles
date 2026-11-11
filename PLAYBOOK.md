@@ -854,9 +854,13 @@ A narrow trigger reaches a wider stop in one of two ways:
   IdP. Widening an incident from an instance or a platform to the agent
   is the identity team's decision: run the wider runbook.
 
-No stop scoped to one instance reaches authority that a resource domain
-has already issued, because grants do not carry the instance. [Stop one
-instance](#stop-one-instance) lists what remains.
+Stopping an instance or disabling its binding does not itself revoke
+resource-domain tokens. Where the IdP's issuance records identify the
+ID-JAGs issued to the instance, grant-derived revocation invalidates the
+authorization derived from them at participating RASs. Access derived
+from a WAG, onward grants already continued, and tokens accepted offline
+or from a cache remain; [Stop one instance](#stop-one-instance) lists
+everything that remains.
 
 The other runbooks are [Handle an ownerless
 agent](#handle-an-ownerless-agent), [Recover from lost event
@@ -1071,10 +1075,14 @@ stay revoked, and ended continuation chains stay ended.
   obtains grants. Redemption and refresh of each revoked grant fail at
   participating RASs.
 * **Residual access:** the instance's current credential, until it
-  expires; for an execution, the IdP cannot refuse it alone. Grants not
-  revoked, and resource-domain tokens issued to the instance, until
-  they expire. Access derived from a WAG, whose selective revocation is
-  deployment-specific. Tokens accepted offline or from a cache.
+  expires; for an execution, the IdP cannot refuse it alone. ID-JAGs not
+  revoked in step 3, and the authority derived from them, until they
+  expire; authority derived from a revoked ID-JAG at a RAS that does not
+  participate in grant-derived revocation. Onward grants already
+  continued from the instance's grants, and their tokens. Access derived
+  from a WAG, whose
+  selective revocation is deployment-specific. Tokens accepted offline
+  or from a cache.
 * **Recovery:** a replacement instance runs with new credentials. A
   re-enrolled installation receives a new identifier, which needs its
   own approved Identity Binding. Revoked grants stay revoked.

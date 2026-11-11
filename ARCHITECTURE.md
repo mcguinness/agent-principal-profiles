@@ -674,12 +674,14 @@ flowchart TB
   owner["Resource owner"]
   local["Stopped on that platform only"]
   binding["Installation binding or credential refused"]
+  grants["Instance's ID-JAGs revoked by issuer and jti"]
   clients["Platform's clients and credential authority disabled"]
   ap["Agent Principal disabled at the IdP"]
   idp["IdP issues no new grant through it, and chains rooted there end"]
   ras["RAS denies redemption and refresh"]
   api["API rejects tokens within its enforcement delay"]
   inst -.-> binding
+  inst -.-> grants
   pagent --> local
   plat -.-> clients
   sig -. "inform" .-> team
@@ -688,15 +690,18 @@ flowchart TB
   clients --> idp
   ap --> idp
   ap -- "lifecycle delivery, sessions revoked" --> ras
+  grants -- "grant-derived revocation" --> ras
   owner -. "Local Suspension" .-> ras
   ras --> api
 ```
 
 Only a disablement of the Agent Principal reaches every resource domain
 by protocol. A platform's events, including its own deactivation of the
-agent, do not change the agent's state at the IdP. No stop scoped to
-one instance reaches tokens that a resource domain has already issued,
-because grants do not carry the instance. The playbook's [kill
+agent, do not change the agent's state at the IdP. Stopping an instance or
+disabling its binding does not itself revoke resource-domain tokens;
+where the IdP's issuance records identify the instance's ID-JAGs,
+grant-derived revocation invalidates the authorization derived from them
+at participating RASs. The playbook's [kill
 switch](PLAYBOOK.md#kill-switch) maps each trigger to its runbook and to
 what keeps working afterward.
 
