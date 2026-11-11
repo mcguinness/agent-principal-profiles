@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        10 November 2026
-Expires: 14 May 2027
+Intended status: Standards Track                        11 November 2026
+Expires: 15 May 2027
 
 
               SCIM Profile for Agent Principal Management
@@ -36,7 +36,7 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/governed-agent-profiles/draft-
+   https://mcguinness.github.io/agent-principal-profiles/draft-
    mcguinness-scim-agent-federation.html.  Status information for this
    document may be found at https://datatracker.ietf.org/doc/draft-
    mcguinness-scim-agent-federation/.
@@ -48,7 +48,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/scim/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/governed-agent-profiles.
+   https://github.com/mcguinness/agent-principal-profiles.
 
 Status of This Memo
 
@@ -65,7 +65,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 May 2027.
+   This Internet-Draft will expire on 15 May 2027.
 
 Copyright Notice
 
@@ -1161,7 +1161,7 @@ Table of Contents
               McGuinness, K., "SCIM Profile for OAuth 2.0 Client
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-oauth-client-management, 18 September
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-scim-oauth-client-
               management.html>.
 
@@ -1169,7 +1169,7 @@ Table of Contents
               McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 18 September
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-oauth-governed-agent-
               federation.html>.
 
@@ -1205,7 +1205,7 @@ Table of Contents
    [INPUTS]   McGuinness, K., "Agent Resolution Inputs for Agent
               Principal Federation", Work in Progress, Internet-Draft,
               draft-mcguinness-oauth-governed-agent-inputs, 9 October
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-oauth-governed-agent-
               inputs.html>.
 
@@ -1228,13 +1228,13 @@ Table of Contents
               McGuinness, K., "Agent Principal Lifecycle Profile for
               SCIM and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, 18 September
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-oauth-governed-agent-
               lifecycle.html>.
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
-              Federation", <https://github.com/mcguinness/governed-
-              agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
+              Federation", <https://github.com/mcguinness/agent-
+              principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
 Appendix A.  Example: Platform Onboarding
 

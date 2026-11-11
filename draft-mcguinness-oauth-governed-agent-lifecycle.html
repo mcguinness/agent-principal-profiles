@@ -1057,7 +1057,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 14 May 2027</td>
+<td class="center">Expires 15 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1070,12 +1070,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-lifecycle-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-10" class="published">10 November 2026</time>
+<time datetime="2026-11-11" class="published">11 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-14">14 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-15">15 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1104,7 +1104,7 @@ Current administrative state does not establish a history of revocation.<a href=
       </h2>
 <p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
 <p id="section-note.1-2">
-        The latest revision of this draft can be found at <span><a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a></span>.
+        The latest revision of this draft can be found at <span><a href="https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a></span>.
         Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-lifecycle/">https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-lifecycle/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
 <p id="section-note.1-3">
         Discussion of this document takes place on the
@@ -1112,7 +1112,7 @@ Current administrative state does not establish a history of revocation.<a href=
         which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/scim/">https://mailarchive.ietf.org/arch/browse/scim/</a></span>.
         Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/scim/">https://www.ietf.org/mailman/listinfo/scim/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
 <p id="section-note.1-4">Source for this draft and an issue tracker can be found at
-        <span><a href="https://github.com/mcguinness/governed-agent-profiles">https://github.com/mcguinness/governed-agent-profiles</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+        <span><a href="https://github.com/mcguinness/agent-principal-profiles">https://github.com/mcguinness/agent-principal-profiles</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
 </section>
 <div id="status-of-memo">
 <section id="section-boilerplate.1">
@@ -1133,7 +1133,7 @@ Current administrative state does not establish a history of revocation.<a href=
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 14 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 15 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1175,6 +1175,11 @@ Current administrative state does not establish a history of revocation.<a href=
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
             <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-conformance-and-configurati" class="internal xref">Conformance and Configuration</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-delivering-administrative-s" class="internal xref">Delivering Administrative Status</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-identity-and-local-correlat" class="internal xref">Identity and Local Correlation</a></p>
@@ -1425,7 +1430,11 @@ both, provided that they apply the same authoritative administrative
 decisions. Events trigger retrieval of current state rather than
 carrying it: a late notice resolves to the current decision, whereas a
 late activation applied as an instruction would revive a principal that
-was since disabled. That asymmetry is the design's safety property.<a href="#section-1-7" class="pilcrow">¶</a></p>
+was since disabled. That asymmetry is the design's safety property.
+Current state alone would lose a disablement that a reactivation has
+since superseded, so the IdP delivers that disablement first, by a SCIM
+write, and it invalidates the authorization issued before it
+(<a href="#delivery" class="auto internal xref">Section 3.1</a>).<a href="#section-1-7" class="pilcrow">¶</a></p>
 <p id="section-1-8">Disabling a principal and revoking a session are separate actions. Once
 applied, disablement prevents new authorization and invalidates existing
 RAS authorization for that principal. Re-enablement permits new
@@ -1462,8 +1471,9 @@ affected grants, or a WAG wire profile. A known ID-JAG can be revoked
 selectively under <a href="#grant-revocation" class="auto internal xref">Appendix A.4</a>.<a href="#section-1.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-2.4">
-            <p id="section-1.1-2.4.1">A guarantee that an unobserved disable-and-reenable cycle invalidates
-all previously issued grants or sessions.<a href="#section-1.1-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-1.1-2.4.1">A guarantee that a disable-and-reenable cycle invalidates a grant
+issued before the disablement and first redeemed after the
+reactivation (<a href="#missed-transitions" class="auto internal xref">Section 11.3</a>).<a href="#section-1.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-2.5">
             <p id="section-1.1-2.5.1">Runtime containment: stopping executions, tool calls, or network
@@ -1559,13 +1569,18 @@ through <a href="#platform-hosted" class="auto internal xref">Section 9</a> inst
           <p id="section-3-3.4.1">Reconciliation responsibilities, stale-state policy, and resource
 enforcement settings under <a href="#recovery" class="auto internal xref">Section 6</a> and <a href="#enforcement" class="auto internal xref">Section 7</a>.<a href="#section-3-3.4.1" class="pilcrow">¶</a></p>
 </li>
+        <li class="normal" id="section-3-3.5">
+          <p id="section-3-3.5.1">Whether the Receiver permits just-in-time correlation (<a href="#jit" class="auto internal xref">Section 4.1</a>) and,
+if it does, the resources of its Target Tenant.<a href="#section-3-3.5.1" class="pilcrow">¶</a></p>
+</li>
       </ul>
 <p id="section-3-4">A connector authorized for one context <span class="bcp14">MUST NOT</span> modify another context's
 principal or correlation. Multiple writers <span class="bcp14">MAY</span> represent the same
 Governing IdP, but <span class="bcp14">MUST</span> reconcile against its current decisions rather
-than replay queued activation writes after newer disablement. SCIM
-conditional updates protect receiver resource versions; they do not
-order independent source decisions.<a href="#section-3-4" class="pilcrow">¶</a></p>
+than replay queued activation writes after newer disablement, and
+deliver a pending invalidation first (<a href="#delivery" class="auto internal xref">Section 3.1</a>). SCIM conditional
+updates protect receiver resource versions; they do not order
+independent source decisions.<a href="#section-3-4" class="pilcrow">¶</a></p>
 <p id="section-3-5">The IdP continues to enforce current eligibility when issuing grants under
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. This profile adds resource-domain application of that
 state; it does not make SCIM availability or event delivery part of client
@@ -1573,12 +1588,71 @@ authentication.<a href="#section-3-5" class="pilcrow">¶</a></p>
 <p id="section-3-6">The Governing IdP, directly or through its connector, <span class="bcp14">MUST</span> apply each
 change to a provisioned Agent Principal's administrative status to every
 resource domain it has provisioned for that principal, by a SCIM write
-or by a subscribed event that triggers reconciliation, and <span class="bcp14">SHOULD</span> do so
-promptly after the decision. Where grant-derived revocation under
-<a href="#grant-revocation" class="auto internal xref">Appendix A.4</a> is enabled, the IdP <span class="bcp14">MUST</span> retain the identifiers of
-the ID-JAGs it issued under each delegation, Identity Binding, and Client
-Association, so that withdrawing any of them can be propagated to the
-authorization derived from those grants.<a href="#section-3-6" class="pilcrow">¶</a></p>
+or by a subscribed event that triggers reconciliation, as <a href="#delivery" class="auto internal xref">Section 3.1</a>
+requires, and <span class="bcp14">SHOULD</span> do so promptly after the decision. Where
+grant-derived revocation under <a href="#grant-revocation" class="auto internal xref">Appendix A.4</a> is enabled, the IdP
+<span class="bcp14">MUST</span> retain the identifiers of the ID-JAGs it issued under each
+delegation, Identity Binding, and Client Association, so that
+withdrawing any of them can be propagated to the authorization derived
+from those grants.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<div id="delivery">
+<section id="section-3.1">
+        <h3 id="name-delivering-administrative-s">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-delivering-administrative-s" class="section-name selfRef">Delivering Administrative Status</a>
+        </h3>
+<p id="section-3.1-1">Where a Receiver permits just-in-time correlation, an agent can hold
+authorization in its domain before the Governing IdP has provisioned it
+there. Once the IdP has issued a grant for an Agent Principal, as the
+<code>act</code> agent of an ID-JAG or the subject of a WAG, for a resource in the
+Target Tenant of a Provisioning Domain whose Receiver permits
+just-in-time correlation, the IdP <span class="bcp14">MUST</span> provision that principal in the
+domain (<a href="#jit" class="auto internal xref">Section 4.1</a>). It <span class="bcp14">MUST</span> do so even if it fails between issuing the
+grant and starting to provision. Recording the obligation durably
+before issuing the grant meets this; an obligation recorded for a grant
+that was never issued only provisions the agent early.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2">A disablement that a later reactivation supersedes still has to take
+effect at the Receiver, because it invalidates the authorization issued
+before it (<a href="#application" class="auto internal xref">Section 5.2</a>); delivering only the current status would
+lose it. For an Agent Principal and a Receiver, a pending invalidation
+exists from a decision to disable the principal, made once the IdP has
+provisioned the principal in that domain or owes provisioning there,
+until the Receiver returns success for a disablement that the IdP
+delivered after the decision.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.1-3">When it delivers a principal's administrative status to a Receiver, the
+IdP:<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.1-4">
+<li id="section-3.1-4.1">
+            <p id="section-3.1-4.1.1"><span class="bcp14">MUST</span> first deliver any pending invalidation as an applied
+disablement: a SCIM write that sets <code>active</code> to false or, when it
+provisions the principal, a create with <code>active</code> false.<a href="#section-3.1-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.1-4.2">
+            <p id="section-3.1-4.2.1"><span class="bcp14">MUST NOT</span> deliver an activation that a later decision superseded.<a href="#section-3.1-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.1-4.3">
+            <p id="section-3.1-4.3.1"><span class="bcp14">MUST</span> serialize delivery for the principal and the Receiver, and <span class="bcp14">MUST NOT</span> lose a pending invalidation when one writer replaces another. A
+single writer per principal is one way to meet this.<a href="#section-3.1-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-3.1-5">An event that only triggers reconciliation does not discharge a pending
+invalidation: the Receiver retrieves current state, in which the
+principal can be active again. After the applied disablement, the IdP
+delivers the current status by either means.<a href="#section-3.1-5" class="pilcrow">¶</a></p>
+<p id="section-3.1-6">A disablement and a reactivation that both occur while delivery is
+down therefore reach the Receiver as <code>active</code> false and then <code>active</code>
+true: the disablement invalidates the earlier authorization, and the
+reactivation permits new decisions only. A disablement, a reactivation,
+and a second disablement reach it as one disablement, with no
+activation.<a href="#section-3.1-6" class="pilcrow">¶</a></p>
+<p id="section-3.1-7">A retried disablement can cost availability. If the success response
+to a disablement write is lost, the IdP still holds the pending
+invalidation and retries the write. When the Receiver's own
+reconciliation has meanwhile found the principal active, the retry
+invalidates the authorization issued in between. It restores no
+revoked authority, and once it succeeds the IdP delivers the current
+status, so new decisions follow.<a href="#section-3.1-7" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="identity">
@@ -1649,22 +1723,32 @@ issuer, and Target Tenant; exact keying by the pair; and the local
 restrictions and retained revocation state applied before issuance. A Receiver that correlates agents that way without
 supporting this interface uses those rules alone and does not conform
 to this profile.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
-<p id="section-4.1-2">A conforming Receiver that permits just-in-time correlation <span class="bcp14">MUST</span> expose
-the created principal, with <code>externalId</code> set to the agent identifier,
-in the Provisioning Domain of the triggering grant's issuer and, at a
-multi-tenant issuer, its <code>tenant</code>, and <span class="bcp14">MUST</span> subject it to the same
-provisioning, reconciliation, and disablement rules as a provisioned
-one. Local
-Suspension is among the local restrictions Federation requires it to
-apply, and the initial <code>active</code> value reflects the initial eligibility
-set by local policy.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
-<p id="section-4.1-3">A later SCIM create for the same pair therefore fails with
-<code>uniqueness</code>; the connector finds the record with the <code>externalId</code>
-query in <a href="#scim" class="auto internal xref">Section 5</a> and updates it. Provisioning that lags the first
-grant thus converges on one principal rather than creating a second.
-A grant does not carry the IdP's administrative status, so
-just-in-time correlation does not replace SCIM provisioning for
-disablement.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">A conforming Receiver that permits just-in-time correlation <span class="bcp14">MUST NOT</span>
+expose a record it created that way through SCIM before the Governing
+IdP provisions its pair (<a href="#delivery" class="auto internal xref">Section 3.1</a>). Until then the record has no
+SCIM <code>active</code>. Its eligibility, which local policy sets, is one of the
+local restrictions that Federation requires the RAS to apply, as is
+Local Suspension.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">An otherwise valid and authorized create of an Agent whose <code>externalId</code>
+is that pair's agent identifier, in the Provisioning Domain of the
+triggering grant's issuer and, at a multi-tenant issuer, its <code>tenant</code>,
+<span class="bcp14">MUST NOT</span> fail solely because the record exists. The Receiver <span class="bcp14">MUST</span> bind
+the new resource to the record's local principal, creating no second
+one, and <span class="bcp14">MUST</span> keep that principal's local restrictions and retained
+revocation state. Ordinary SCIM validation still applies, including
+required attributes and <code>agentUserName</code> uniqueness. The create's
+<code>active</code> value is an administrative status change to that principal
+(<a href="#application" class="auto internal xref">Section 5.2</a>), so an inactive create invalidates the authorization
+issued before it.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">Once the record is adopted this way, the Agent is provisioned like any
+other. A later create for the same pair fails with <code>uniqueness</code>, and
+the connector finds the resource with the <code>externalId</code> query in <a href="#scim" class="auto internal xref">Section 5</a>. Of
+concurrent creates for the pair, one binds the record and the others
+fail the same way (<a href="#identity" class="auto internal xref">Section 4</a>). A record not yet adopted has never
+been reconciled, so a stale-state interval claimed under <a href="#recovery" class="auto internal xref">Section 6</a>
+runs from its creation. A grant does not carry the IdP's administrative
+status, so just-in-time correlation does not replace provisioning for
+disablement.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1676,10 +1760,14 @@ disablement.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
       </h2>
 <p id="section-5-1">The interface uses <code>/Agents</code> and the attributes of <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>,
 including required <code>agentUserName</code>, plus the common attributes of
-<span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. It defines no extension schema. Receivers <span class="bcp14">MUST</span> support
-creation, retrieval, filtering by <code>externalId</code>, PUT, PATCH, and deletion using
-<span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. The Receiver <span class="bcp14">MUST</span> advertise filtering, PATCH, and ETag
-support in <code>/ServiceProviderConfig</code>.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. It defines no extension schema. The <code>agentUserName</code>
+uniqueness that <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span> requires applies within the Provisioning
+Domain: this interface reads its <code>server</code> uniqueness that way, because
+access controls, not only a base URI, can select the context
+(<a href="#conformance" class="auto internal xref">Section 3</a>). Receivers <span class="bcp14">MUST</span> support creation, retrieval,
+filtering by <code>externalId</code>, PUT, PATCH, and deletion using <span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>.
+The Receiver <span class="bcp14">MUST</span> advertise filtering, PATCH, and ETag support in
+<code>/ServiceProviderConfig</code>.<a href="#section-5-1" class="pilcrow">¶</a></p>
 <div id="creation-and-updates">
 <section id="section-5.1">
         <h3 id="name-creation-and-updates">
@@ -2054,6 +2142,16 @@ interfaces as follows; it does not copy the source Agent unchanged:<a href="#sec
               <td class="text-left" rowspan="1" colspan="1">Upstream administrative state; local restrictions remain independent</td>
             </tr>
             <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent <code>displayName</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">The same descriptive value; it selects nothing (<a href="#scim" class="auto internal xref">Section 5</a>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent <code>agentUserName</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">A value unique in the destination Provisioning Domain: the source value, or one the connector assigns; it selects nothing (<a href="#scim" class="auto internal xref">Section 5</a>)</td>
+            </tr>
+            <tr>
               <td class="text-left" rowspan="1" colspan="1">Agent <code>id</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">Source-resource correlation, not the destination SCIM <code>id</code>
@@ -2067,14 +2165,23 @@ interfaces as follows; it does not copy the source Agent unchanged:<a href="#sec
           </tbody>
         </table>
 <p id="section-10.1-3">This mapping applies equally to direct provisioning and event-driven
-reconciliation. It introduces no additional destination attributes. A
-platform's <code>externalId</code> at the IdP remains its own provisioning
-correlation value. The mutability differs for the same reason: at the
-platform-to-IdP interface of <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> it is the connector's
-record key and stays readWrite; here it carries the principal identifier
-and is immutable once established (<a href="#identity" class="auto internal xref">Section 4</a>).<a href="#section-10.1-3" class="pilcrow">¶</a></p>
-<p id="section-10.1-4">Connectors for <code>/Agents</code> are purpose-built for this resource; User and
-Group support alone is insufficient.<a href="#section-10.1-4" class="pilcrow">¶</a></p>
+reconciliation. It introduces no destination attributes beyond those of
+<span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>. A platform's <code>externalId</code> at the IdP remains its own
+provisioning correlation value. The mutability differs for the same
+reason: at the platform-to-IdP interface of <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> it is
+the connector's record key and stays readWrite; here it carries the
+principal identifier and is immutable once established (<a href="#identity" class="auto internal xref">Section 4</a>).<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+<p id="section-10.1-4">Names follow the destination's uniqueness, not the source's. At the
+IdP, <code>agentUserName</code> is unique within a Provisioning Domain scoped to
+one Provisioning Client (<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>), so Agents of two such
+domains can share a name and still reach one destination Provisioning
+Domain, where it must be unique (<a href="#scim" class="auto internal xref">Section 5</a>). A <code>uniqueness</code> error on a
+create whose <code>externalId</code> query finds no Agent is such a collision. The
+connector then assigns a destination-unique <code>agentUserName</code>, and reuses
+the value it assigned when it retries. <code>displayName</code> is copied
+unchanged, and correlation stays on <code>externalId</code>.<a href="#section-10.1-4" class="pilcrow">¶</a></p>
+<p id="section-10.1-5">Connectors for <code>/Agents</code> are purpose-built for this resource; User and
+Group support alone is insufficient.<a href="#section-10.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="implementation-receiver">
@@ -2140,15 +2247,21 @@ revoked. The explicit limit in
 reactivation both occur between successful observations, a later active
 resource does not reveal the missed revocation. A different ETag can
 also result from an ordinary descriptive edit; it does not identify that
-history.<a href="#section-11.3-1" class="pilcrow">¶</a></p>
-<p id="section-11.3-2">Consequently, this profile does not guarantee rejection after
-reactivation of an old unredeemed ID-JAG or an authorization session
-whose revocation was never observed. Grant validation, replay
-prevention, and expiration still apply. Sessions actually revoked by the
-RAS remain revoked.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
-<p id="section-11.3-3">Deployments requiring revocation to survive every missed transition need
-retained revocation history, an authoritative authorization check, or a
-separately specified authorization-generation mechanism.<a href="#section-11.3-3" class="pilcrow">¶</a></p>
+history. <a href="#delivery" class="auto internal xref">Section 3.1</a> therefore does not rely on observation: the
+Governing IdP delivers each disablement it decided as an applied one,
+even after it has reactivated the principal, so the Receiver
+invalidates the authorization issued before it.<a href="#section-11.3-1" class="pilcrow">¶</a></p>
+<p id="section-11.3-2">Two limits remain. Until the disablement is delivered, authorization
+issued before it stays usable, within the delays of <a href="#api-enforcement" class="auto internal xref">Section 7.1</a>.
+And a grant issued before the disablement and first redeemed after the
+reactivation has no derived authorization for the disablement to
+invalidate: grant-derived revocation (<a href="#grant-revocation" class="auto internal xref">Appendix A.4</a>) can reach
+such an ID-JAG, and nothing in this profile reaches such a WAG. Grant
+validation, replay prevention, and expiration still apply. Sessions
+actually revoked by the RAS remain revoked.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
+<p id="section-11.3-3">Deployments requiring rejection of such grants need grant-derived
+revocation, retained revocation history, an authoritative authorization
+check, or a separately specified authorization-generation mechanism.<a href="#section-11.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-offline">
@@ -2241,7 +2354,7 @@ credentials.<a href="#section-12-1" class="pilcrow">¶</a></p>
 <dd class="break"></dd>
 <dt id="OAUTH-CLIENT">[OAUTH-CLIENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for OAuth 2.0 Client Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-oauth-client-management</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for OAuth 2.0 Client Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-oauth-client-management</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-oauth-client-management.html">https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-oauth-client-management.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7643">[RFC7643]</dt>
         <dd>
@@ -2276,11 +2389,11 @@ credentials.<a href="#section-12-1" class="pilcrow">¶</a></p>
 <dl class="references">
 <dt id="AGENT-MANAGEMENT">[AGENT-MANAGEMENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Agent Principal Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Agent Principal Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="GUIDE">[GUIDE]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Agent Principal Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Agent Principal Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7009">[RFC7009]</dt>
         <dd>
@@ -2668,10 +2781,11 @@ the same local update. <a href="#signal-examples" class="auto internal xref">App
 revocation targeting one ID-JAG; revocation need not disable the
 principal.<a href="#appendix-B.3-2" class="pilcrow">¶</a></p>
 <p id="appendix-B.3-3">At 12:03, reactivation permits new authorization decisions. It does not
-restore the sessions revoked at 12:02. If the Receiver missed the entire
-disable-and-reenable cycle, a later active GET alone cannot establish
-that those sessions were revoked. An old unredeemed grant is likewise
-subject to normal grant validation, not a new lifecycle cutoff.<a href="#appendix-B.3-3" class="pilcrow">¶</a></p>
+restore the sessions revoked at 12:02. Had the Receiver been
+unreachable from 12:02 to 12:03, the connector would still have
+delivered the disablement before the activation (<a href="#delivery" class="auto internal xref">Section 3.1</a>), with
+the same effect. An old unredeemed grant is subject to normal grant
+validation, not a new lifecycle cutoff.<a href="#appendix-B.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="acceptance-checklist">
@@ -2691,6 +2805,15 @@ subject to normal grant validation, not a new lifecycle cutoff.<a href="#appendi
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Equal <code>externalId</code> under a different IdP context</td>
               <td class="text-left" rowspan="1" colspan="1">Distinct qualified identity; no automatic correlation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Create for a pair the RAS correlated just in time</td>
+              <td class="text-left" rowspan="1" colspan="1">Adopted: one principal, keeping its local restrictions and revocation state</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Two Agents sharing an <code>agentUserName</code> from different IdP-side Provisioning Domains</td>
+              <td class="text-left" rowspan="1" colspan="1">Both provisioned; the connector assigns one a destination-unique name; each correlates by its own <code>externalId</code>
+</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Stale <code>If-Match</code>
@@ -2714,8 +2837,20 @@ subject to normal grant validation, not a new lifecycle cutoff.<a href="#appendi
               <td class="text-left" rowspan="1" colspan="1">Retrieve current source state; do not apply the notice as an activation command</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Entire disable-and-reenable cycle missed</td>
-              <td class="text-left" rowspan="1" colspan="1">Current active state cannot recover revocation history</td>
+              <td class="text-left" rowspan="1" colspan="1">Disable and re-enable while the Receiver is unreachable</td>
+              <td class="text-left" rowspan="1" colspan="1">The disablement is delivered, then the activation; sessions from before stay revoked</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Disable, re-enable, and disable while the Receiver is unreachable</td>
+              <td class="text-left" rowspan="1" colspan="1">One disablement is delivered, and no activation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Disablement write retried after a lost success response, once reconciliation has found the principal active</td>
+              <td class="text-left" rowspan="1" colspan="1">The retry invalidates authorization issued in between; new decisions follow the IdP's next delivery</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Grant issued before a disablement, first redeemed after reactivation</td>
+              <td class="text-left" rowspan="1" colspan="1">Not invalidated by the disablement; grant-derived revocation can reach an ID-JAG</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Grant revocation arrives before redemption</td>

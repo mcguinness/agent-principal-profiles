@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        10 November 2026
-Expires: 14 May 2027
+Intended status: Standards Track                        11 November 2026
+Expires: 15 May 2027
 
 
       Identity Continuation Profile for Agent Principal Federation
@@ -38,7 +38,7 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/governed-agent-profiles/draft-
+   https://mcguinness.github.io/agent-principal-profiles/draft-
    mcguinness-oauth-governed-agent-continuation.html.  Status
    information for this document may be found at
    https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-
@@ -50,7 +50,7 @@ About This Document
    Subscribe at https://www.ietf.org/mailman/listinfo/oauth/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/governed-agent-profiles.
+   https://github.com/mcguinness/agent-principal-profiles.
 
 Status of This Memo
 
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 May 2027.
+   This Internet-Draft will expire on 15 May 2027.
 
 Copyright Notice
 
@@ -1537,7 +1537,7 @@ Table of Contents
               McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 9 October
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-oauth-governed-agent-
               federation.html>.
 
@@ -1612,21 +1612,21 @@ Table of Contents
               McGuinness, K., "Human Oversight Profile for Agent
               Principal Federation", Work in Progress, Internet-Draft,
               draft-mcguinness-oauth-governed-agent-oversight,
-              <https://mcguinness.github.io/governed-agent-profiles/
+              <https://mcguinness.github.io/agent-principal-profiles/
               draft-mcguinness-oauth-governed-agent-oversight.html>.
 
    [AGENT-LIFECYCLE]
               McGuinness, K., "Agent Principal Lifecycle Profile for
               SCIM and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, n.d.,
-              <https://mcguinness.github.io/governed-agent-profiles/
+              <https://mcguinness.github.io/agent-principal-profiles/
               draft-mcguinness-oauth-governed-agent-lifecycle.html>.
 
    [AGENT-MANAGEMENT]
               McGuinness, K., "SCIM Profile for Agent Principal
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-agent-federation, 18 September 2026,
-              <https://mcguinness.github.io/governed-agent-profiles/
+              <https://mcguinness.github.io/agent-principal-profiles/
               draft-mcguinness-scim-agent-federation.html>.
 
    [EMA]      Model Context Protocol, "Enterprise-Managed
@@ -1637,8 +1637,8 @@ Table of Contents
               authorization.mdx>.
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
-              Federation", <https://github.com/mcguinness/governed-
-              agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
+              Federation", <https://github.com/mcguinness/agent-
+              principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
    [ID-CHAINING]
               Schwenkschuster, A., Kasselman, P., Burgin, K., Jenkins,

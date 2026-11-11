@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        10 November 2026
-Expires: 14 May 2027
+Intended status: Standards Track                        11 November 2026
+Expires: 15 May 2027
 
 
           Agent Principal Lifecycle Profile for SCIM and OAuth
@@ -31,7 +31,7 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/governed-agent-profiles/draft-
+   https://mcguinness.github.io/agent-principal-profiles/draft-
    mcguinness-oauth-governed-agent-lifecycle.html.  Status information
    for this document may be found at https://datatracker.ietf.org/doc/
    draft-mcguinness-oauth-governed-agent-lifecycle/.
@@ -43,7 +43,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/scim/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/governed-agent-profiles.
+   https://github.com/mcguinness/agent-principal-profiles.
 
 Status of This Memo
 
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 May 2027.
+   This Internet-Draft will expire on 15 May 2027.
 
 Copyright Notice
 
@@ -82,6 +82,7 @@ Table of Contents
      1.1.  Scope
    2.  Conventions and Terminology
    3.  Conformance and Configuration
+     3.1.  Delivering Administrative Status
    4.  Identity and Local Correlation
      4.1.  Just-in-Time Correlation
    5.  SCIM Provisioning
@@ -195,7 +196,10 @@ Table of Contents
    rather than carrying it: a late notice resolves to the current
    decision, whereas a late activation applied as an instruction would
    revive a principal that was since disabled.  That asymmetry is the
-   design's safety property.
+   design's safety property.  Current state alone would lose a
+   disablement that a reactivation has since superseded, so the IdP
+   delivers that disablement first, by a SCIM write, and it invalidates
+   the authorization issued before it (Section 3.1).
 
    Disabling a principal and revoking a session are separate actions.
    Once applied, disablement prevents new authorization and invalidates
@@ -229,8 +233,9 @@ Table of Contents
       affected grants, or a WAG wire profile.  A known ID-JAG can be
       revoked selectively under Appendix A.4.
 
-   *  A guarantee that an unobserved disable-and-reenable cycle
-      invalidates all previously issued grants or sessions.
+   *  A guarantee that a disable-and-reenable cycle invalidates a grant
+      issued before the disablement and first redeemed after the
+      reactivation (Section 11.3).
 
    *  Runtime containment: stopping executions, tool calls, or network
       access, or rejecting offline tokens before they expire.
@@ -302,12 +307,16 @@ Table of Contents
    *  Reconciliation responsibilities, stale-state policy, and resource
       enforcement settings under Section 6 and Section 7.
 
+   *  Whether the Receiver permits just-in-time correlation
+      (Section 4.1) and, if it does, the resources of its Target Tenant.
+
    A connector authorized for one context MUST NOT modify another
    context's principal or correlation.  Multiple writers MAY represent
    the same Governing IdP, but MUST reconcile against its current
    decisions rather than replay queued activation writes after newer
-   disablement.  SCIM conditional updates protect receiver resource
-   versions; they do not order independent source decisions.
+   disablement, and deliver a pending invalidation first (Section 3.1).
+   SCIM conditional updates protect receiver resource versions; they do
+   not order independent source decisions.
 
    The IdP continues to enforce current eligibility when issuing grants
    under [FEDERATION].  This profile adds resource-domain application of
@@ -317,12 +326,69 @@ Table of Contents
    The Governing IdP, directly or through its connector, MUST apply each
    change to a provisioned Agent Principal's administrative status to
    every resource domain it has provisioned for that principal, by a
-   SCIM write or by a subscribed event that triggers reconciliation, and
-   SHOULD do so promptly after the decision.  Where grant-derived
-   revocation under Appendix A.4 is enabled, the IdP MUST retain the
-   identifiers of the ID-JAGs it issued under each delegation, Identity
-   Binding, and Client Association, so that withdrawing any of them can
-   be propagated to the authorization derived from those grants.
+   SCIM write or by a subscribed event that triggers reconciliation, as
+   Section 3.1 requires, and SHOULD do so promptly after the decision.
+   Where grant-derived revocation under Appendix A.4 is enabled, the IdP
+   MUST retain the identifiers of the ID-JAGs it issued under each
+   delegation, Identity Binding, and Client Association, so that
+   withdrawing any of them can be propagated to the authorization
+   derived from those grants.
+
+3.1.  Delivering Administrative Status
+
+   Where a Receiver permits just-in-time correlation, an agent can hold
+   authorization in its domain before the Governing IdP has provisioned
+   it there.  Once the IdP has issued a grant for an Agent Principal, as
+   the act agent of an ID-JAG or the subject of a WAG, for a resource in
+   the Target Tenant of a Provisioning Domain whose Receiver permits
+   just-in-time correlation, the IdP MUST provision that principal in
+   the domain (Section 4.1).  It MUST do so even if it fails between
+   issuing the grant and starting to provision.  Recording the
+   obligation durably before issuing the grant meets this; an obligation
+   recorded for a grant that was never issued only provisions the agent
+   early.
+
+   A disablement that a later reactivation supersedes still has to take
+   effect at the Receiver, because it invalidates the authorization
+   issued before it (Section 5.2); delivering only the current status
+   would lose it.  For an Agent Principal and a Receiver, a pending
+   invalidation exists from a decision to disable the principal, made
+   once the IdP has provisioned the principal in that domain or owes
+   provisioning there, until the Receiver returns success for a
+   disablement that the IdP delivered after the decision.
+
+   When it delivers a principal's administrative status to a Receiver,
+   the IdP:
+
+   1.  MUST first deliver any pending invalidation as an applied
+       disablement: a SCIM write that sets active to false or, when it
+       provisions the principal, a create with active false.
+
+   2.  MUST NOT deliver an activation that a later decision superseded.
+
+   3.  MUST serialize delivery for the principal and the Receiver, and
+       MUST NOT lose a pending invalidation when one writer replaces
+       another.  A single writer per principal is one way to meet this.
+
+   An event that only triggers reconciliation does not discharge a
+   pending invalidation: the Receiver retrieves current state, in which
+   the principal can be active again.  After the applied disablement,
+   the IdP delivers the current status by either means.
+
+   A disablement and a reactivation that both occur while delivery is
+   down therefore reach the Receiver as active false and then active
+   true: the disablement invalidates the earlier authorization, and the
+   reactivation permits new decisions only.  A disablement, a
+   reactivation, and a second disablement reach it as one disablement,
+   with no activation.
+
+   A retried disablement can cost availability.  If the success response
+   to a disablement write is lost, the IdP still holds the pending
+   invalidation and retries the write.  When the Receiver's own
+   reconciliation has meanwhile found the principal active, the retry
+   invalidates the authorization issued in between.  It restores no
+   revoked authority, and once it succeeds the IdP delivers the current
+   status, so new decisions follow.
 
 4.  Identity and Local Correlation
 
@@ -388,30 +454,47 @@ Table of Contents
    interface uses those rules alone and does not conform to this
    profile.
 
-   A conforming Receiver that permits just-in-time correlation MUST
-   expose the created principal, with externalId set to the agent
-   identifier, in the Provisioning Domain of the triggering grant's
-   issuer and, at a multi-tenant issuer, its tenant, and MUST subject it
-   to the same provisioning, reconciliation, and disablement rules as a
-   provisioned one.  Local Suspension is among the local restrictions
-   Federation requires it to apply, and the initial active value
-   reflects the initial eligibility set by local policy.
+   A conforming Receiver that permits just-in-time correlation MUST NOT
+   expose a record it created that way through SCIM before the Governing
+   IdP provisions its pair (Section 3.1).  Until then the record has no
+   SCIM active.  Its eligibility, which local policy sets, is one of the
+   local restrictions that Federation requires the RAS to apply, as is
+   Local Suspension.
 
-   A later SCIM create for the same pair therefore fails with
-   uniqueness; the connector finds the record with the externalId query
-   in Section 5 and updates it.  Provisioning that lags the first grant
-   thus converges on one principal rather than creating a second.  A
-   grant does not carry the IdP's administrative status, so just-in-time
-   correlation does not replace SCIM provisioning for disablement.
+   An otherwise valid and authorized create of an Agent whose externalId
+   is that pair's agent identifier, in the Provisioning Domain of the
+   triggering grant's issuer and, at a multi-tenant issuer, its tenant,
+   MUST NOT fail solely because the record exists.  The Receiver MUST
+   bind the new resource to the record's local principal, creating no
+   second one, and MUST keep that principal's local restrictions and
+   retained revocation state.  Ordinary SCIM validation still applies,
+   including required attributes and agentUserName uniqueness.  The
+   create's active value is an administrative status change to that
+   principal (Section 5.2), so an inactive create invalidates the
+   authorization issued before it.
+
+   Once the record is adopted this way, the Agent is provisioned like
+   any other.  A later create for the same pair fails with uniqueness,
+   and the connector finds the resource with the externalId query in
+   Section 5.  Of concurrent creates for the pair, one binds the record
+   and the others fail the same way (Section 4).  A record not yet
+   adopted has never been reconciled, so a stale-state interval claimed
+   under Section 6 runs from its creation.  A grant does not carry the
+   IdP's administrative status, so just-in-time correlation does not
+   replace provisioning for disablement.
 
 5.  SCIM Provisioning
 
    The interface uses /Agents and the attributes of [SCIM-AGENT],
    including required agentUserName, plus the common attributes of
-   [RFC7643].  It defines no extension schema.  Receivers MUST support
-   creation, retrieval, filtering by externalId, PUT, PATCH, and
-   deletion using [RFC7644].  The Receiver MUST advertise filtering,
-   PATCH, and ETag support in /ServiceProviderConfig.
+   [RFC7643].  It defines no extension schema.  The agentUserName
+   uniqueness that [SCIM-AGENT] requires applies within the Provisioning
+   Domain: this interface reads its server uniqueness that way, because
+   access controls, not only a base URI, can select the context
+   (Section 3).  Receivers MUST support creation, retrieval, filtering
+   by externalId, PUT, PATCH, and deletion using [RFC7644].  The
+   Receiver MUST advertise filtering, PATCH, and ETag support in
+   /ServiceProviderConfig.
 
 5.1.  Creation and Updates
 
@@ -724,6 +807,14 @@ Table of Contents
     | Agent active            | Upstream administrative state; local |
     |                         | restrictions remain independent      |
     +-------------------------+--------------------------------------+
+    | Agent displayName       | The same descriptive value; it       |
+    |                         | selects nothing (Section 5)          |
+    +-------------------------+--------------------------------------+
+    | Agent agentUserName     | A value unique in the destination    |
+    |                         | Provisioning Domain: the source      |
+    |                         | value, or one the connector assigns; |
+    |                         | it selects nothing (Section 5)       |
+    +-------------------------+--------------------------------------+
     | Agent id                | Source-resource correlation, not the |
     |                         | destination SCIM id                  |
     +-------------------------+--------------------------------------+
@@ -734,12 +825,22 @@ Table of Contents
                  Table 5: Mapping from the IdP-side Agent
 
    This mapping applies equally to direct provisioning and event-driven
-   reconciliation.  It introduces no additional destination attributes.
-   A platform's externalId at the IdP remains its own provisioning
-   correlation value.  The mutability differs for the same reason: at
-   the platform-to-IdP interface of [AGENT-MANAGEMENT] it is the
-   connector's record key and stays readWrite; here it carries the
+   reconciliation.  It introduces no destination attributes beyond those
+   of [SCIM-AGENT].  A platform's externalId at the IdP remains its own
+   provisioning correlation value.  The mutability differs for the same
+   reason: at the platform-to-IdP interface of [AGENT-MANAGEMENT] it is
+   the connector's record key and stays readWrite; here it carries the
    principal identifier and is immutable once established (Section 4).
+
+   Names follow the destination's uniqueness, not the source's.  At the
+   IdP, agentUserName is unique within a Provisioning Domain scoped to
+   one Provisioning Client ([AGENT-MANAGEMENT]), so Agents of two such
+   domains can share a name and still reach one destination Provisioning
+   Domain, where it must be unique (Section 5).  A uniqueness error on a
+   create whose externalId query finds no Agent is such a collision.
+   The connector then assigns a destination-unique agentUserName, and
+   reuses the value it assigned when it retries. displayName is copied
+   unchanged, and correlation stays on externalId.
 
    Connectors for /Agents are purpose-built for this resource; User and
    Group support alone is insufficient.
@@ -791,17 +892,24 @@ Table of Contents
    and reactivation both occur between successful observations, a later
    active resource does not reveal the missed revocation.  A different
    ETag can also result from an ordinary descriptive edit; it does not
-   identify that history.
+   identify that history.  Section 3.1 therefore does not rely on
+   observation: the Governing IdP delivers each disablement it decided
+   as an applied one, even after it has reactivated the principal, so
+   the Receiver invalidates the authorization issued before it.
 
-   Consequently, this profile does not guarantee rejection after
-   reactivation of an old unredeemed ID-JAG or an authorization session
-   whose revocation was never observed.  Grant validation, replay
-   prevention, and expiration still apply.  Sessions actually revoked by
-   the RAS remain revoked.
+   Two limits remain.  Until the disablement is delivered, authorization
+   issued before it stays usable, within the delays of Section 7.1.  And
+   a grant issued before the disablement and first redeemed after the
+   reactivation has no derived authorization for the disablement to
+   invalidate: grant-derived revocation (Appendix A.4) can reach such an
+   ID-JAG, and nothing in this profile reaches such a WAG.  Grant
+   validation, replay prevention, and expiration still apply.  Sessions
+   actually revoked by the RAS remain revoked.
 
-   Deployments requiring revocation to survive every missed transition
-   need retained revocation history, an authoritative authorization
-   check, or a separately specified authorization-generation mechanism.
+   Deployments requiring rejection of such grants need grant-derived
+   revocation, retained revocation history, an authoritative
+   authorization check, or a separately specified authorization-
+   generation mechanism.
 
 11.4.  Offline Tokens
 
@@ -891,7 +999,7 @@ Table of Contents
               McGuinness, K., "SCIM Profile for OAuth 2.0 Client
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-oauth-client-management, 18 September
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-scim-oauth-client-
               management.html>.
 
@@ -928,12 +1036,12 @@ Table of Contents
               McGuinness, K., "SCIM Profile for Agent Principal
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-agent-federation, 18 September 2026,
-              <https://mcguinness.github.io/governed-agent-profiles/
+              <https://mcguinness.github.io/agent-principal-profiles/
               draft-mcguinness-scim-agent-federation.html>.
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
-              Federation", <https://github.com/mcguinness/governed-
-              agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
+              Federation", <https://github.com/mcguinness/agent-
+              principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
    [RFC7009]  Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,
@@ -1253,65 +1361,89 @@ B.3.  Disable and Re-enable
    principal.
 
    At 12:03, reactivation permits new authorization decisions.  It does
-   not restore the sessions revoked at 12:02.  If the Receiver missed
-   the entire disable-and-reenable cycle, a later active GET alone
-   cannot establish that those sessions were revoked.  An old unredeemed
-   grant is likewise subject to normal grant validation, not a new
-   lifecycle cutoff.
+   not restore the sessions revoked at 12:02.  Had the Receiver been
+   unreachable from 12:02 to 12:03, the connector would still have
+   delivered the disablement before the activation (Section 3.1), with
+   the same effect.  An old unredeemed grant is subject to normal grant
+   validation, not a new lifecycle cutoff.
 
 B.4.  Acceptance Checklist
 
-    +===========================+====================================+
-    | Case                      | Expected result                    |
-    +===========================+====================================+
-    | Equal externalId under a  | Distinct qualified identity; no    |
-    | different IdP context     | automatic correlation              |
-    +---------------------------+------------------------------------+
-    | Stale If-Match            | HTTP 412; retrieve and reconcile   |
-    |                           | before retrying                    |
-    +---------------------------+------------------------------------+
-    | Descriptive edit          | Resource ETag may change; no       |
-    |                           | implicit authorization change      |
-    +---------------------------+------------------------------------+
-    | Applied disablement       | New redemption and refresh denied; |
-    |                           | existing RAS sessions revoked      |
-    +---------------------------+------------------------------------+
-    | Reactivation after        | New decisions allowed; revoked     |
-    | applied disablement       | sessions stay revoked              |
-    +---------------------------+------------------------------------+
-    | Delayed activation notice | Retrieve current source state; do  |
-    |                           | not apply the notice as an         |
-    |                           | activation command                 |
-    +---------------------------+------------------------------------+
-    | Entire disable-and-       | Current active state cannot        |
-    | reenable cycle missed     | recover revocation history         |
-    +---------------------------+------------------------------------+
-    | Grant revocation arrives  | Retain the denial; reject later    |
-    | before redemption         | redemption                         |
-    +---------------------------+------------------------------------+
-    | Grant subject issuer      | Reject; no cross-issuer revocation |
-    | differs from the stream's |                                    |
-    | authorized issuer         |                                    |
-    +---------------------------+------------------------------------+
-    | Direct SCIM provisioning  | No SCIM event subscription or      |
-    | with CAEP revocation only | source GET required                |
-    +---------------------------+------------------------------------+
-    | Reactivation without a    | HTTP 409; retrieve and use the     |
-    | version ETag, including   | current ETag                       |
-    | If-Match: *               |                                    |
-    +---------------------------+------------------------------------+
-    | Feed removal event        | Reconcile coverage; do not infer   |
-    |                           | deletion                           |
-    +---------------------------+------------------------------------+
-    | Source unavailable        | No activation inferred; local      |
-    |                           | stale-state policy applies         |
-    +---------------------------+------------------------------------+
-    | SCIM success or SET       | Does not establish immediate API   |
-    | acknowledgment            | denial                             |
-    +---------------------------+------------------------------------+
-    | Offline JWT               | May remain usable until expiration |
-    |                           | unless separately restricted       |
-    +---------------------------+------------------------------------+
+   +================================+=================================+
+   | Case                           | Expected result                 |
+   +================================+=================================+
+   | Equal externalId under a       | Distinct qualified identity; no |
+   | different IdP context          | automatic correlation           |
+   +--------------------------------+---------------------------------+
+   | Create for a pair the RAS      | Adopted: one principal, keeping |
+   | correlated just in time        | its local restrictions and      |
+   |                                | revocation state                |
+   +--------------------------------+---------------------------------+
+   | Two Agents sharing an          | Both provisioned; the connector |
+   | agentUserName from different   | assigns one a destination-      |
+   | IdP-side Provisioning Domains  | unique name; each correlates by |
+   |                                | its own externalId              |
+   +--------------------------------+---------------------------------+
+   | Stale If-Match                 | HTTP 412; retrieve and          |
+   |                                | reconcile before retrying       |
+   +--------------------------------+---------------------------------+
+   | Descriptive edit               | Resource ETag may change; no    |
+   |                                | implicit authorization change   |
+   +--------------------------------+---------------------------------+
+   | Applied disablement            | New redemption and refresh      |
+   |                                | denied; existing RAS sessions   |
+   |                                | revoked                         |
+   +--------------------------------+---------------------------------+
+   | Reactivation after applied     | New decisions allowed; revoked  |
+   | disablement                    | sessions stay revoked           |
+   +--------------------------------+---------------------------------+
+   | Delayed activation notice      | Retrieve current source state;  |
+   |                                | do not apply the notice as an   |
+   |                                | activation command              |
+   +--------------------------------+---------------------------------+
+   | Disable and re-enable while    | The disablement is delivered,   |
+   | the Receiver is unreachable    | then the activation; sessions   |
+   |                                | from before stay revoked        |
+   +--------------------------------+---------------------------------+
+   | Disable, re-enable, and        | One disablement is delivered,   |
+   | disable while the Receiver is  | and no activation               |
+   | unreachable                    |                                 |
+   +--------------------------------+---------------------------------+
+   | Disablement write retried      | The retry invalidates           |
+   | after a lost success response, | authorization issued in         |
+   | once reconciliation has found  | between; new decisions follow   |
+   | the principal active           | the IdP's next delivery         |
+   +--------------------------------+---------------------------------+
+   | Grant issued before a          | Not invalidated by the          |
+   | disablement, first redeemed    | disablement; grant-derived      |
+   | after reactivation             | revocation can reach an ID-JAG  |
+   +--------------------------------+---------------------------------+
+   | Grant revocation arrives       | Retain the denial; reject later |
+   | before redemption              | redemption                      |
+   +--------------------------------+---------------------------------+
+   | Grant subject issuer differs   | Reject; no cross-issuer         |
+   | from the stream's authorized   | revocation                      |
+   | issuer                         |                                 |
+   +--------------------------------+---------------------------------+
+   | Direct SCIM provisioning with  | No SCIM event subscription or   |
+   | CAEP revocation only           | source GET required             |
+   +--------------------------------+---------------------------------+
+   | Reactivation without a version | HTTP 409; retrieve and use the  |
+   | ETag, including If-Match: *    | current ETag                    |
+   +--------------------------------+---------------------------------+
+   | Feed removal event             | Reconcile coverage; do not      |
+   |                                | infer deletion                  |
+   +--------------------------------+---------------------------------+
+   | Source unavailable             | No activation inferred; local   |
+   |                                | stale-state policy applies      |
+   +--------------------------------+---------------------------------+
+   | SCIM success or SET            | Does not establish immediate    |
+   | acknowledgment                 | API denial                      |
+   +--------------------------------+---------------------------------+
+   | Offline JWT                    | May remain usable until         |
+   |                                | expiration unless separately    |
+   |                                | restricted                      |
+   +--------------------------------+---------------------------------+
 
                                  Table 8
 
