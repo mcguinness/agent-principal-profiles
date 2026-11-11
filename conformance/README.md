@@ -880,4 +880,4 @@ that settled it.
    relationship; P13 maps `platform-client` to `analysis-api` through
    test control.
 
-[core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope
+[core-scope]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

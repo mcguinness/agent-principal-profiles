@@ -19,8 +19,8 @@ venue:
   type: "Working Group"
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
-  github: "mcguinness/governed-agent-profiles"
-  latest: "https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html"
+  github: "mcguinness/agent-principal-profiles"
+  latest: "https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -33,7 +33,7 @@ normative:
     date: 2026-10-09
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth-12
   ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters-01
   INSTANCE: I-D.mcguinness-oauth-client-instance-id-01

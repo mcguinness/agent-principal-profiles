@@ -19,8 +19,8 @@ venue:
   type: "Working Group"
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
-  github: "mcguinness/governed-agent-profiles"
-  latest: "https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html"
+  github: "mcguinness/agent-principal-profiles"
+  latest: "https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -71,7 +71,7 @@ normative:
     date: 2026-10-09
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   AGENT-MANAGEMENT:
     title: "SCIM Profile for Agent Principal Management"
@@ -80,11 +80,11 @@ informative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-agent-federation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
   AIMS: I-D.ietf-wimse-aims-01
   AGENT-LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness
     seriesinfo:
@@ -123,7 +123,7 @@ informative:
     date: false
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   CONTINUATION:
     title: "Identity Continuation Profile for Agent Principal Federation"
     author:
@@ -131,7 +131,7 @@ informative:
     date: 2026-10-14
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   RFC6755:
   RFC7521:
   RFC7942:
@@ -147,7 +147,7 @@ informative:
     author:
       - name: Karl McGuinness
     date: false
-    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
+    target: https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-03
 --- abstract
 
@@ -2677,7 +2677,7 @@ fit".
 * **Organization:** the document author.
 * **Description:** a test-only IdP, RAS, and API, with an executable
   suite of positive and negative cases that plays the client:
-  <https://github.com/mcguinness/governed-agent-profiles/tree/main/conformance>.
+  <https://github.com/mcguinness/agent-principal-profiles/tree/main/conformance>.
 * **Maturity:** prototype. State is in memory, there is no TLS, and keys
   are generated at start; it exists to run the suite.
 * **Coverage:** delegated access on the mandatory interoperability path
