@@ -155,6 +155,10 @@ decisions. Events trigger retrieval of current state rather than
 carrying it: a late notice resolves to the current decision, whereas a
 late activation applied as an instruction would revive a principal that
 was since disabled. That asymmetry is the design's safety property.
+Current state alone would lose a disablement that a reactivation has
+since superseded, so the IdP delivers that disablement first, by a SCIM
+write, and it invalidates the authorization issued before it
+({{delivery}}).
 
 Disabling a principal and revoking a session are separate actions. Once
 applied, disablement prevents new authorization and invalidates existing
@@ -184,8 +188,9 @@ agents it hosts ({{platform-hosted}}). It does not define:
 * Automatic translation of binding or delegation withdrawal into all
   affected grants, or a WAG wire profile. A known ID-JAG can be revoked
   selectively under {{grant-revocation}}.
-* A guarantee that an unobserved disable-and-reenable cycle invalidates
-  all previously issued grants or sessions.
+* A guarantee that a disable-and-reenable cycle invalidates a grant
+  issued before the disablement and first redeemed after the
+  reactivation ({{missed-transitions}}).
 * Runtime containment: stopping executions, tool calls, or network
   access, or rejecting offline tokens before they expire. Administrative
   disablement stops new authorization and revokes RAS sessions;
@@ -247,13 +252,16 @@ Before provisioning, the parties MUST establish:
 * The RAS and API token populations to which lifecycle enforcement applies.
 * Reconciliation responsibilities, stale-state policy, and resource
   enforcement settings under {{recovery}} and {{enforcement}}.
+* Whether the Receiver permits just-in-time correlation ({{jit}}) and,
+  if it does, the resources of its Target Tenant.
 
 A connector authorized for one context MUST NOT modify another context's
 principal or correlation. Multiple writers MAY represent the same
 Governing IdP, but MUST reconcile against its current decisions rather
-than replay queued activation writes after newer disablement. SCIM
-conditional updates protect receiver resource versions; they do not
-order independent source decisions.
+than replay queued activation writes after newer disablement, and
+deliver a pending invalidation first ({{delivery}}). SCIM conditional
+updates protect receiver resource versions; they do not order
+independent source decisions.
 
 The IdP continues to enforce current eligibility when issuing grants under
 {{FEDERATION}}. This profile adds resource-domain application of that
@@ -263,12 +271,66 @@ authentication.
 The Governing IdP, directly or through its connector, MUST apply each
 change to a provisioned Agent Principal's administrative status to every
 resource domain it has provisioned for that principal, by a SCIM write
-or by a subscribed event that triggers reconciliation, and SHOULD do so
-promptly after the decision. Where grant-derived revocation under
-{{grant-revocation}} is enabled, the IdP MUST retain the identifiers of
-the ID-JAGs it issued under each delegation, Identity Binding, and Client
-Association, so that withdrawing any of them can be propagated to the
-authorization derived from those grants.
+or by a subscribed event that triggers reconciliation, as {{delivery}}
+requires, and SHOULD do so promptly after the decision. Where
+grant-derived revocation under {{grant-revocation}} is enabled, the IdP
+MUST retain the identifiers of the ID-JAGs it issued under each
+delegation, Identity Binding, and Client Association, so that
+withdrawing any of them can be propagated to the authorization derived
+from those grants.
+
+## Delivering Administrative Status {#delivery}
+
+Where a Receiver permits just-in-time correlation, an agent can hold
+authorization in its domain before the Governing IdP has provisioned it
+there. Once the IdP has issued a grant for an Agent Principal, as the
+`act` agent of an ID-JAG or the subject of a WAG, for a resource in the
+Target Tenant of a Provisioning Domain whose Receiver permits
+just-in-time correlation, the IdP MUST provision that principal in the
+domain ({{jit}}). It MUST do so even if it fails between issuing the
+grant and starting to provision. Recording the obligation durably
+before issuing the grant meets this; an obligation recorded for a grant
+that was never issued only provisions the agent early.
+
+A disablement that a later reactivation supersedes still has to take
+effect at the Receiver, because it invalidates the authorization issued
+before it ({{application}}); delivering only the current status would
+lose it. For an Agent Principal and a Receiver, a pending invalidation
+exists from a decision to disable the principal, made once the IdP has
+provisioned the principal in that domain or owes provisioning there,
+until the Receiver returns success for a disablement that the IdP
+delivered after the decision.
+
+When it delivers a principal's administrative status to a Receiver, the
+IdP:
+
+1. MUST first deliver any pending invalidation as an applied
+   disablement: a SCIM write that sets `active` to false or, when it
+   provisions the principal, a create with `active` false.
+2. MUST NOT deliver an activation that a later decision superseded.
+3. MUST serialize delivery for the principal and the Receiver, and MUST
+   NOT lose a pending invalidation when one writer replaces another. A
+   single writer per principal is one way to meet this.
+
+An event that only triggers reconciliation does not discharge a pending
+invalidation: the Receiver retrieves current state, in which the
+principal can be active again. After the applied disablement, the IdP
+delivers the current status by either means.
+
+A disablement and a reactivation that both occur while delivery is
+down therefore reach the Receiver as `active` false and then `active`
+true: the disablement invalidates the earlier authorization, and the
+reactivation permits new decisions only. A disablement, a reactivation,
+and a second disablement reach it as one disablement, with no
+activation.
+
+A retried disablement can cost availability. If the success response
+to a disablement write is lost, the IdP still holds the pending
+invalidation and retries the write. When the Receiver's own
+reconciliation has meanwhile found the principal active, the retry
+invalidates the authorization issued in between. It restores no
+revoked authority, and once it succeeds the IdP delivers the current
+status, so new decisions follow.
 
 # Identity and Local Correlation {#identity}
 
@@ -328,32 +390,47 @@ restrictions and retained revocation state applied before issuance. A Receiver t
 supporting this interface uses those rules alone and does not conform
 to this profile.
 
-A conforming Receiver that permits just-in-time correlation MUST expose
-the created principal, with `externalId` set to the agent identifier,
-in the Provisioning Domain of the triggering grant's issuer and, at a
-multi-tenant issuer, its `tenant`, and MUST subject it to the same
-provisioning, reconciliation, and disablement rules as a provisioned
-one. Local
-Suspension is among the local restrictions Federation requires it to
-apply, and the initial `active` value reflects the initial eligibility
-set by local policy.
+A conforming Receiver that permits just-in-time correlation MUST NOT
+expose a record it created that way through SCIM before the Governing
+IdP provisions its pair ({{delivery}}). Until then the record has no
+SCIM `active`. Its eligibility, which local policy sets, is one of the
+local restrictions that Federation requires the RAS to apply, as is
+Local Suspension.
 
-A later SCIM create for the same pair therefore fails with
-`uniqueness`; the connector finds the record with the `externalId`
-query in {{scim}} and updates it. Provisioning that lags the first
-grant thus converges on one principal rather than creating a second.
-A grant does not carry the IdP's administrative status, so
-just-in-time correlation does not replace SCIM provisioning for
+An otherwise valid and authorized create of an Agent whose `externalId`
+is that pair's agent identifier, in the Provisioning Domain of the
+triggering grant's issuer and, at a multi-tenant issuer, its `tenant`,
+MUST NOT fail solely because the record exists. The Receiver MUST bind
+the new resource to the record's local principal, creating no second
+one, and MUST keep that principal's local restrictions and retained
+revocation state. Ordinary SCIM validation still applies, including
+required attributes and `agentUserName` uniqueness. The create's
+`active` value is an administrative status change to that principal
+({{application}}), so an inactive create invalidates the authorization
+issued before it.
+
+Once the record is adopted this way, the Agent is provisioned like any
+other. A later create for the same pair fails with `uniqueness`, and
+the connector finds the resource with the `externalId` query in {{scim}}. Of
+concurrent creates for the pair, one binds the record and the others
+fail the same way ({{identity}}). A record not yet adopted has never
+been reconciled, so a stale-state interval claimed under {{recovery}}
+runs from its creation. A grant does not carry the IdP's administrative
+status, so just-in-time correlation does not replace provisioning for
 disablement.
 
 # SCIM Provisioning {#scim}
 
 The interface uses `/Agents` and the attributes of {{SCIM-AGENT}},
 including required `agentUserName`, plus the common attributes of
-{{RFC7643}}. It defines no extension schema. Receivers MUST support
-creation, retrieval, filtering by `externalId`, PUT, PATCH, and deletion using
-{{RFC7644}}. The Receiver MUST advertise filtering, PATCH, and ETag
-support in `/ServiceProviderConfig`.
+{{RFC7643}}. It defines no extension schema. The `agentUserName`
+uniqueness that {{SCIM-AGENT}} requires applies within the Provisioning
+Domain: this interface reads its `server` uniqueness that way, because
+access controls, not only a base URI, can select the context
+({{conformance}}). Receivers MUST support creation, retrieval,
+filtering by `externalId`, PUT, PATCH, and deletion using {{RFC7644}}.
+The Receiver MUST advertise filtering, PATCH, and ETag support in
+`/ServiceProviderConfig`.
 
 ## Creation and Updates
 
@@ -599,17 +676,29 @@ interfaces as follows; it does not copy the source Agent unchanged:
 | Configured governing issuer | Issuer established by the authenticated Provisioning Domain |
 | `AgentFederation.subject` | Exact value of the destination Agent's `externalId` |
 | Agent `active` | Upstream administrative state; local restrictions remain independent |
+| Agent `displayName` | The same descriptive value; it selects nothing ({{scim}}) |
+| Agent `agentUserName` | A value unique in the destination Provisioning Domain: the source value, or one the connector assigns; it selects nothing ({{scim}}) |
 | Agent `id` | Source-resource correlation, not the destination SCIM `id` |
 | Platform-assigned `externalId` | Platform correlation only; not the federated principal identifier |
 {: title="Mapping from the IdP-side Agent"}
 
 This mapping applies equally to direct provisioning and event-driven
-reconciliation. It introduces no additional destination attributes. A
-platform's `externalId` at the IdP remains its own provisioning
-correlation value. The mutability differs for the same reason: at the
-platform-to-IdP interface of {{AGENT-MANAGEMENT}} it is the connector's
-record key and stays readWrite; here it carries the principal identifier
-and is immutable once established ({{identity}}).
+reconciliation. It introduces no destination attributes beyond those of
+{{SCIM-AGENT}}. A platform's `externalId` at the IdP remains its own
+provisioning correlation value. The mutability differs for the same
+reason: at the platform-to-IdP interface of {{AGENT-MANAGEMENT}} it is
+the connector's record key and stays readWrite; here it carries the
+principal identifier and is immutable once established ({{identity}}).
+
+Names follow the destination's uniqueness, not the source's. At the
+IdP, `agentUserName` is unique within a Provisioning Domain scoped to
+one Provisioning Client ({{AGENT-MANAGEMENT}}), so Agents of two such
+domains can share a name and still reach one destination Provisioning
+Domain, where it must be unique ({{scim}}). A `uniqueness` error on a
+create whose `externalId` query finds no Agent is such a collision. The
+connector then assigns a destination-unique `agentUserName`, and reuses
+the value it assigned when it retries. `displayName` is copied
+unchanged, and correlation stays on `externalId`.
 
 Connectors for `/Agents` are purpose-built for this resource; User and
 Group support alone is insufficient.
@@ -659,17 +748,23 @@ Current state does not establish transition history. If disablement and
 reactivation both occur between successful observations, a later active
 resource does not reveal the missed revocation. A different ETag can
 also result from an ordinary descriptive edit; it does not identify that
-history.
+history. {{delivery}} therefore does not rely on observation: the
+Governing IdP delivers each disablement it decided as an applied one,
+even after it has reactivated the principal, so the Receiver
+invalidates the authorization issued before it.
 
-Consequently, this profile does not guarantee rejection after
-reactivation of an old unredeemed ID-JAG or an authorization session
-whose revocation was never observed. Grant validation, replay
-prevention, and expiration still apply. Sessions actually revoked by the
-RAS remain revoked.
+Two limits remain. Until the disablement is delivered, authorization
+issued before it stays usable, within the delays of {{api-enforcement}}.
+And a grant issued before the disablement and first redeemed after the
+reactivation has no derived authorization for the disablement to
+invalidate: grant-derived revocation ({{grant-revocation}}) can reach
+such an ID-JAG, and nothing in this profile reaches such a WAG. Grant
+validation, replay prevention, and expiration still apply. Sessions
+actually revoked by the RAS remain revoked.
 
-Deployments requiring revocation to survive every missed transition need
-retained revocation history, an authoritative authorization check, or a
-separately specified authorization-generation mechanism.
+Deployments requiring rejection of such grants need grant-derived
+revocation, retained revocation history, an authoritative authorization
+check, or a separately specified authorization-generation mechanism.
 
 ## Offline Tokens {#security-offline}
 
@@ -956,22 +1051,28 @@ revocation targeting one ID-JAG; revocation need not disable the
 principal.
 
 At 12:03, reactivation permits new authorization decisions. It does not
-restore the sessions revoked at 12:02. If the Receiver missed the entire
-disable-and-reenable cycle, a later active GET alone cannot establish
-that those sessions were revoked. An old unredeemed grant is likewise
-subject to normal grant validation, not a new lifecycle cutoff.
+restore the sessions revoked at 12:02. Had the Receiver been
+unreachable from 12:02 to 12:03, the connector would still have
+delivered the disablement before the activation ({{delivery}}), with
+the same effect. An old unredeemed grant is subject to normal grant
+validation, not a new lifecycle cutoff.
 
 ## Acceptance Checklist {#acceptance-checklist}
 
 | Case | Expected result |
 |---|---|
 | Equal `externalId` under a different IdP context | Distinct qualified identity; no automatic correlation |
+| Create for a pair the RAS correlated just in time | Adopted: one principal, keeping its local restrictions and revocation state |
+| Two Agents sharing an `agentUserName` from different IdP-side Provisioning Domains | Both provisioned; the connector assigns one a destination-unique name; each correlates by its own `externalId` |
 | Stale `If-Match` | HTTP 412; retrieve and reconcile before retrying |
 | Descriptive edit | Resource ETag may change; no implicit authorization change |
 | Applied disablement | New redemption and refresh denied; existing RAS sessions revoked |
 | Reactivation after applied disablement | New decisions allowed; revoked sessions stay revoked |
 | Delayed activation notice | Retrieve current source state; do not apply the notice as an activation command |
-| Entire disable-and-reenable cycle missed | Current active state cannot recover revocation history |
+| Disable and re-enable while the Receiver is unreachable | The disablement is delivered, then the activation; sessions from before stay revoked |
+| Disable, re-enable, and disable while the Receiver is unreachable | One disablement is delivered, and no activation |
+| Disablement write retried after a lost success response, once reconciliation has found the principal active | The retry invalidates authorization issued in between; new decisions follow the IdP's next delivery |
+| Grant issued before a disablement, first redeemed after reactivation | Not invalidated by the disablement; grant-derived revocation can reach an ID-JAG |
 | Grant revocation arrives before redemption | Retain the denial; reject later redemption |
 | Grant subject issuer differs from the stream's authorized issuer | Reject; no cross-issuer revocation |
 | Direct SCIM provisioning with CAEP revocation only | No SCIM event subscription or source GET required |

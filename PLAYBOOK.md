@@ -68,10 +68,11 @@ that the later steps test:
 | Oversight | Human out of the loop, under standing authorization only; human in the loop, with approval before issuance, approval before redemption at a RAS, approval of actions, or a combination; or human on the loop, with supervised issuance for a target | Whether clients opt in to deferral and wait for a decision; who approves, and how they authenticate; and, for supervised issuance, who oversees and the intervention bound documented for each target. Policy selects the mode for each agent, user, client, target, and authority; a client's opt-in never does |
 | Federation | Federated, or registration only, for a platform-hosted agent that uses only its platform's own resources | Registration-only agents follow the [registration-only branch](#registration-only-branch) |
 
-The two record choices are independent. Under the lifecycle profile, a
-record created just in time is exposed to provisioning and follows the
-same reconciliation and disablement rules as one provisioned in
-advance.
+The two record choices are independent. Under the lifecycle profile,
+the IdP provisions an agent in each domain that permits just-in-time
+correlation once it has issued the agent a grant there, and the domain
+adopts the record it created. The record then follows the same
+reconciliation and disablement rules as one provisioned in advance.
 
 The [recipes](#recipes) fill in these choices for a complete pilot.
 Acceptance in steps 2 and 3 covers the pilot population; coverage of
@@ -518,8 +519,10 @@ token's `jti` joins the RAS's to the API's.
   expire or the cache entry ends or is invalidated, unless an
   independent local restriction stops them earlier. Document the
   expected and maximum disablement delay.
-* Current administrative state cannot reveal a missed
-  disable-and-re-enable cycle.
+* Without the lifecycle profile, current administrative state cannot
+  reveal a missed disable-and-re-enable cycle. With it, the IdP delivers
+  the disablement before the re-enablement. Neither invalidates a grant
+  issued before the cycle and first redeemed after it.
 * Each SaaS application is its own resource domain. Repeat the RAS and
   API configuration, the client registration association, and these
   tests for each one.
@@ -1097,9 +1100,12 @@ stay revoked, and ended continuation chains stay ended.
      state, so reconciliation cannot recover them. If the grant's
      derived authorization must stop before delivery is confirmed,
      disable the agent or apply a Local Suspension instead.
-  4. Where a disable-and-re-enable cycle may have been missed, current
-     state cannot show it. If sessions from before the gap must not
-     survive:
+  4. If the IdP disabled and re-enabled the agent during the gap, its
+     connector delivers the disablement to each affected domain before
+     the re-enablement ("Delivering Administrative Status" in the
+     [lifecycle profile][lifecycle]); confirm that each domain applied
+     it. Current state cannot show the cycle. Where a domain cannot
+     confirm it, and sessions from before the gap must not survive:
      1. Disable the agent at the IdP.
      2. Confirm that each affected domain applied the disablement and
         invalidated the agent's existing authorization.

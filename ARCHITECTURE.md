@@ -646,12 +646,16 @@ issued runs until its own revocation or expiry.
 | Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource domain lifting it; upstream activation cannot. A provisional suspension caused by a deactivation event can also be cleared by successful reconciliation |
 | Remove a Continuation Association | That client's continuation of the agent's chains; the chains continue through other clients | Tokens already obtained, until revoked or expired; a target's refresh token extends access further | Restoring it |
 
-Re-enabling never restores revoked sessions. Current administrative
-state cannot reveal a missed disable-and-re-enable cycle, and how
-quickly an API stops accepting tokens depends on introspection, caching,
-and token lifetimes. Without a bound on propagation and enforcement,
-the drafts claim no finite end-to-end denial time; a deployment should
-document its expected and maximum delay.
+Re-enabling never restores revoked sessions. Under the lifecycle
+profile, the IdP delivers a disablement before a re-enablement that
+superseded it, so the disablement revokes the sessions issued before it
+even when the resource domain was unreachable for the whole cycle. It
+does not reach a grant issued before the disablement and first redeemed
+after the re-enablement. How quickly an API stops accepting tokens
+depends on introspection, caching, and token lifetimes. Without a bound
+on propagation and enforcement, the drafts claim no finite end-to-end
+denial time; a deployment should document its expected and maximum
+delay.
 
 ### Failures
 
@@ -686,15 +690,19 @@ request with the same assertion while it is unexpired, after any
 **Lifecycle delivery is delayed or lost.** A disablement not yet
 applied in a resource domain stops neither redemption, refresh, nor
 sessions there. A delayed activation notice triggers retrieval of
-current state, never an activation, and a missed disable-and-re-enable
-cycle cannot be recovered from current state.
+current state, never an activation. Under the lifecycle profile, the
+IdP keeps a disablement until the domain accepts it and delivers it
+before any later activation, so a disable-and-re-enable cycle during
+the outage still revokes the sessions issued before it.
 
 **The RAS has no record for the agent.** Where
 resource policy enables just-in-time correlation for that issuer and
 tenant, the RAS can create the record from the validated grant,
 applying local restrictions and policy before issuance. A record
 created just in time still needs lifecycle integration to learn of
-disablement.
+disablement: under the lifecycle profile, the IdP provisions the agent
+in that domain once it has issued a grant there, and the domain adopts
+the record it created.
 
 **A policy decision service is unavailable.** Unless a failure is
 established and no unfinished check ranks earlier, the API answers HTTP
