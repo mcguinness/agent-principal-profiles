@@ -646,31 +646,39 @@ Table of Contents
    and sender-constraint rules.  The following are deployment choices,
    not new conformance levels:
 
-        +=================+======================================+
-        | Resource        | When an applied RAS revocation       |
-        | processing      | becomes visible                      |
-        +=================+======================================+
-        | Introspection   | On the next successful authorization |
-        | on each request | check; a failed or timed-out check   |
-        |                 | cannot authorize the request         |
-        +-----------------+--------------------------------------+
-        | Cached          | After any permitted active-response  |
-        | introspection   | cache entry expires or is            |
-        |                 | invalidated                          |
-        +-----------------+--------------------------------------+
-        | Offline JWT     | At token expiration, unless an       |
-        | validation      | independent local restriction takes  |
-        |                 | effect earlier                       |
-        +-----------------+--------------------------------------+
+     +========================+======================================+
+     | Resource processing    | When an applied RAS revocation       |
+     |                        | becomes visible                      |
+     +========================+======================================+
+     | Introspection on each  | On the next successful authorization |
+     | request                | check; a failed or timed-out check   |
+     |                        | cannot authorize the request         |
+     +------------------------+--------------------------------------+
+     | Cached introspection   | After any permitted active-response  |
+     |                        | cache entry expires or is            |
+     |                        | invalidated                          |
+     +------------------------+--------------------------------------+
+     | Offline JWT validation | At token expiration, unless an       |
+     |                        | independent local restriction takes  |
+     |                        | effect earlier                       |
+     +------------------------+--------------------------------------+
+     | Offline JWT validation | When the API retrieves and validates |
+     | with a Token Status    | a Status List Token that carries the |
+     | List [STATUS-LIST]     | token's changed status               |
+     +------------------------+--------------------------------------+
 
-                                 Table 3
+                                  Table 3
 
    Caching follows Federation and Section 4 of [RFC7662].  In
    particular, cached active responses cannot outlive token expiration
    or the configured freshness limit.  Offline validation does not
-   consult principal lifecycle state by itself.  The RAS and API MUST
-   configure token lifetimes, expiry leeway, and caching consistently
-   with their accepted revocation delay.
+   consult principal lifecycle state by itself.  With a status list, the
+   delay depends on when the RAS publishes the changed status, when the
+   API retrieves the list, and the API's configured freshness policy;
+   expiry of a cached list does not by itself show that a token is
+   revoked.  The RAS and API MUST configure token lifetimes, expiry
+   leeway, and caching consistently with their accepted revocation
+   delay.
 
    Deployments SHOULD document their expected and maximum disablement
    delays, including propagation, reconciliation, local application,
@@ -1053,6 +1061,13 @@ Table of Contents
               authz-grant-02, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-carleton-
               workload-authz-grant-02>.
+
+   [STATUS-LIST]
+              Looker, T., Bastian, P., and C. Bormann, "Token Status
+              List (TSL)", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-status-list-21, 21 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              status-list-21>.
 
 Appendix A.  Optional Shared Signals Profile
 

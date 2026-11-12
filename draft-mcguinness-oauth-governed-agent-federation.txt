@@ -1131,7 +1131,10 @@ Table of Contents
        requirements for the client, issuer trust relationship, and
        target resource.  The client, IdP, and RAS MUST use that
        configuration.  This document defines no transaction-level
-       profile negotiation.
+       profile negotiation.  An authorization grant catalog
+       [GRANT-CATALOG] is one way for a RAS to describe the resources,
+       scopes, and grant binding methods it accepts; it informs that
+       configuration and is not an authorization decision.
 
    2.  *Enforce the minimum:* Each server MUST enforce its configured
        minimum regardless of absent actor_token, act, DPoP, or cnf.
@@ -1352,12 +1355,13 @@ Table of Contents
 5.3.3.  Existing Platform JWT
 
    This common shared-client input accepts existing signed platform JWTs
-   as issued, with no new media type or reissuance.  Section 9.1 states
-   when it is required, and Appendix A.2.1 gives an AWS STS example.
-   The IdP MUST accept a platform JWT only when its issuer, credential
-   class, and the authenticated client are explicitly configured
-   together.  Credential classification and rejection follow
-   Section 5.3.5.
+   as issued, with no new media type or reissuance; [WIMSE-PRACTICES]
+   describes how workload platforms issue them and how a workload uses
+   one to federate to an IdP.  Section 9.1 states when it is required,
+   and Appendix A.2.1 gives an AWS STS example.  The IdP MUST accept a
+   platform JWT only when its issuer, credential class, and the
+   authenticated client are explicitly configured together.  Credential
+   classification and rejection follow Section 5.3.5.
 
    *  *Configuration:* Configuration MUST also specify:
 
@@ -2858,6 +2862,11 @@ Table of Contents
    5.  *Output:* Issue access tokens under Section 6.6 and Section 6.7,
        expiring no later than the absolute authorization expiration.
 
+   The RAS can report the absolute authorization expiration and the
+   inactivity limit to the client with the token response parameters of
+   [REFRESH-EXPIRATION].  A new ID-JAG does not extend an existing
+   refresh token in place (step 4).
+
 8.3.  Applied Disablement and Revocation
 
    When a principal disablement, correlation removal, or local
@@ -3778,6 +3787,27 @@ Table of Contents
               wimse-aims-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
               aims-01>.
+
+   [REFRESH-EXPIRATION]
+              Watson, N., "OAuth 2.0 Refresh Token and Authorization
+              Expiration", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-refresh-token-expiration-03, 6 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              refresh-token-expiration-03>.
+
+   [WIMSE-PRACTICES]
+              Schwenkschuster, A. and Y. Rosomakho, "Workload Identity
+              Practices", Work in Progress, Internet-Draft, draft-ietf-
+              wimse-workload-identity-practices-08, 30 October 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
+              workload-identity-practices-08>.
+
+   [GRANT-CATALOG]
+              McGuinness, K., "OAuth Authorization Grant Catalog", Work
+              in Progress, Internet-Draft, draft-mcguinness-oauth-grant-
+              catalog-01, 2 November 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-grant-catalog-01>.
 
    [AGENT-LIFECYCLE]
               McGuinness, K., "Agent Principal Lifecycle Profile for

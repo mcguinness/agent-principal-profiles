@@ -93,7 +93,9 @@ Table of Contents
    8.  Security Considerations
    9.  Privacy Considerations
    10. IANA Considerations
-   11. Normative References
+   11. References
+     11.1.  Normative References
+     11.2.  Informative References
    Appendix A.  Input Variants
      A.1.  Identity Mapping Example
      A.2.  Shared Platform Client with SPIFFE
@@ -455,6 +457,12 @@ Table of Contents
    Managed-installation resolution relies on the attester's continuity
    evidence and enrollment controls (Section 9 of [INSTANCE]).
 
+   An Identity Binding resolves an exact SPIFFE ID to an Agent
+   Principal, whichever workload holds that identifier.  It therefore
+   relies on the trust domain not reassigning the identifier to a
+   different workload, which Section 4.5 of [WIMSE-ID] recommends
+   against unless the trust domain's policy intends it.
+
 9.  Privacy Considerations
 
    The privacy considerations of [FEDERATION] apply.  Client instance
@@ -464,7 +472,9 @@ Table of Contents
 
    This document has no IANA actions.
 
-11.  Normative References
+11.  References
+
+11.1.  Normative References
 
    [FEDERATION]
               McGuinness, K., "OAuth 2.0 Profile for Agent Principal
@@ -532,6 +542,14 @@ Table of Contents
               Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+11.2.  Informative References
+
+   [WIMSE-ID] Rosomakho, Y. and J. A. Salowey, "Workload Identifier",
+              Work in Progress, Internet-Draft, draft-ietf-wimse-
+              identifier-04, 23 October 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
+              identifier-04>.
 
 Appendix A.  Input Variants
 
