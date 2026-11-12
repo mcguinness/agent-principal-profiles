@@ -696,10 +696,17 @@ compare the complete normalized URIs byte-for-byte". For valid SPIFFE
 IDs the two readings differ only in the letter case of the scheme. The
 SPIFFE ID specification makes the scheme case-insensitive, and requires
 a lowercase trust domain with no percent-encoding or dot segments.
-Adopting Section 4.3 would define "exact" by it and make the identifier
-draft a normative reference of the companion, a reviewed semantic
-change; it awaits a ruling. A general WIT input, whose identifiers can
-use the `wimse` scheme, would need Section 4.3 in any case. Section 4.5
+The comparison is deferred as an interoperability follow-up (ruling on
+PR #104). It is to be defined by the SPIFFE ID specification's own
+syntax and case rules, whose Section 2.4 says "The scheme and trust
+domain name of the SPIFFE ID are case-insensitive. The path is
+case-sensitive.", not by adopting the general normalization of Section
+4.3 for this purpose alone. It is to be defined together with the SCIM
+agent management profile, whose `sourceAuthority` and `sourceSubject`
+binding attributes are case-exact, so that resolution at the IdP and
+the comparison of bindings agree. A general WIT input, whose
+identifiers can use the `wimse` scheme, would need Section 4.3 in any
+case. Section 4.5
 of the same draft, on reassignment, is cited informatively from the
 companion's Security Considerations.
 
