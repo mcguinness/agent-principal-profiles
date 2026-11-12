@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        11 November 2026
-Expires: 15 May 2027
+Intended status: Standards Track                        12 November 2026
+Expires: 16 May 2027
 
 
             OAuth 2.0 Profile for Agent Principal Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 15 May 2027.
+   This Internet-Draft will expire on 16 May 2027.
 
 Copyright Notice
 
@@ -1364,7 +1364,9 @@ Table of Contents
       -  the credential class: the rule distinguishing workload
          credentials from user, management-API, or other tokens of the
          same issuer, namely an explicit typ, a dedicated issuer, or an
-         accepted audience combined with exact selectors;
+         accepted audience combined with exact selectors.  The generic
+         JWT type of Section 5.1 of [RFC7519], in any letter case and
+         with or without an application/ prefix, is not an explicit typ;
 
       -  approved keys or an approved HTTPS JWK Set URI under [RFC7517],
          retrieved with server authentication;

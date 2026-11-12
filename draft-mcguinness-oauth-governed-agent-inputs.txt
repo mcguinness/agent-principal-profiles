@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        11 November 2026
-Expires: 15 May 2027
+Intended status: Standards Track                        12 November 2026
+Expires: 16 May 2027
 
 
          Agent Resolution Inputs for Agent Principal Federation
@@ -56,7 +56,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 15 May 2027.
+   This Internet-Draft will expire on 16 May 2027.
 
 Copyright Notice
 
@@ -424,9 +424,17 @@ Table of Contents
    the case for WIT-SVID or Client Attestation when DPoP is used.
    Continued use requires retaining the corresponding proof key.
    Otherwise, the client obtains a new grant with the replacement key
-   and new RAS authorization.  Any subject-credential binding still
-   applies and may require a new subject credential.  Grant key
-   transition is not defined ("Excluded Compositions" in [FEDERATION]).
+   and new RAS authorization.  For a WIT-SVID, retention ends with the
+   credential: Section 9.5 of [WIT] forbids the workload to use the key
+   once the WIT-SVID has expired.  A client that follows it therefore
+   uses a grant, access token, or refresh token bound to that key only
+   while an unexpired WIT-SVID carries the same key; where each new WIT-
+   SVID carries a new key, it obtains a new grant with each one.  This
+   limits the client's use, not the tokens: neither the RAS nor the API
+   sees the WIT-SVID, so the tokens do not expire with it.  Any subject-
+   credential binding still applies and may require a new subject
+   credential.  Grant key transition is not defined ("Excluded
+   Compositions" in [FEDERATION]).
 
 7.2.  Instance Keys at the RAS
 

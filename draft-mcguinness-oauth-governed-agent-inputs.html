@@ -1056,7 +1056,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 15 May 2027</td>
+<td class="center">Expires 16 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1069,12 +1069,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-inputs-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-11" class="published">11 November 2026</time>
+<time datetime="2026-11-12" class="published">12 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-15">15 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-16">16 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1131,7 +1131,7 @@ agent-resolution input contract and is claimed separately.<a href="#section-abst
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 15 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 16 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1700,8 +1700,15 @@ the grant proof key, replacing it does not rebind an outstanding grant, access t
 is the case for WIT-SVID or Client Attestation when DPoP is used.
 Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
-new RAS authorization. Any subject-credential binding still applies and
-may require a new subject credential. Grant key transition is not
+new RAS authorization. For a WIT-SVID, retention ends with the
+credential: <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-03#section-9.5" class="relref">Section 9.5</a> of [<a href="#WIT" class="cite xref">WIT</a>]</span> forbids the workload to use the key
+once the WIT-SVID has expired. A client that follows it therefore uses
+a grant, access token, or refresh token bound to that key only while an
+unexpired WIT-SVID carries the same key; where each new WIT-SVID carries
+a new key, it obtains a new grant with each one. This limits the
+client's use, not the tokens: neither the RAS nor the API sees the
+WIT-SVID, so the tokens do not expire with it. Any subject-credential
+binding still applies and may require a new subject credential. Grant key transition is not
 defined ("Excluded Compositions" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>).<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
