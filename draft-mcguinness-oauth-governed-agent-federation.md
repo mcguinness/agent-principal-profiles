@@ -84,6 +84,7 @@ informative:
   AIMS: I-D.ietf-wimse-aims-01
   REFRESH-EXPIRATION: I-D.ietf-oauth-refresh-token-expiration-03
   WIMSE-PRACTICES: I-D.ietf-wimse-workload-identity-practices-08
+  GRANT-CATALOG: I-D.mcguinness-oauth-grant-catalog-01
   AGENT-LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -994,7 +995,10 @@ Profile applicability follows these rules:
    establish the applicable governed profile and minimum requirements
    for the client, issuer trust relationship, and target resource. The
    client, IdP, and RAS MUST use that configuration. This document
-   defines no transaction-level profile negotiation.
+   defines no transaction-level profile negotiation. An authorization
+   grant catalog {{GRANT-CATALOG}} is one way for a RAS to describe the
+   resources, scopes, and grant binding methods it accepts; it informs
+   that configuration and is not an authorization decision.
 2. **Enforce the minimum:** Each server MUST enforce its configured
    minimum regardless of absent `actor_token`, `act`, DPoP, or `cnf`.
    Their presence or absence MUST NOT select a different profile.
