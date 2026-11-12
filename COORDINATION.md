@@ -612,6 +612,13 @@ The identity items are governed-profile requirements for the OAuth
 mapping profile; the rest are requests to the OpenID AuthZEN working
 group and, for the Mission profile, to its editors. Not yet filed.
 
+The Token Issuance and Token Exchange texts also appear as individual
+Internet-Drafts, `draft-gazitt-oauth-authzen-issuance-01` and
+`draft-gazitt-oauth-authzen-token-exchange-01` (September 2026). The
+issuance draft keeps "properties and context carry advisory input only"
+(Section 1.1), and neither names the resolved agent as an input, so the
+point above about a mandatory decision input stands.
+
 ### Deferred Compositions
 
 #### Grant Key Transition
@@ -973,6 +980,40 @@ gateways in `continuation_via`. None is cited.
 | `draft-araut-oauth-transaction-tokens-for-agents-03` (individual, Informational) | The governed context in a Transaction Token's `tctx`, within one domain | It records agent hops in an `agentic_ctx` claim and leaves `act` alone: "The act claim, if present, MUST NOT be modified" |
 | `draft-fletcher-oauth-txn-token-chaining-profile-01` (individual) | Continuation across domains | A Transaction Token becomes the subject of an identity-chaining exchange for a grant in another domain. It defines no `act` handling, and it hides the internal path ("Claims that record intermediate workloads or the internal call chain within Trust Domain A MUST NOT be included in txn_claims", Section 7.4), where continuation discloses gateways |
 
+#### Client Metadata Proposals
+
+* `draft-emelia-oauth-as-metadata-dpop-required-00` (individual) adds
+  authorization server metadata that, when true, means the server "MUST
+  NOT issue access tokens that are not DPoP-bound", applying "to all
+  clients of the authorization server". The core selects access-token
+  protection per client and resource through trusted configuration,
+  "not by a request flag" (`access-token-protection`), and a RAS can
+  issue certificate-bound or, where configured, bearer tokens. Such a
+  RAS cannot advertise the value as true; for a RAS that issues only
+  DPoP-bound tokens, it is a hint to clients.
+* `draft-gerber-oauth-client-metadata-lookup-00` (individual) lets a
+  client read its effective configuration at an authorization server;
+  "Success describes current configuration, not endorsement". Where one
+  Client ID Metadata Document serves an IdP and a RAS
+  (`client-metadata`), it would show the client each server's accepted
+  methods before a token request fails (Client Authentication Drafts,
+  above).
+
+#### The Author's Other Drafts
+
+* `draft-mcguinness-oauth-grant-catalog-01`, cited by the core in
+  `discovery`, applies only to ID-JAG, not WAG, and its grant binding
+  methods include `mtls`, which bound grants here do not use (Excluded
+  Compositions).
+* `draft-mcguinness-oauth-actor-receipts-01` and
+  `draft-mcguinness-oauth-actor-proofs-01`, companions of the Actor
+  Profile, sign each actor hop. Here the IdP is the only issuer that
+  adds an actor, and the continuation companion's IdP hop records remain
+  authoritative, so neither is used.
+* `draft-mcguinness-oauth-mission-02` and
+  `draft-mcguinness-oauth-mission-resource-access-00`: see Mission under
+  the continuation companion, and Portable Authorization Deadlines.
+
 ## Identity Continuation Companion
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)
@@ -1137,6 +1178,10 @@ alone would not complete the composition. Also open:
   denial and a governed failure such as `invalid_continuation` both
   apply.
 
+`draft-mcguinness-oauth-mission-resource-access-00` proposes, in its
+Section 10, a scope projection: one candidate answer to the second
+item, not yet assessed against `restrictions`.
+
 A deadline for a whole task, which the per-hop continuation window does
 not provide, belongs to this composition.
 
@@ -1299,6 +1344,28 @@ revision 2026-07-28. SEP-2848 (asynchronous approval for tool calls)
 and SEP-2643 (structured authorization denials) are cited as
 proposals. If SEP-2848 is accepted, its task held in `working` is the
 per-action realization the companion describes.
+
+### Per-Action Approval Drafts
+
+Two individual drafts ask for approval of one operation; neither is
+cited.
+
+* `draft-rosomakho-oauth-txn-challenge-01`, co-authored by this
+  family's author, is the nearest counterpart to `per-action`. A
+  resource returns a signed challenge, and the authorization server
+  issues, through Deferred Token Response, a new token for that
+  operation: "This access token is scoped to the challenged operation".
+  Here an approval "does not add authority"; it is a condition within
+  the existing token. The draft also prefers HTTP 401 with
+  `transaction_authorization_required`, where the core answers a valid
+  token that lacks authority with HTTP 403 (`resource-errors` in the
+  core). Both differences are points for its editors, not yet raised.
+* `draft-williams-oauth-poi-core-00`: its baseline approvals need "zero
+  Authorization Server round-trips"; the resource verifies a signature
+  by a session key the client holds. That is the client confirmation
+  `per-action` excludes: "A confirmation the client shows in its own
+  interface is not an approval under this document". Its higher tiers,
+  which verify the user with WebAuthn at approval, come closer.
 
 ### References
 
