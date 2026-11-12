@@ -1199,7 +1199,9 @@ classification and rejection follow {{actor-inputs}}.
   * the credential class: the rule distinguishing workload credentials
     from user, management-API, or other tokens of the same issuer,
     namely an explicit `typ`, a dedicated issuer, or an accepted
-    audience combined with exact selectors;
+    audience combined with exact selectors. The generic `JWT` type of
+    {{Section 5.1 of RFC7519}}, in any letter case and with or without
+    an `application/` prefix, is not an explicit `typ`;
   * approved keys or an approved HTTPS JWK Set URI under {{RFC7517}},
     retrieved with server authentication;
   * the issuer's permitted asymmetric algorithms;

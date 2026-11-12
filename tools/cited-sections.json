@@ -161,6 +161,9 @@
     "4": "Evaluation",
     "5": "JSON String Representation"
   },
+  "RFC7519": {
+    "5.1": "\"typ\" (Type) Header Parameter"
+  },
   "RFC7521": {
     "4.1": "Using Assertions as Authorization Grants"
   },

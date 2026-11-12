@@ -32,6 +32,14 @@ heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
 headings (`--fetch`, `--update`).
 
+RFC 8725 has a successor in the OAuth WG
+(`draft-ietf-oauth-rfc8725bis-10`, a BCP). When it is published, the
+core's citations of Sections 3.8 and 3.12 of RFC 8725 move to it once
+those sections are read in it. Its Section 3.11 states that a `typ` of
+`JWT` "does not constitute effective explicit typing", which the core's
+credential-class rule for platform JWTs (`imported-jwt-input`) already
+applies.
+
 ### Downward References
 
 Three normative references are to documents of lower status than the
