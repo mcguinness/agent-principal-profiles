@@ -82,6 +82,7 @@ informative:
       Internet-Draft: draft-mcguinness-scim-agent-federation
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
   AIMS: I-D.ietf-wimse-aims-01
+  REFRESH-EXPIRATION: I-D.ietf-oauth-refresh-token-expiration-03
   AGENT-LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -2368,6 +2369,11 @@ multiple values or a different resource with `invalid_target`.
 5. **Output:** Issue access tokens under {{access-token-response}} and
    {{access-token-protection}}, expiring no later than the absolute
    authorization expiration.
+
+The RAS can report the absolute authorization expiration and the
+inactivity limit to the client with the token response parameters of
+{{REFRESH-EXPIRATION}}. A new ID-JAG does not extend an existing refresh
+token in place (step 4).
 
 ## Applied Disablement and Revocation {#applied-changes}
 

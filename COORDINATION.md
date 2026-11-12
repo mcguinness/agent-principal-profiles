@@ -236,6 +236,31 @@ authorization details. Which status accompanies that code joins the
 open question of how the core's denial responses compose with other
 denial formats (`AuthZEN and COAZ-MCP`, below).
 
+#### Refresh Token Expiration
+
+`draft-ietf-oauth-refresh-token-expiration-03` (OAuth WG,
+Informational, July 2026) defines the `authorization_expires_in` and
+`refresh_token_timeout` token response parameters, and the core cites
+it in `ras-refresh`. A RAS that issues refresh tokens under
+`ras-refresh` always sets a finite absolute expiration and an
+inactivity limit, so one that implements the draft reports both with
+every refresh token: "If finite, the authorization server MUST return
+these values whenever the token endpoint response contains the
+refresh_token field" (Section 6.1).
+
+Its Section 5 differs on renewal: "If the user renews their
+authorization, the authorization server SHOULD update the expiration
+time of existing refresh tokens if their lifetime was truncated due to
+user authorization expiration", and its Section 9 describes extending a
+grant's lifetime in place. Here renewal is a new ID-JAG, a fresh IdP
+decision that "starts a new authorization period and leaves the
+previous expiration unchanged" (`ras-refresh`, step 4), so a RAS that
+follows the core does not follow that SHOULD. The core keeps step 4: an
+extension in place would let a refresh token issued under one ID-JAG
+outlive the IdP decision that set its limit. The parameters inform only
+the client and carry no IdP deadline to the RAS, so Portable
+Authorization Deadlines (below) stays open. Nothing is filed.
+
 #### Grant Replay and Re-redemption
 
 Section 4.4.4 of ID-JAG lets a client re-submit an unexpired ID-JAG for
