@@ -32,6 +32,14 @@ heading recorded in `tools/cited-sections.json`. Moving a pin means
 reading the cited sections in the new revision and then recording their
 headings (`--fetch`, `--update`).
 
+RFC 8725 has a successor in the OAuth WG
+(`draft-ietf-oauth-rfc8725bis-10`, a BCP). When it is published, the
+core's citations of Sections 3.8 and 3.12 of RFC 8725 move to it once
+those sections are read in it. Its Section 3.11 states that a `typ` of
+`JWT` "does not constitute effective explicit typing", which the core's
+credential-class rule for platform JWTs (`imported-jwt-input`) already
+applies.
+
 ### Downward References
 
 Three normative references are to documents of lower status than the
@@ -209,6 +217,24 @@ keeps `invalid_grant` for a valid credential that resolves no user,
 binding, agent, or tenant, and `actor_unauthorized`, not
 `access_denied`, for a missing Delegation Authorization
 (`issuance-errors`); Section 4.3.4.3 permits any code.
+
+#### Authorization Details Errors
+
+`draft-ietf-oauth-rar-metadata-remediation-00` (OAuth WG, Standards
+Track, August 2026) defines the `insufficient_authorization` error code
+and an `authorization_remediation` parameter. Its Section 4 says
+resource servers "SHOULD return insufficient_authorization when access
+is denied due to missing or insufficient authorization details"; its
+examples use HTTP 401. The core's `resource-errors` row 5 returns HTTP
+403 with `insufficient_scope` when "The operation needs scope or
+authorization details that the token does not carry", so an API that
+follows the core does not follow that SHOULD for authorization details.
+The core keeps row 5 while the draft is at -00. When the draft is
+revised or reaches Working Group Last Call, row 5 can split:
+`insufficient_scope` for scope, and the draft's code and remediation for
+authorization details. Which status accompanies that code joins the
+open question of how the core's denial responses compose with other
+denial formats (`AuthZEN and COAZ-MCP`, below).
 
 #### Grant Replay and Re-redemption
 
@@ -619,6 +645,37 @@ authorization generation in the grant, agreed with ID-JAG, and define the
 comparison the RAS applies.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
+
+#### SCIM Interoperability Profile
+
+`draft-zollner-scim-interop-profile-02` (individual, Standards Track)
+profiles SCIM clients and Service Providers. A Service Provider opts in
+by listing it in `conformsTo`; it then applies "to every resource type
+that a Service Provider implements, including resource types defined
+outside [RFC7643]", which includes the Agent and OAuthClient resources
+here. A Service Provider can conform to it and to these profiles
+together. A client cannot:
+
+* Section 6.7: clients "MUST NOT include HTTP headers related to
+  conditional requests or entity tags (ETags), such as If-Match". Here,
+  changing an inactive resource to active MUST use `If-Match` with a
+  resource-version ETag, and other writes SHOULD use it (Common
+  Provisioning Conventions in the SCIM OAuth client management profile,
+  which the lifecycle and SCIM agent management profiles follow). The
+  activation condition keeps an activation based on stale state from
+  overtaking a later disablement; the interoperability profile accepts
+  lost updates instead. A client that follows it cannot reactivate an
+  inactive Agent or OAuthClient here.
+* Sections 6.3 and 6.5: clients use only the `eq` and `and` filter
+  operators and "SHALL NOT use the PUT operation". These do not
+  conflict. Service Providers here support PUT, and `gt` and `ge` on
+  `meta.lastModified`, but no client is required to use them: a
+  connector can write with PATCH alone and reconcile with equality
+  filters and complete listings.
+
+Only conditional activation conflicts. A comment to the authors could
+ask that activation be exempt from Section 6.7, or that a use-case
+profile be able to require conditional writes; nothing is filed.
 
 ### Related Work
 
