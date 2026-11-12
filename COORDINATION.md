@@ -23,11 +23,13 @@ with the cited section unchanged, and AIMS-01, only the cited sections
 were assessed. The same holds for the informative citations added after
 the 2026-11-11 audit of active OAuth, WIMSE, SCIM, and agent drafts:
 Refresh Token Expiration-03 (Sections 5, 6.1, and 9), Workload
-Identifier-04 (Sections 4.3 and 4.5), Token Status List-21 (Sections
-1.1, 11.5, and 13.1), Workload Identity Practices-08 (its abstract and
-Section 1), and the grant catalog-01 (its abstract and binding methods).
-The notes under Related Work and Deferred Compositions from that audit
-quote sections checked on 2026-11-12.
+Identifier-04 (Sections 4.3 and 4.5), Workload Identity Practices-08
+(its abstract and Section 1), and the grant catalog-01 (its abstract
+and binding methods). The notes under Related Work and Deferred
+Compositions from that audit quote sections checked on 2026-11-12.
+Token Status List-21, which the lifecycle profile now references
+normatively, was assessed in Sections 1.1, 5.1, 6.1, 6.2, 7.1, 8.3,
+8.4, 11.3, 11.5, 12.1 to 12.3, 13.1 to 13.3, and 13.7 (2026-11-12).
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
@@ -48,13 +50,14 @@ those sections are read in it. Its Section 3.11 states that a `typ` of
 credential-class rule for platform JWTs (`imported-jwt-input`) already
 applies.
 
-The lifecycle profile cites `draft-ietf-oauth-status-list-21`, in the
-RFC Editor queue, as a deployment choice for an API that validates JWT
-access tokens offline (`api-enforcement`); the citation moves to the
-RFC when it is published. The list is not a grant revocation mechanism
-here: an issuer "may stop serving the Status List Token" once all its
-Referenced Tokens have expired (Section 13.1), and access derived from
-an ID-JAG or WAG can outlive the grant.
+The lifecycle profile references `draft-ietf-oauth-status-list-21`, in
+the RFC Editor queue, normatively for its token status capabilities
+(`token-status` in the lifecycle draft); the reference moves to the RFC
+when it is published. Grant status is checked at redemption only: an
+issuer "may stop serving the Status List Token" once all its Referenced
+Tokens have expired (Section 13.1), while authorization derived from an
+ID-JAG or WAG can outlive the grant. Derived authorization therefore
+stays with applied disablement and grant-derived revocation.
 
 ### Downward References
 
@@ -278,6 +281,19 @@ previous grant. The RAS sets each period's absolute expiration under
 local policy; the ID-JAG carries no deadline for it. The parameters
 inform only the client, so Portable Authorization Deadlines (below)
 stays open. Nothing is filed.
+
+#### Grant Status Claims
+
+The lifecycle profile's grant status (`grant-status` in the lifecycle
+draft) adds the `status` claim of the Token Status List to ID-JAGs and
+WAGs. ID-JAG-06 and WAG-02 neither define nor forbid it, and a RAS that
+does not claim grant status ignores it: "all claims that are not
+understood by implementations MUST be ignored" (Section 4 of RFC 7519).
+Neither draft needs to change. Each could mention the claim as a way
+for an issuer to withdraw a grant before redemption. For ID-JAG, that
+would also narrow the window that ICA-02 Section 6 describes, where
+revocation "does not invalidate an already-issued ID-JAG". Nothing is
+filed.
 
 #### Grant Replay and Re-redemption
 
@@ -761,7 +777,8 @@ building blocks, not a lifecycle propagation contract.
 
 Consistent correlation and disablement across IdP and RAS need an agreed
 provisioning and enforcement contract. `AGENT-LIFECYCLE` profiles SCIM,
-optional Shared Signals, and the effects of applied changes on authorization.
+optional Shared Signals, token status lists, and the effects of applied
+changes on authorization.
 It distinguishes current administrative state from revocation history and
 states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
@@ -770,7 +787,10 @@ authorization generation in the grant, agreed with ID-JAG, and define the
 comparison the RAS applies. The authority epoch of
 `draft-watts-oauth-agent-revocation-closure-03` is not that generation:
 it is "opaque to this specification", travels in no grant, and has no
-comparison rule.
+comparison rule. Without a generation, the lifecycle profile's grant
+status already rejects at redemption a grant issued before a
+disablement and redeemed after a reactivation, within the IdP's
+publication interval and the RAS's maximum status age.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 
@@ -1146,6 +1166,12 @@ rule that stays local to the profile:
   hop records, an authenticated way for a continuing client or CAI to
   request narrowing, and rules for what a child hop inherits from its
   parent. Deferred until a deployment needs it.
+* **Grant status:** ICA-02 Section 6 says that revocation "does not
+  invalidate an already-issued ID-JAG". An IdP that claims the
+  lifecycle profile's grant status can set an onward ID-JAG to INVALID
+  when it ends the chain; that profile permits it ("any other
+  withdrawal of its authority"), and neither document requires it.
+  Whether ending a chain should require it is open.
 
 ### WAG
 

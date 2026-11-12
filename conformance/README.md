@@ -651,7 +651,8 @@ The suite tests nothing outside the path above, including:
   cancellation by revoking the deferral code, a change of the user's
   account link while pending, an absolute expiration set before the
   deferral, and `slow_down`;
-* other oversight, lifecycle propagation, and SCIM management.
+* other oversight, lifecycle propagation (including the token status
+  capabilities), and SCIM management.
 
 ## Running against another implementation
 
