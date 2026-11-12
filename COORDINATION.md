@@ -271,11 +271,13 @@ user authorization expiration", and its Section 9 describes extending a
 grant's lifetime in place. Here renewal is a new ID-JAG, a fresh IdP
 decision that "starts a new authorization period and leaves the
 previous expiration unchanged" (`ras-refresh`, step 4), so a RAS that
-follows the core does not follow that SHOULD. The core keeps step 4: an
-extension in place would let a refresh token issued under one ID-JAG
-outlive the IdP decision that set its limit. The parameters inform only
-the client and carry no IdP deadline to the RAS, so Portable
-Authorization Deadlines (below) stays open. Nothing is filed.
+follows the core does not follow that SHOULD. The core keeps step 4:
+renewal establishes a new authorization period, associated with a
+fresh ID-JAG, rather than extending the period associated with the
+previous grant. The RAS sets each period's absolute expiration under
+local policy; the ID-JAG carries no deadline for it. The parameters
+inform only the client, so Portable Authorization Deadlines (below)
+stays open. Nothing is filed.
 
 #### Grant Replay and Re-redemption
 
