@@ -937,8 +937,14 @@ mechanism.
 ## Offline Tokens {#security-offline}
 
 A disabled principal may still have tokens accepted by an offline API.
-Access-token status ({{access-token-status}}) narrows that window to the
-RAS's publication interval and the API's maximum status age.
+Once the RAS applies the disablement ({{application}}) or otherwise
+revokes the authorization, access-token status ({{access-token-status}})
+limits further acceptance to the RAS's publication interval and the
+API's maximum status age. The delay before the RAS does so, including
+propagation from the Governing IdP, is separate; without a bound on it,
+this profile claims no finite end-to-end bound ({{api-enforcement}}).
+Grant status does not shorten that delay, because it does not revoke
+authorization already derived from a grant ({{grant-status}}).
 Token expiry and cached responses MUST be included in operational
 claims; stopping issuance alone does not terminate ongoing work or
 retract operations already performed.
