@@ -331,12 +331,13 @@ Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
 new RAS authorization. For a WIT-SVID, retention ends with the
 credential: {{Section 9.5 of WIT}} forbids the workload to use the key
-once the WIT-SVID has expired. A grant, access token, or refresh token
-bound to that key is therefore usable only while an unexpired WIT-SVID
-carries the same key; where each new WIT-SVID carries a new key, the
-client obtains a new grant with each one. Any subject-credential
-binding still applies and
-may require a new subject credential. Grant key transition is not
+once the WIT-SVID has expired. A client that follows it therefore uses
+a grant, access token, or refresh token bound to that key only while an
+unexpired WIT-SVID carries the same key; where each new WIT-SVID carries
+a new key, it obtains a new grant with each one. This limits the
+client's use, not the tokens: neither the RAS nor the API sees the
+WIT-SVID, so the tokens do not expire with it. Any subject-credential
+binding still applies and may require a new subject credential. Grant key transition is not
 defined ("Excluded Compositions" in {{FEDERATION}}).
 
 ## Instance Keys at the RAS {#implementation-instance}
