@@ -20,12 +20,20 @@ ATTEST-12, CIMD-03, Client Instance Identifiers-01, and Client Attester
 Endorsement-01 (2026-11-07); and, earlier, ICA-02, Actor Profile-01,
 CIMD-02, and WISE draft 03. For RFC 10070, published from RFC 7523bis-11
 with the cited section unchanged, and AIMS-01, only the cited sections
-were assessed.
+were assessed. The same holds for the informative citations added after
+the 2026-11-11 audit of active OAuth, WIMSE, SCIM, and agent drafts:
+Refresh Token Expiration-03 (Sections 5, 6.1, and 9), Workload
+Identifier-04 (Sections 4.3 and 4.5), Token Status List-21 (Sections
+1.1, 11.5, and 13.1), Workload Identity Practices-08 (its abstract and
+Section 1), and the grant catalog-01 (its abstract and binding methods).
+The notes under Related Work and Deferred Compositions from that audit
+quote sections checked on 2026-11-12.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
 on 2026-11-06 (Identity Chaining-17, Entity Profiles-02, Oversight
-Acts-00, SCIM Agent Resource-00). CIMD is pinned at -03 with its
+Acts-00, SCIM Agent Resource-00), or, for those added after the
+2026-11-11 audit, on 2026-11-12. CIMD is pinned at -03 with its
 Section 6 an open item (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
 checks that every cited section of a pinned RFC or draft still has the
 heading recorded in `tools/cited-sections.json`. Moving a pin means
