@@ -936,6 +936,43 @@ Points for its authors, not yet raised:
   issues an authorization grant. Sections 4.4 and 9 could say whether
   they cover an exchange whose output is a grant.
 
+#### Agent Authorization Proposals
+
+An audit of active OAuth, WIMSE, SCIM, and agent drafts on 2026-11-11
+found these proposals, which readers may compare with this family. None
+is cited. Each counterpart is the nearest mechanism here, not an
+equivalent.
+
+| Draft | Nearest counterpart here | Difference |
+|---|---|---|
+| `draft-hardt-oauth-aauth-protocol-11` (individual, September 2026): a replacement for OAuth built on HTTP Message Signatures | The IdP grant and the RAS access token | "An auth token carries no agent identifier and no delegation chain" (Section 9.4.1), where the RAS and API here require one `act`. Its agent identifier "identifies a specific instance", and an execution identifier cannot select an Agent Principal here (`identity-binding`) |
+| `draft-rosenberg-oauth-aauth-02` (individual, November 2026), unrelated to the above: a resource-signed scope challenge and an `agent_authorization` grant | Per-action approval and deferred redemption (the oversight companion) | It identifies no agent: it "does not depend on an authenticated identifier that is unique to AI Agents" (Section 8.2). Its resource-signed reason addresses what the oversight companion leaves open, since that companion "makes the request accurate, not the reason". Its Section 5.5.1 lets the authorization server "avoid a HITL entirely by running an AI agent", where approvers here are "never the client or an agent" |
+| `draft-ni-wimse-ai-agent-identity-04` (individual, Informational): a credential that binds agent and owner keys | An Identity Binding, and `owners` on the Agent resource | The owner link confers privileges from "existing IAM information (like RBAC)" (Section 4.1.1). Here owners "are not automatically user delegators" (`eligibility` in the lifecycle profile), and the user travels in the grant |
+| `draft-diaconu-agents-authz-info-sharing-01` (individual): a verifiable credential in client metadata, with authorized scopes and agent-to-agent delegation records | A per-resource IdP grant; continuation through gateways | Standing authority in client metadata, not a decision per grant. Its agent identifier "SHOULD be a dereferenceable URI pointing to client-id metadata" (Section 6.4.2.2); here a client identifier, including a CIMD URL, "identifies the client, not the agent" (`identity-binding`). Agent-to-agent delegation is out of scope here |
+| `draft-ietf-wimse-arch-08` (WIMSE WG, Informational) | The token service and external token service of Section 3.2.3 are the IdP and the RAS | Section 3.4.11: "Such autonomous actions MUST be clearly distinguished from delegated ones, for example by using separate workload identities or token scopes". Here one Agent Principal can act in both ways, and the grant, a WAG or an ID-JAG, tells them apart. Its "agent" is the helper with which "workloads bootstrap their identifiers and credentials" (Section 3.4.1.1), not an Agent Principal |
+
+`draft-reece-wimse-cross-org-delegation-02` (individual, Informational)
+states requirements for delegation across organizations and specifies
+no mechanism. This family contradicts its R2 by design: R2 asks that a
+relying party verify authority "without a pre-existing bilateral
+agreement specific to the interaction", and a RAS here accepts an
+issuer's grants only through configured trust (`redemption-validation`).
+That trust is configured per issuer, not per interaction.
+
+#### Nested Actor Designs
+
+These drafts record a chain of agents, or carry context from one domain
+to another. The core accepts one `act` and "no nested `act`"; the
+continuation companion keeps the Agent Principal as the actor and lists
+gateways in `continuation_via`. None is cited.
+
+| Draft | Nearest counterpart here | Difference |
+|---|---|---|
+| `draft-mw-oauth-actor-chain-03` (individual) | Continuation, with disclosure in `continuation_via` | Its Full and Subset disclosure modes emit nested `act`, which a RAS here rejects. Its Actor-Only mode, in which `act` "MUST contain exactly the current actor", fits. Its preserve step "creates no actor step" and discloses no intermediary |
+| `draft-liu-oauth-delegation-chaining-00` (individual) | Continuation, one exchange per source hop | Each delegating agent exchanges the ID-JAG it holds for a new one; the issuer makes the authenticated client the outer actor and "nests the act claim of the subject_token inside it" (Section 4.5). A RAS here rejects those grants, and agent-to-agent delegation is out of scope |
+| `draft-araut-oauth-transaction-tokens-for-agents-03` (individual, Informational) | The governed context in a Transaction Token's `tctx`, within one domain | It records agent hops in an `agentic_ctx` claim and leaves `act` alone: "The act claim, if present, MUST NOT be modified" |
+| `draft-fletcher-oauth-txn-token-chaining-profile-01` (individual) | Continuation across domains | A Transaction Token becomes the subject of an identity-chaining exchange for a grant in another domain. It defines no `act` handling, and it hides the internal path ("Claims that record intermediate workloads or the internal call chain within Trust Domain A MUST NOT be included in txn_claims", Section 7.4), where continuation discloses gateways |
+
 ## Identity Continuation Companion
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)
