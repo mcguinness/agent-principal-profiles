@@ -1588,7 +1588,9 @@ administrative state. Upstream activation cannot clear it.<a href="#section-2-3.
 <p id="section-3-1">A deployment conforms to this profile by claiming SCIM provisioning with
 the OAuth receiver behavior in this document, at least one token status
 capability (<a href="#token-status" class="auto internal xref">Section 8</a>), or both, and <span class="bcp14">MUST</span> meet the requirements
-of each capability it claims. Token status requires no SCIM
+of each capability it claims. A conformance claim <span class="bcp14">MUST</span> name each
+capability it covers, so that a claim of token status alone is not
+read as a claim of SCIM provisioning. Token status requires no SCIM
 provisioning. Events are optional; a deployment using them <span class="bcp14">MUST</span> apply
 <a href="#signals" class="auto internal xref">Appendix A</a>. Support for events alone is not conformance to this
 lifecycle profile. A platform applying state to agents it hosts conforms

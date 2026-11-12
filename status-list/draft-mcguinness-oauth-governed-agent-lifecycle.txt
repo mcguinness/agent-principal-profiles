@@ -307,11 +307,14 @@ Table of Contents
    A deployment conforms to this profile by claiming SCIM provisioning
    with the OAuth receiver behavior in this document, at least one token
    status capability (Section 8), or both, and MUST meet the
-   requirements of each capability it claims.  Token status requires no
-   SCIM provisioning.  Events are optional; a deployment using them MUST
-   apply Appendix A.  Support for events alone is not conformance to
-   this lifecycle profile.  A platform applying state to agents it hosts
-   conforms through Section 10 instead of the OAuth receiver behavior.
+   requirements of each capability it claims.  A conformance claim MUST
+   name each capability it covers, so that a claim of token status alone
+   is not read as a claim of SCIM provisioning.  Token status requires
+   no SCIM provisioning.  Events are optional; a deployment using them
+   MUST apply Appendix A.  Support for events alone is not conformance
+   to this lifecycle profile.  A platform applying state to agents it
+   hosts conforms through Section 10 instead of the OAuth receiver
+   behavior.
 
    Before provisioning, the parties MUST establish:
 
