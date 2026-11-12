@@ -781,6 +781,27 @@ Only conditional activation conflicts. A comment to the authors could
 ask that activation be exempt from Section 6.7, or that a use-case
 profile be able to require conditional writes; nothing is filed.
 
+#### SCIM Agent Governance and Tenant Drafts
+
+Two individual SCIM drafts touch the resources here; neither is cited.
+
+* `draft-kushwaha-scim-agent-governance-00` (Informational) extends the
+  Agent resource with a `lifecycleState` from which a service provider
+  derives `active`. The profiles here read `active` and `externalId`,
+  so they can work beside it, with two frictions. A quarantined resource
+  "MUST NOT be modifiable except by the authorized review process",
+  which would stop a connector's disablement. An archived resource
+  cannot leave that state, where reactivation here is a write of
+  `active: true`.
+* `draft-kushwaha-scim-tenant-resource-00` (Standards Track) models a
+  tenant as a SCIM resource that users and groups join, not as the
+  Governance Tenant of a Provisioning Domain. An unauthorized tenant
+  gets HTTP 404, "indistinguishable from the response for a nonexistent
+  Tenant" (Section 8.2), where the SCIM agent management profile returns
+  403. While a tenant is suspended or archived, its state-changing
+  operations are rejected with HTTP 409 (Section 9.1), which would also
+  reject a disablement in it.
+
 ### Related Work
 
 #### Credential Broker for Agents (CB4A)
