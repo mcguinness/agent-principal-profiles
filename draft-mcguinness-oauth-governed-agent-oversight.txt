@@ -783,9 +783,11 @@ Table of Contents
    approver's decision:
 
    *  *Both grants:* the proof and client, replay, and authority checks
-      of "Common Grant Validation" in [FEDERATION], and the effective
+      of "Common Grant Validation" in [FEDERATION]; the effective
       eligibility of the agent and, for an ID-JAG, the user, including
-      any Local Suspension ([AGENT-LIFECYCLE]).
+      any Local Suspension ([AGENT-LIFECYCLE]); and, for a grant from an
+      issuer configured for grant status, the grant's status
+      ([AGENT-LIFECYCLE]).
 
    *  *ID-JAG:* ID-JAG validation, including the grant's time claims;
       the actor; user resolution; correlation of the act agent; and the
@@ -1002,9 +1004,13 @@ Table of Contents
    ([AGENT-LIFECYCLE]), so a participating RAS ends the pending governed
    redemption when the event arrives, and the next poll gets
    access_denied.  Other changes made at the IdP after receipt reach the
-   RAS only through such signals or provisioning.  The maximum pending
-   lifetime bounds the rest, and an intervention bound (Section 6)
-   counts it.
+   RAS only through such signals or provisioning.  The RAS does not
+   check grant status ([AGENT-LIFECYCLE]) again at resolution: a status
+   change after receipt does not by itself end the pending governed
+   redemption, and the IdP need not serve the grant's status after the
+   grant's acceptance period, which an approval can follow.  The maximum
+   pending lifetime bounds the rest, and an intervention bound
+   (Section 6) counts it.
 
    On success, the RAS MUST issue what the redemption would have
    produced without deferral, for the approved authority:
@@ -1668,6 +1674,12 @@ A.5.  Deferred Redemption
    | The grant's exp passes while the | RAS     | The access token     |
    | redemption is pending, and the   |         | issues at the next   |
    | steward then approves            |         | poll                 |
+   +----------------------------------+---------+----------------------+
+   | With grant status configured,    | RAS     | The access token     |
+   | the IdP sets the grant to        |         | issues at the next   |
+   | INVALID while the redemption is  |         | poll                 |
+   | pending, and the steward then    |         |                      |
+   | approves                         |         |                      |
    +----------------------------------+---------+----------------------+
    | The maximum pending lifetime is  | RAS     | expires_in was at    |
    | 24 hours, and the steward        |         | most eight hours;    |
