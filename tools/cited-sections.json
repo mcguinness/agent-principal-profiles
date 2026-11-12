@@ -77,6 +77,9 @@
   "I-D.ietf-wimse-aims-01": {
     "10.8": "Human in the Loop"
   },
+  "I-D.ietf-wimse-workload-creds-03": {
+    "9.5": "Workload Identity Key Management"
+  },
   "I-D.mcguinness-oauth-actor-profile-01": {
     "3.4": "Actor Object Structure",
     "3.6.2.2": "Preserve Inbound Chain",
