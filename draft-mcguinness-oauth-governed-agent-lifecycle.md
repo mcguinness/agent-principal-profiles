@@ -71,6 +71,8 @@ normative:
   RFC7643:
   RFC7644:
   RFC7662:
+  RFC9068:
+  STATUS-LIST: I-D.ietf-oauth-status-list-21
 informative:
   AGENT-MANAGEMENT:
     title: "SCIM Profile for Agent Principal Management"
@@ -88,7 +90,6 @@ informative:
     target: https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   RFC7009:
   WAG: I-D.carleton-workload-authz-grant-02
-  STATUS-LIST: I-D.ietf-oauth-status-list-21
 --- abstract
 
 This document profiles SCIM for provisioning issuer-qualified,
@@ -207,7 +208,9 @@ recovery and enforcement limits.
 
 Agent Principal, Governance Tenant, Target Tenant, and resource
 authorization server (RAS) follow {{FEDERATION}}. SCIM terms follow
-{{RFC7643}} and {{RFC7644}}.
+{{RFC7643}} and {{RFC7644}}. Status List, Status List Token, Status
+Issuer, Status Provider, Referenced Token, and relying party follow
+{{STATUS-LIST}}.
 
 Governing IdP:
 : The IdP governing the Agent Principal. An authorized connector can
@@ -240,8 +243,11 @@ Local Suspension:
 
 # Conformance and Configuration {#conformance}
 
-Conformance requires the SCIM provisioning and OAuth receiver behavior in
-this document. Events are optional; a deployment using them MUST apply
+A deployment conforms to this profile by claiming SCIM provisioning with
+the OAuth receiver behavior in this document, at least one token status
+capability ({{token-status}}), or both, and MUST meet the requirements
+of each capability it claims. Token status requires no SCIM
+provisioning. Events are optional; a deployment using them MUST apply
 {{signals}}. Support for events alone is not conformance to this
 lifecycle profile. A platform applying state to agents it hosts conforms
 through {{platform-hosted}} instead of the OAuth receiver behavior.
@@ -590,6 +596,147 @@ of an end-to-end guarantee from the governing IdP's original decision.
 Without a bound on propagation and enforcement, this profile claims no
 finite end-to-end denial bound. A local stale-state restriction can
 limit new issuance; it does not by itself revoke already-issued tokens.
+
+# Token Status Lists {#token-status}
+
+A Token Status List {{STATUS-LIST}} is a signed, compressed list in
+which an issuer publishes the status of the tokens it issued, and which
+a relying party retrieves and caches instead of asking about each
+token. This profile defines two capabilities that use it. Each is
+optional and claimed separately:
+
+| Capability | Status Issuer | Tokens | Relying party |
+|---|---|---|---|
+| Access-token status ({{access-token-status}}) | RAS | JWT access tokens | API, on each request |
+| Grant status ({{grant-status}}) | Governing IdP | ID-JAGs and WAGs | RAS, at redemption |
+{: title="Token status capabilities"}
+
+Access-token status lets an API that validates JWT access tokens
+offline reject one once the RAS has revoked its authorization, before
+it expires. Grant status lets a RAS reject a grant whose authority the
+IdP withdrew after issuing it, including a grant issued before a
+disablement and first redeemed after a reactivation
+({{missed-transitions}}). Neither capability requires SCIM provisioning
+or {{signals}}, and neither changes an Agent Principal's administrative
+state.
+
+## Common Rules {#status-common}
+
+Before a relying party relies on token status, the parties MUST
+establish by configuration:
+
+* the tokens that carry status: for access-token status, the resources
+  whose access tokens do; for grant status, the governing issuer, its
+  tenant at a multi-tenant issuer, and the Target Tenant whose grants
+  do;
+* the keys that validate the Status List Tokens for those tokens
+  ({{Section 11.3 of STATUS-LIST}}), and the locations from which the
+  relying party retrieves them; and
+* the Status Issuer's publication interval and the relying party's
+  maximum status age.
+
+A Status Issuer:
+
+* MUST include a `status` claim with a `status_list` member
+  ({{Section 6.2 of STATUS-LIST}}) in every token it issues that is
+  configured to carry status;
+* MUST NOT allocate a Status List or `uri` value to one agent, user,
+  client, or token, and MUST NOT include an identifier of the agent,
+  user, or client in `uri` ({{Section 12.2 of STATUS-LIST}});
+* MUST use only VALID (0x00), INVALID (0x01), and, for access-token
+  status, SUSPENDED (0x02);
+* MUST NOT change a status from INVALID; and
+* MUST reflect a status change in every Status List Token it issues
+  after the change takes effect, and MUST issue such a Status List
+  Token within its publication interval.
+
+For a token configured to carry status, the relying party:
+
+1. MUST complete the token's own validation first. A token that fails
+   it is rejected without a status check
+   ({{Section 8.3 of STATUS-LIST}}).
+2. MUST reject the token if it lacks a valid `status_list` member.
+3. MUST obtain a Status List Token for its `uri` from a configured
+   location and validate it under {{Section 8.3 of STATUS-LIST}} with
+   the configured keys. A `uri` does not authorize retrieval from any
+   other location, including by redirection. The relying party MUST NOT
+   rely on a Status List Token that has expired or whose `iat` is older
+   than its maximum status age.
+4. MUST accept the token only if its status is VALID.
+
+A relying party that cannot obtain or validate a Status List Token it
+may rely on has a check that cannot complete. The RAS and the API
+follow the rules of {{FEDERATION}} for that case, in "Redemption Error
+Precedence" and "Error Responses" respectively: neither accepts the
+token, and neither reports it revoked.
+
+The Status Issuer's publication interval and the relying party's
+maximum status age bound how long after a change a token can still be
+accepted. They are part of the revocation delay that {{api-enforcement}}
+requires deployments to configure.
+
+## Access-Token Status {#access-token-status}
+
+The RAS is the Status Issuer for the JWT access tokens {{RFC9068}} it
+issues for a resource configured for this capability, and the API is
+the relying party.
+
+When the RAS revokes an authorization session, whether by applying a
+disablement or deletion ({{application}}), by grant-derived revocation
+({{grant-revocation}}), by token revocation {{RFC7009}}, or under its
+own policy, it MUST set every unexpired access token derived from that
+session to INVALID. While a Local Suspension applies to an agent, the
+RAS MUST set that agent's unexpired access tokens to SUSPENDED or
+INVALID, and it MUST NOT return a SUSPENDED token to VALID while a
+restriction or revocation applies to its session.
+
+The API applies {{status-common}} to each request whose access token is
+for a configured resource, after the token validation of {{FEDERATION}}.
+A token that fails it is an invalid access token, under the first row
+of the resource server error responses in {{FEDERATION}}. An opaque
+access token carries no `status` claim; the API learns its status by
+introspection {{RFC7662}}.
+
+## Grant Status {#grant-status}
+
+The Governing IdP is the Status Issuer for the ID-JAGs and WAGs it
+issues to a RAS configured for this capability, and that RAS is the
+relying party.
+
+The IdP MUST set each unexpired grant to INVALID when it:
+
+* disables or deletes the grant's Agent Principal;
+* disables the Identity Binding, or withdraws the Client Association,
+  under which it issued the grant;
+* withdraws the Delegation Authorization or Agent Authorization under
+  which it issued the grant; or
+* revokes the grant, including by grant-derived revocation
+  ({{grant-revocation}}).
+
+To do so, the IdP MUST retain, for each unexpired grant it issued under
+this capability, its status entry and the Agent Principal, Identity
+Binding, Client Association, and Delegation Authorization or Agent
+Authorization under which it issued the grant. The IdP MAY set a grant
+to INVALID for any other withdrawal of its authority. Reactivating the
+principal or restoring a relationship does not return a grant to VALID
+({{status-common}}). The IdP MUST keep each grant's entry in the Status
+List Tokens it serves until the grant has expired, with an allowance
+for clock skew.
+
+The RAS applies {{status-common}} at each redemption of a grant from a
+configured issuer, as part of the grant's validation, the second step
+of "Redemption Error Precedence" in {{FEDERATION}}, and before it
+records the grant as accepted. A grant that fails it is rejected with
+`invalid_grant`. The RAS does not check grant status at refresh:
+authorization derived from a grant follows {{application}} and
+{{grant-revocation}}, and an issuer can stop serving the status of
+expired tokens ({{Section 13.1 of STATUS-LIST}}).
+
+Grant status rejects a grant whose authority the IdP withdrew while the
+grant was unexpired, including across a disablement and reactivation
+that the Receiver never observed ({{missed-transitions}}), within the
+IdP's publication interval and the RAS's maximum status age. It does
+not revoke authorization already derived from the grant.
 
 # Revocation Boundaries {#relationship-changes}
 

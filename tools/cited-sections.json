@@ -74,6 +74,14 @@
     "6.1": "Bundles from Client Metadata",
     "8.2": "Trust Bundles from Client ID Metadata Documents"
   },
+  "I-D.ietf-oauth-status-list-21": {
+    "6.2": "Referenced Token in JOSE",
+    "8.3": "Validation Rules",
+    "11.3": "Key Resolution and Trust Management",
+    "12.1": "Observability of Issuers",
+    "12.2": "Issuer Tracking of Referenced Tokens",
+    "13.1": "Token Lifecycle"
+  },
   "I-D.ietf-wimse-aims-01": {
     "10.8": "Human in the Loop"
   },
