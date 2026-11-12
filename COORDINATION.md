@@ -622,6 +622,15 @@ no such transition: the holder of the issuance key also redeems the
 grant (the implementer's guide, "Distributed platforms and key use"). A future composition would need to bind
 the new key without weakening the applicable grant protection.
 
+Two current drafts hand authority to a new key, and neither fills this
+need. In `draft-ietf-oauth-delegate-sd-jwt-00` (OAuth WG) a holder
+signs the next holder's key into an SD-JWT presentation: the artifact
+is not a grant, and the holder, not the issuer, binds the new key. In
+`draft-li-oauth-delegated-authorization-04` (individual) a key holder
+issues child tokens bound to a delegate's key; they are access tokens,
+and a child "MUST NOT contain iss, sub, iat, or jti" (Section 5.3.8),
+so it names no principal.
+
 #### Portable Authorization Deadlines
 
 A portable IdP-imposed deadline on downstream access needs an
@@ -630,6 +639,15 @@ and enforcement rules for access tokens and refresh authorization.
 That composition is outside the scope of this document. ID-JAG `exp`
 remains the redemption limit; it cannot communicate a deadline for
 subsequent access (`authorization-lifetime`).
+
+No current draft supplies it.
+`draft-ietf-oauth-refresh-token-expiration-03` reports deadlines to the
+client only (Refresh Token Expiration, above). The `validTo` attribute
+of `draft-kushwaha-scim-agent-governance-00` is applied by the SCIM
+service provider and reaches no token. Within one domain,
+`draft-mcguinness-oauth-mission-02` caps what a Mission Issuer derives:
+a credential "MUST have an exp that does not exceed the Mission's
+expires_at" (Section 7.6).
 
 #### User Access Tokens as Subjects
 
@@ -641,6 +659,15 @@ Such a composition needs rules for token eligibility and audience,
 user/client/actor resolution, sender constraints, and the authority to
 request downstream access. Coordinate those rules with ID-JAG;
 changing only `subject_token_type` does not establish them.
+
+The nearest published rules are in two individual drafts, both within
+one authorization server and without an ID-JAG.
+`draft-zhu-oauth-async-delegation-05` accepts "an access token whose
+audience identifies the acting client" as the subject and takes the
+actor from the authenticated client.
+`draft-zehavi-oauth-audience-bound-token-exchange-00` relates a subject
+token's audience to the exchanging client, which covers eligibility
+only, and "does not replace may_act".
 
 #### Excluded Compositions
 
@@ -657,6 +684,11 @@ exclusion does not prevent the independently supported uses listed here.
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection`, except after a deferred redemption, which the oversight companion requires to be DPoP-bound |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 | Public or unattested native agents | Both grant paths authenticate the client (`scope`); a client that uses `none` and presents no attestation from a configured attester (`INPUTS`) has no governed grant path, and enrolling a key is out of scope (`overview`) |
+
+`draft-kavian-agent-enrollment-protocol-05` (individual) enrolls an
+agent's key, as a DID, with one service. It creates no trust that an
+IdP can use and no Identity Binding, so it gives an unattested native
+agent no governed grant path.
 
 ### Operational Dependencies
 
@@ -675,7 +707,10 @@ states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
 One is deferred rather than prohibited: it would carry an authenticated
 authorization generation in the grant, agreed with ID-JAG, and define the
-comparison the RAS applies.
+comparison the RAS applies. The authority epoch of
+`draft-watts-oauth-agent-revocation-closure-03` is not that generation:
+it is "opaque to this specification", travels in no grant, and has no
+comparison rule.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 
