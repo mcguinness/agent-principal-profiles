@@ -1962,17 +1962,19 @@ conformance levels:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Offline JWT validation with a Token Status List <span>[<a href="#STATUS-LIST" class="cite xref">STATUS-LIST</a>]</span>
 </td>
-              <td class="text-left" rowspan="1" colspan="1">After the RAS publishes the token's changed status and the API's cached Status List Token expires or reaches its <code>ttl</code>
-</td>
+              <td class="text-left" rowspan="1" colspan="1">When the API retrieves and validates a Status List Token that carries the token's changed status</td>
             </tr>
           </tbody>
         </table>
 <p id="section-7.1-3">Caching follows Federation and <span><a href="https://rfc-editor.org/rfc/rfc7662#section-4" class="relref">Section 4</a> of [<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. In particular,
 cached active responses cannot outlive token expiration or the
 configured freshness limit. Offline validation does not consult
-principal lifecycle state by itself. The RAS and API <span class="bcp14">MUST</span> configure
-token lifetimes, expiry leeway, and caching consistently with their
-accepted revocation delay.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+principal lifecycle state by itself. With a status list, the delay
+depends on when the RAS publishes the changed status, when the API
+retrieves the list, and the API's configured freshness policy; expiry
+of a cached list does not by itself show that a token is revoked. The
+RAS and API <span class="bcp14">MUST</span> configure token lifetimes, expiry leeway, and caching
+consistently with their accepted revocation delay.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
 <p id="section-7.1-4">Deployments <span class="bcp14">SHOULD</span> document their expected and maximum disablement
 delays, including propagation, reconciliation, local application, token
 lifetime, and caching. A SCIM acknowledgment is not the starting point
