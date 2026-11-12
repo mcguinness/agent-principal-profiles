@@ -93,17 +93,18 @@ informative:
   WAG: I-D.carleton-workload-authz-grant-02
 --- abstract
 
-This document profiles SCIM for provisioning issuer-qualified,
-enterprise-governed Agent Principals into a resource domain and applying
-administrative disablement to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
-existing session-revocation events can invalidate identified authorization
-sessions independently of principal state.
+This document defines how a resource domain applies the administrative
+state of issuer-qualified, enterprise-governed Agent Principals to OAuth
+authorization. It profiles SCIM for provisioning those principals into
+a resource domain and applying administrative disablement. Existing
+SCIM Events can accelerate reconciliation; existing session-revocation
+events can invalidate identified authorization sessions independently
+of principal state. Independently of SCIM, Token Status Lists let an
+API reject revoked access tokens that it validates offline, and a RAS
+reject grants whose authority the IdP has withdrawn.
 
 The profile defines identity correlation, receiver actions, and the
-limits of propagation and resource enforcement. Independently of SCIM,
-Token Status Lists let an API reject revoked access tokens that it
-validates offline, and a RAS reject grants whose authority the IdP has
-withdrawn. The profile defines no new SCIM
+limits of propagation and resource enforcement. It defines no new SCIM
 schema, event type, eligibility lease, or authorization timestamp.
 Current administrative state does not establish a history of revocation.
 
@@ -127,8 +128,11 @@ this document carries the principal's administrative state into the
 resource domain and revokes what depends on it.
 
 This companion defines how a resource domain provisions that principal
-and applies changes to its administrative status. The responsibilities
-are:
+by SCIM and applies changes to its administrative status ({{scim}}),
+which Shared Signals events can accelerate ({{signals}}), and how the
+RAS and the IdP publish the status of access tokens and grants in Token
+Status Lists ({{token-status}}). A deployment can claim provisioning,
+token status, or both ({{conformance}}). The responsibilities are:
 
 | Mechanism | Responsibility |
 |---|---|
