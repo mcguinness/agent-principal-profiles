@@ -645,8 +645,12 @@ establish by configuration:
 * the keys that validate the Status List Tokens for those tokens
   ({{Section 11.3 of STATUS-LIST}}), and the locations from which the
   relying party retrieves them; and
-* the Status Issuer's publication interval and the relying party's
-  maximum status age.
+* the Status Issuer's publication interval, and the relying party's
+  maximum status age and permitted clock skew.
+
+A token's acceptance period is the time during which the relying party
+can accept it: until its expiration plus that clock skew ("Time,
+Replay, and Key Validation" in {{FEDERATION}}).
 
 A Status Issuer:
 
@@ -697,11 +701,12 @@ the relying party.
 When the RAS revokes an authorization session, whether by applying a
 disablement or deletion ({{application}}), by grant-derived revocation
 ({{grant-revocation}}), by token revocation {{RFC7009}}, or under its
-own policy, it MUST set every unexpired access token derived from that
-session to INVALID. While a Local Suspension applies to an agent, the
-RAS MUST set that agent's unexpired access tokens to SUSPENDED or
-INVALID, and it MUST NOT return a SUSPENDED token to VALID while a
-restriction or revocation applies to its session.
+own policy, it MUST set to INVALID every access token derived from that
+session whose acceptance period ({{status-common}}) has not ended.
+While a Local Suspension applies to an agent, the RAS MUST set to
+SUSPENDED or INVALID that agent's access tokens whose acceptance period
+has not ended, and it MUST NOT return a SUSPENDED token to VALID while
+a restriction or revocation applies to its session.
 
 The API applies {{status-common}} to each request whose access token is
 for a configured resource, after the token validation of {{FEDERATION}}.
@@ -716,7 +721,8 @@ The Governing IdP is the Status Issuer for the ID-JAGs and WAGs it
 issues to a RAS configured for this capability, and that RAS is the
 relying party.
 
-The IdP MUST set each unexpired grant to INVALID when it:
+The IdP MUST set to INVALID each grant whose acceptance period
+({{status-common}}) has not ended when it:
 
 * disables or deletes the grant's Agent Principal;
 * disables the Identity Binding, or withdraws the Client Association,
@@ -726,15 +732,15 @@ The IdP MUST set each unexpired grant to INVALID when it:
 * revokes the grant, including by grant-derived revocation
   ({{grant-revocation}}).
 
-To do so, the IdP MUST retain, for each unexpired grant it issued under
-this capability, its status entry and the Agent Principal, Identity
-Binding, Client Association, and Delegation Authorization or Agent
-Authorization under which it issued the grant. The IdP MAY set a grant
-to INVALID for any other withdrawal of its authority. Reactivating the
-principal or restoring a relationship does not return a grant to VALID
-({{status-common}}). The IdP MUST keep each grant's entry in the Status
-List Tokens it serves until the grant has expired, with an allowance
-for clock skew.
+To do so, the IdP MUST retain, for each grant it issued under this
+capability and until the grant's acceptance period ends, its status
+entry and the Agent Principal, Identity Binding, Client Association,
+and Delegation Authorization or Agent Authorization under which it
+issued the grant. The IdP MAY set a grant to INVALID for any other
+withdrawal of its authority. Reactivating the principal or restoring a
+relationship does not return a grant to VALID ({{status-common}}). The
+IdP MUST keep each grant's entry in the Status List Tokens it serves
+until the grant's acceptance period ends.
 
 The RAS applies {{status-common}} at each redemption of a grant from a
 configured issuer, as part of the grant's validation, the second step
@@ -745,11 +751,12 @@ authorization derived from a grant follows {{application}} and
 {{grant-revocation}}, and an issuer can stop serving the status of
 expired tokens ({{Section 13.1 of STATUS-LIST}}).
 
-Grant status rejects a grant whose authority the IdP withdrew while the
-grant was unexpired, including across a disablement and reactivation
-that the Receiver never observed ({{missed-transitions}}), within the
-IdP's publication interval and the RAS's maximum status age. It does
-not revoke authorization already derived from the grant.
+Grant status rejects a grant whose authority the IdP withdrew before
+the grant's acceptance period ended, including across a disablement
+and reactivation that the Receiver never observed
+({{missed-transitions}}), within the IdP's publication interval and the
+RAS's maximum status age. It does not revoke authorization already
+derived from the grant.
 
 # Revocation Boundaries {#relationship-changes}
 
