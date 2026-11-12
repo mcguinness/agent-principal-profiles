@@ -669,6 +669,42 @@ actor from the authenticated client.
 token's audience to the exchanging client, which covers eligibility
 only, and "does not replace may_act".
 
+#### Workload Identifiers and General WIMSE Inputs
+
+The input profiles companion resolves an "exact SPIFFE ID" without
+defining the comparison. `draft-ietf-wimse-identifier-04` (WIMSE WG,
+Standards Track) defines one in Section 4.3: "consumers MUST apply the
+syntax-based normalization specified in Section 6.2.2 of [URI] and then
+compare the complete normalized URIs byte-for-byte". For valid SPIFFE
+IDs the two readings differ only in the letter case of the scheme. The
+SPIFFE ID specification makes the scheme case-insensitive, and requires
+a lowercase trust domain with no percent-encoding or dot segments.
+Adopting Section 4.3 would define "exact" by it and make the identifier
+draft a normative reference of the companion, a reviewed semantic
+change; it awaits a ruling. A general WIT input, whose identifiers can
+use the `wimse` scheme, would need Section 4.3 in any case. Section 4.5
+of the same draft, on reassignment, is cited informatively from the
+companion's Security Considerations.
+
+Current drafts do not supply what a general WIT input lacks.
+`draft-ietf-wimse-wpt-02` proves possession of a WIT's key, but
+`SPIFFE-OAUTH` already proves possession of a WIT-SVID's key with the
+Client Attestation PoP JWT; a general input lacks a client
+authentication method and client identification for identifiers other
+than SPIFFE IDs. `draft-kemp-oauth-x509-bearer-00` (individual) could
+present a certificate that is not an X.509-SVID. It agrees with the
+X.509-SVID rule that an uncorroborated certificate establishes nothing
+(one "without either form of corroboration MUST be rejected"), but it
+takes the subject by a per-CA extraction rule where an input here needs
+an Identity Binding.
+`draft-schwenkschuster-wimse-trust-domain-discovery-00` (individual)
+discovers a trust domain's bundle from its name and agrees with the
+core that discovery establishes no trust: relying parties "MUST NOT
+treat the mere existence of a discoverable trust bundle as
+authorization to accept credentials from that trust domain" (Section
+6.1). It could supply keys for a trust domain that configuration
+already approves.
+
 #### Excluded Compositions
 
 The following compositions are not defined in this document. Their
