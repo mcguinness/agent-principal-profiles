@@ -40,6 +40,14 @@ those sections are read in it. Its Section 3.11 states that a `typ` of
 credential-class rule for platform JWTs (`imported-jwt-input`) already
 applies.
 
+The lifecycle profile cites `draft-ietf-oauth-status-list-21`, in the
+RFC Editor queue, as a deployment choice for an API that validates JWT
+access tokens offline (`api-enforcement`); the citation moves to the
+RFC when it is published. The list is not a grant revocation mechanism
+here: an issuer "may stop serving the Status List Token" once all its
+Referenced Tokens have expired (Section 13.1), and access derived from
+an ID-JAG or WAG can outlive the grant.
+
 ### Downward References
 
 Three normative references are to documents of lower status than the
