@@ -5,7 +5,7 @@ Agent Principal Federation][core] (the core profile), [Agent Resolution
 Inputs for Agent Principal Federation][INPUTS], [Identity
 Continuation Profile for Agent Principal Federation][CONTINUATION],
 [Human Oversight Profile for Agent Principal Federation][OVERSIGHT], and
-[Agent Principal Lifecycle Profile for SCIM and OAuth][AGENT-LIFECYCLE].
+[Agent Principal Lifecycle Profile][AGENT-LIFECYCLE].
 Those documents define every requirement, and they govern wherever this
 guide differs
 from them. Nothing here is needed to implement them; the guide explains

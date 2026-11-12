@@ -1,5 +1,5 @@
 ---
-title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
+title: "Agent Principal Lifecycle Profile"
 abbrev: "Agent Principal Lifecycle"
 category: std
 docname: draft-mcguinness-oauth-governed-agent-lifecycle-latest
@@ -14,6 +14,7 @@ keyword:
  - SCIM
  - lifecycle
  - shared signals
+ - token status list
 venue:
   group: "System for Cross-domain Identity Management"
   type: "Working Group"
