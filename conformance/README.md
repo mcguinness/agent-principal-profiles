@@ -650,7 +650,7 @@ The suite tests nothing outside the path above, including:
 * in deferred redemption: grant-derived revocation while pending,
   cancellation by revoking the deferral code, a change of the user's
   account link while pending, an absolute expiration set before the
-  deferral, and `slow_down`;
+  deferral, a grant status change while pending, and `slow_down`;
 * other oversight, lifecycle propagation (including the token status
   capabilities), and SCIM management.
 

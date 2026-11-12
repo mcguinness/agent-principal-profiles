@@ -746,8 +746,12 @@ The RAS applies {{status-common}} at each redemption of a grant from a
 configured issuer, as part of the grant's validation, the second step
 of "Redemption Error Precedence" in {{FEDERATION}}, and before it
 records the grant as accepted. A grant that fails it is rejected with
-`invalid_grant`. The RAS does not check grant status at refresh:
-authorization derived from a grant follows {{application}} and
+`invalid_grant`. The RAS checks grant status once for each redemption,
+when it accepts the grant. A status change after that acceptance does
+not by itself cancel a pending redemption; an applied disablement
+({{application}}) or grant-derived revocation ({{grant-revocation}})
+can. Nor does the RAS check grant status at
+refresh: authorization derived from a grant follows {{application}} and
 {{grant-revocation}}, and an issuer can stop serving the status of
 expired tokens ({{Section 13.1 of STATUS-LIST}}).
 

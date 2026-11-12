@@ -57,7 +57,10 @@ when it is published. Grant status is checked at redemption only: an
 issuer "may stop serving the Status List Token" once all its Referenced
 Tokens have expired (Section 13.1), while authorization derived from an
 ID-JAG or WAG can outlive the grant. Derived authorization therefore
-stays with applied disablement and grant-derived revocation.
+stays with applied disablement and grant-derived revocation. A deferred
+redemption (oversight companion) is checked once, when the RAS accepts
+the grant; resolution can follow the grant's expiration, so a later
+status change alone does not end it.
 
 ### Downward References
 
