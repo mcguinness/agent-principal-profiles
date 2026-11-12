@@ -218,6 +218,24 @@ binding, agent, or tenant, and `actor_unauthorized`, not
 `access_denied`, for a missing Delegation Authorization
 (`issuance-errors`); Section 4.3.4.3 permits any code.
 
+#### Authorization Details Errors
+
+`draft-ietf-oauth-rar-metadata-remediation-00` (OAuth WG, Standards
+Track, August 2026) defines the `insufficient_authorization` error code
+and an `authorization_remediation` parameter. Its Section 4 says
+resource servers "SHOULD return insufficient_authorization when access
+is denied due to missing or insufficient authorization details"; its
+examples use HTTP 401. The core's `resource-errors` row 5 returns HTTP
+403 with `insufficient_scope` when "The operation needs scope or
+authorization details that the token does not carry", so an API that
+follows the core does not follow that SHOULD for authorization details.
+The core keeps row 5 while the draft is at -00. When the draft is
+revised or reaches Working Group Last Call, row 5 can split:
+`insufficient_scope` for scope, and the draft's code and remediation for
+authorization details. Which status accompanies that code joins the
+open question of how the core's denial responses compose with other
+denial formats (`AuthZEN and COAZ-MCP`, below).
+
 #### Grant Replay and Re-redemption
 
 Section 4.4.4 of ID-JAG lets a client re-submit an unexpired ID-JAG for
