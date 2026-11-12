@@ -256,7 +256,9 @@ Local Suspension:
 A deployment conforms to this profile by claiming SCIM provisioning with
 the OAuth receiver behavior in this document, at least one token status
 capability ({{token-status}}), or both, and MUST meet the requirements
-of each capability it claims. Token status requires no SCIM
+of each capability it claims. A conformance claim MUST name each
+capability it covers, so that a claim of token status alone is not
+read as a claim of SCIM provisioning. Token status requires no SCIM
 provisioning. Events are optional; a deployment using them MUST apply
 {{signals}}. Support for events alone is not conformance to this
 lifecycle profile. A platform applying state to agents it hosts conforms
