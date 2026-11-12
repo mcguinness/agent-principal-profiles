@@ -646,6 +646,37 @@ comparison the RAS applies.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 
+#### SCIM Interoperability Profile
+
+`draft-zollner-scim-interop-profile-02` (individual, Standards Track)
+profiles SCIM clients and Service Providers. A Service Provider opts in
+by listing it in `conformsTo`; it then applies "to every resource type
+that a Service Provider implements, including resource types defined
+outside [RFC7643]", which includes the Agent and OAuthClient resources
+here. A Service Provider can conform to it and to these profiles
+together. A client cannot:
+
+* Section 6.7: clients "MUST NOT include HTTP headers related to
+  conditional requests or entity tags (ETags), such as If-Match". Here,
+  changing an inactive resource to active MUST use `If-Match` with a
+  resource-version ETag, and other writes SHOULD use it (Common
+  Provisioning Conventions in the SCIM OAuth client management profile,
+  which the lifecycle and SCIM agent management profiles follow). The
+  activation condition keeps an activation based on stale state from
+  overtaking a later disablement; the interoperability profile accepts
+  lost updates instead. A client that follows it cannot reactivate an
+  inactive Agent or OAuthClient here.
+* Sections 6.3 and 6.5: clients use only the `eq` and `and` filter
+  operators and "SHALL NOT use the PUT operation". These do not
+  conflict. Service Providers here support PUT, and `gt` and `ge` on
+  `meta.lastModified`, but no client is required to use them: a
+  connector can write with PATCH alone and reconcile with equality
+  filters and complete listings.
+
+Only conditional activation conflicts. A comment to the authors could
+ask that activation be exempt from Section 6.7, or that a use-case
+profile be able to require conditional writes; nothing is filed.
+
 ### Related Work
 
 #### Credential Broker for Agents (CB4A)
