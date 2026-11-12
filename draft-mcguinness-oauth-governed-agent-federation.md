@@ -83,6 +83,7 @@ informative:
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
   AIMS: I-D.ietf-wimse-aims-01
   REFRESH-EXPIRATION: I-D.ietf-oauth-refresh-token-expiration-03
+  WIMSE-PRACTICES: I-D.ietf-wimse-workload-identity-practices-08
   AGENT-LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -1190,7 +1191,9 @@ input.
 ### Existing Platform JWT {#imported-jwt-input}
 
 This common shared-client input accepts existing signed platform JWTs as
-issued, with no new media type or reissuance. {{scope}} states when it
+issued, with no new media type or reissuance; {{WIMSE-PRACTICES}}
+describes how workload platforms issue them and how a workload uses one
+to federate to an IdP. {{scope}} states when it
 is required, and {{aws-example}} gives an AWS STS example. The IdP MUST
 accept a platform JWT only when its issuer, credential class, and the
 authenticated client are explicitly configured together. Credential
