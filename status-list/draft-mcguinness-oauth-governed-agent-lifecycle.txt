@@ -753,8 +753,12 @@ Table of Contents
       (Section 11.3 of [STATUS-LIST]), and the locations from which the
       relying party retrieves them; and
 
-   *  the Status Issuer's publication interval and the relying party's
-      maximum status age.
+   *  the Status Issuer's publication interval, and the relying party's
+      maximum status age and permitted clock skew.
+
+   A token's acceptance period is the time during which the relying
+   party can accept it: until its expiration plus that clock skew
+   ("Time, Replay, and Key Validation" in [FEDERATION]).
 
    A Status Issuer:
 
@@ -812,10 +816,11 @@ Table of Contents
    When the RAS revokes an authorization session, whether by applying a
    disablement or deletion (Section 5.2), by grant-derived revocation
    (Appendix A.4), by token revocation [RFC7009], or under its own
-   policy, it MUST set every unexpired access token derived from that
-   session to INVALID.  While a Local Suspension applies to an agent,
-   the RAS MUST set that agent's unexpired access tokens to SUSPENDED or
-   INVALID, and it MUST NOT return a SUSPENDED token to VALID while a
+   policy, it MUST set to INVALID every access token derived from that
+   session whose acceptance period (Section 8.1) has not ended.  While a
+   Local Suspension applies to an agent, the RAS MUST set to SUSPENDED
+   or INVALID that agent's access tokens whose acceptance period has not
+   ended, and it MUST NOT return a SUSPENDED token to VALID while a
    restriction or revocation applies to its session.
 
    The API applies Section 8.1 to each request whose access token is for
@@ -831,7 +836,8 @@ Table of Contents
    issues to a RAS configured for this capability, and that RAS is the
    relying party.
 
-   The IdP MUST set each unexpired grant to INVALID when it:
+   The IdP MUST set to INVALID each grant whose acceptance period
+   (Section 8.1) has not ended when it:
 
    *  disables or deletes the grant's Agent Principal;
 
@@ -844,30 +850,35 @@ Table of Contents
    *  revokes the grant, including by grant-derived revocation
       (Appendix A.4).
 
-   To do so, the IdP MUST retain, for each unexpired grant it issued
-   under this capability, its status entry and the Agent Principal,
-   Identity Binding, Client Association, and Delegation Authorization or
-   Agent Authorization under which it issued the grant.  The IdP MAY set
-   a grant to INVALID for any other withdrawal of its authority.
-   Reactivating the principal or restoring a relationship does not
-   return a grant to VALID (Section 8.1).  The IdP MUST keep each
-   grant's entry in the Status List Tokens it serves until the grant has
-   expired, with an allowance for clock skew.
+   To do so, the IdP MUST retain, for each grant it issued under this
+   capability and until the grant's acceptance period ends, its status
+   entry and the Agent Principal, Identity Binding, Client Association,
+   and Delegation Authorization or Agent Authorization under which it
+   issued the grant.  The IdP MAY set a grant to INVALID for any other
+   withdrawal of its authority.  Reactivating the principal or restoring
+   a relationship does not return a grant to VALID (Section 8.1).  The
+   IdP MUST keep each grant's entry in the Status List Tokens it serves
+   until the grant's acceptance period ends.
 
    The RAS applies Section 8.1 at each redemption of a grant from a
    configured issuer, as part of the grant's validation, the second step
    of "Redemption Error Precedence" in [FEDERATION], and before it
    records the grant as accepted.  A grant that fails it is rejected
-   with invalid_grant.  The RAS does not check grant status at refresh:
-   authorization derived from a grant follows Section 5.2 and
-   Appendix A.4, and an issuer can stop serving the status of expired
-   tokens (Section 13.1 of [STATUS-LIST]).
+   with invalid_grant.  The RAS checks grant status once for each
+   redemption, when it accepts the grant.  A status change after that
+   acceptance does not by itself cancel a pending redemption; an applied
+   disablement (Section 5.2) or grant-derived revocation (Appendix A.4)
+   can.  Nor does the RAS check grant status at refresh: authorization
+   derived from a grant follows Section 5.2 and Appendix A.4, and an
+   issuer can stop serving the status of expired tokens (Section 13.1 of
+   [STATUS-LIST]).
 
-   Grant status rejects a grant whose authority the IdP withdrew while
-   the grant was unexpired, including across a disablement and
-   reactivation that the Receiver never observed (Section 12.3), within
-   the IdP's publication interval and the RAS's maximum status age.  It
-   does not revoke authorization already derived from the grant.
+   Grant status rejects a grant whose authority the IdP withdrew before
+   the grant's acceptance period ended, including across a disablement
+   and reactivation that the Receiver never observed (Section 12.3),
+   within the IdP's publication interval and the RAS's maximum status
+   age.  It does not revoke authorization already derived from the
+   grant.
 
 9.  Revocation Boundaries
 
@@ -1104,8 +1115,14 @@ Table of Contents
 12.4.  Offline Tokens
 
    A disabled principal may still have tokens accepted by an offline
-   API.  Access-token status (Section 8.2) narrows that window to the
-   RAS's publication interval and the API's maximum status age.  Token
+   API.  Once the RAS applies the disablement (Section 5.2) or otherwise
+   revokes the authorization, access-token status (Section 8.2) limits
+   further acceptance to the RAS's publication interval and the API's
+   maximum status age.  The delay before the RAS does so, including
+   propagation from the Governing IdP, is separate; without a bound on
+   it, this profile claims no finite end-to-end bound (Section 7.1).
+   Grant status does not shorten that delay, because it does not revoke
+   authorization already derived from a grant (Section 8.3).  Token
    expiry and cached responses MUST be included in operational claims;
    stopping issuance alone does not terminate ongoing work or retract
    operations already performed.

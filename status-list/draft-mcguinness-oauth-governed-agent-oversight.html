@@ -2128,9 +2128,11 @@ decision:<a href="#section-5.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-5.2-2.1">
             <p id="section-5.2-2.1.1"><strong>Both grants:</strong> the proof and client, replay, and authority checks
-of "Common Grant Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, and the effective
+of "Common Grant Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>; the effective
 eligibility of the agent and, for an ID-JAG, the user, including any
-Local Suspension (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>).<a href="#section-5.2-2.1.1" class="pilcrow">¶</a></p>
+Local Suspension (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>); and, for a grant from an
+issuer configured for grant status, the grant's status
+(<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>).<a href="#section-5.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.2-2.2">
             <p id="section-5.2-2.2.1"><strong>ID-JAG:</strong> ID-JAG validation, including the grant's time claims; the
@@ -2373,7 +2375,11 @@ Grant-derived revocation of the grant reaches "all redemptions" of it
 (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>), so a participating RAS ends the pending governed
 redemption when the event arrives, and the next poll gets
 <code>access_denied</code>. Other changes made at the IdP after receipt reach the
-RAS only through such signals or provisioning. The maximum pending
+RAS only through such signals or provisioning. The RAS does not check
+grant status (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>) again at resolution: a status change
+after receipt does not by itself end the pending governed redemption,
+and the IdP need not serve the grant's status after the grant's
+acceptance period, which an approval can follow. The maximum pending
 lifetime bounds the rest, and an intervention bound (<a href="#supervised" class="auto internal xref">Section 6</a>)
 counts it.<a href="#section-5.5-3" class="pilcrow">¶</a></p>
 <p id="section-5.5-4">On success, the RAS <span class="bcp14">MUST</span> issue what the redemption would have produced
@@ -3187,6 +3193,11 @@ as eligible for continuation.<a href="#appendix-A.5-3" class="pilcrow">¶</a></p
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">The grant's <code>exp</code> passes while the redemption is pending, and the steward then approves</td>
+              <td class="text-left" rowspan="1" colspan="1">RAS</td>
+              <td class="text-left" rowspan="1" colspan="1">The access token issues at the next poll</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">With grant status configured, the IdP sets the grant to INVALID while the redemption is pending, and the steward then approves</td>
               <td class="text-left" rowspan="1" colspan="1">RAS</td>
               <td class="text-left" rowspan="1" colspan="1">The access token issues at the next poll</td>
             </tr>
