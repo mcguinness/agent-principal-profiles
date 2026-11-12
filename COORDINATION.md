@@ -20,12 +20,20 @@ ATTEST-12, CIMD-03, Client Instance Identifiers-01, and Client Attester
 Endorsement-01 (2026-11-07); and, earlier, ICA-02, Actor Profile-01,
 CIMD-02, and WISE draft 03. For RFC 10070, published from RFC 7523bis-11
 with the cited section unchanged, and AIMS-01, only the cited sections
-were assessed.
+were assessed. The same holds for the informative citations added after
+the 2026-11-11 audit of active OAuth, WIMSE, SCIM, and agent drafts:
+Refresh Token Expiration-03 (Sections 5, 6.1, and 9), Workload
+Identifier-04 (Sections 4.3 and 4.5), Token Status List-21 (Sections
+1.1, 11.5, and 13.1), Workload Identity Practices-08 (its abstract and
+Section 1), and the grant catalog-01 (its abstract and binding methods).
+The notes under Related Work and Deferred Compositions from that audit
+quote sections checked on 2026-11-12.
 
 The drafts pin every Internet-Draft they cite: to its assessed revision,
 or, for a draft cited without section numbers, to the revision current
 on 2026-11-06 (Identity Chaining-17, Entity Profiles-02, Oversight
-Acts-00, SCIM Agent Resource-00). CIMD is pinned at -03 with its
+Acts-00, SCIM Agent Resource-00), or, for those added after the
+2026-11-11 audit, on 2026-11-12. CIMD is pinned at -03 with its
 Section 6 an open item (`Client Authentication Drafts`, below). In CI, `tools/check_citations.py`
 checks that every cited section of a pinned RFC or draft still has the
 heading recorded in `tools/cited-sections.json`. Moving a pin means
@@ -39,6 +47,14 @@ those sections are read in it. Its Section 3.11 states that a `typ` of
 `JWT` "does not constitute effective explicit typing", which the core's
 credential-class rule for platform JWTs (`imported-jwt-input`) already
 applies.
+
+The lifecycle profile cites `draft-ietf-oauth-status-list-21`, in the
+RFC Editor queue, as a deployment choice for an API that validates JWT
+access tokens offline (`api-enforcement`); the citation moves to the
+RFC when it is published. The list is not a grant revocation mechanism
+here: an issuer "may stop serving the Status List Token" once all its
+Referenced Tokens have expired (Section 13.1), and access derived from
+an ID-JAG or WAG can outlive the grant.
 
 ### Downward References
 
@@ -235,6 +251,33 @@ revised or reaches Working Group Last Call, row 5 can split:
 authorization details. Which status accompanies that code joins the
 open question of how the core's denial responses compose with other
 denial formats (`AuthZEN and COAZ-MCP`, below).
+
+#### Refresh Token Expiration
+
+`draft-ietf-oauth-refresh-token-expiration-03` (OAuth WG,
+Informational, July 2026) defines the `authorization_expires_in` and
+`refresh_token_timeout` token response parameters, and the core cites
+it in `ras-refresh`. A RAS that issues refresh tokens under
+`ras-refresh` always sets a finite absolute expiration and an
+inactivity limit, so one that implements the draft reports both with
+every refresh token: "If finite, the authorization server MUST return
+these values whenever the token endpoint response contains the
+refresh_token field" (Section 6.1).
+
+Its Section 5 differs on renewal: "If the user renews their
+authorization, the authorization server SHOULD update the expiration
+time of existing refresh tokens if their lifetime was truncated due to
+user authorization expiration", and its Section 9 describes extending a
+grant's lifetime in place. Here renewal is a new ID-JAG, a fresh IdP
+decision that "starts a new authorization period and leaves the
+previous expiration unchanged" (`ras-refresh`, step 4), so a RAS that
+follows the core does not follow that SHOULD. The core keeps step 4:
+renewal establishes a new authorization period, associated with a
+fresh ID-JAG, rather than extending the period associated with the
+previous grant. The RAS sets each period's absolute expiration under
+local policy; the ID-JAG carries no deadline for it. The parameters
+inform only the client, so Portable Authorization Deadlines (below)
+stays open. Nothing is filed.
 
 #### Grant Replay and Re-redemption
 
@@ -579,6 +622,13 @@ The identity items are governed-profile requirements for the OAuth
 mapping profile; the rest are requests to the OpenID AuthZEN working
 group and, for the Mission profile, to its editors. Not yet filed.
 
+The Token Issuance and Token Exchange texts also appear as individual
+Internet-Drafts, `draft-gazitt-oauth-authzen-issuance-01` and
+`draft-gazitt-oauth-authzen-token-exchange-01` (September 2026). The
+issuance draft keeps "properties and context carry advisory input only"
+(Section 1.1), and neither names the resolved agent as an input, so the
+point above about a mandatory decision input stands.
+
 ### Deferred Compositions
 
 #### Grant Key Transition
@@ -589,6 +639,15 @@ no such transition: the holder of the issuance key also redeems the
 grant (the implementer's guide, "Distributed platforms and key use"). A future composition would need to bind
 the new key without weakening the applicable grant protection.
 
+Two current drafts hand authority to a new key, and neither fills this
+need. In `draft-ietf-oauth-delegate-sd-jwt-00` (OAuth WG) a holder
+signs the next holder's key into an SD-JWT presentation: the artifact
+is not a grant, and the holder, not the issuer, binds the new key. In
+`draft-li-oauth-delegated-authorization-04` (individual) a key holder
+issues child tokens bound to a delegate's key; they are access tokens,
+and a child "MUST NOT contain iss, sub, iat, or jti" (Section 5.3.8),
+so it names no principal.
+
 #### Portable Authorization Deadlines
 
 A portable IdP-imposed deadline on downstream access needs an
@@ -597,6 +656,15 @@ and enforcement rules for access tokens and refresh authorization.
 That composition is outside the scope of this document. ID-JAG `exp`
 remains the redemption limit; it cannot communicate a deadline for
 subsequent access (`authorization-lifetime`).
+
+No current draft supplies it.
+`draft-ietf-oauth-refresh-token-expiration-03` reports deadlines to the
+client only (Refresh Token Expiration, above). The `validTo` attribute
+of `draft-kushwaha-scim-agent-governance-00` is applied by the SCIM
+service provider and reaches no token. Within one domain,
+`draft-mcguinness-oauth-mission-02` caps what a Mission Issuer derives:
+a credential "MUST have an exp that does not exceed the Mission's
+expires_at" (Section 7.6).
 
 #### User Access Tokens as Subjects
 
@@ -608,6 +676,58 @@ Such a composition needs rules for token eligibility and audience,
 user/client/actor resolution, sender constraints, and the authority to
 request downstream access. Coordinate those rules with ID-JAG;
 changing only `subject_token_type` does not establish them.
+
+The nearest published rules are in two individual drafts, both within
+one authorization server and without an ID-JAG.
+`draft-zhu-oauth-async-delegation-05` accepts "an access token whose
+audience identifies the acting client" as the subject and takes the
+actor from the authenticated client.
+`draft-zehavi-oauth-audience-bound-token-exchange-00` relates a subject
+token's audience to the exchanging client, which covers eligibility
+only, and "does not replace may_act".
+
+#### Workload Identifiers and General WIMSE Inputs
+
+The input profiles companion resolves an "exact SPIFFE ID" without
+defining the comparison. `draft-ietf-wimse-identifier-04` (WIMSE WG,
+Standards Track) defines one in Section 4.3: "consumers MUST apply the
+syntax-based normalization specified in Section 6.2.2 of [URI] and then
+compare the complete normalized URIs byte-for-byte". For valid SPIFFE
+IDs the two readings differ only in the letter case of the scheme. The
+SPIFFE ID specification makes the scheme case-insensitive, and requires
+a lowercase trust domain with no percent-encoding or dot segments.
+The comparison is deferred as an interoperability follow-up (ruling on
+PR #104). It is to be defined by the SPIFFE ID specification's own
+syntax and case rules, whose Section 2.4 says "The scheme and trust
+domain name of the SPIFFE ID are case-insensitive. The path is
+case-sensitive.", not by adopting the general normalization of Section
+4.3 for this purpose alone. It is to be defined together with the SCIM
+agent management profile, whose `sourceAuthority` and `sourceSubject`
+binding attributes are case-exact, so that resolution at the IdP and
+the comparison of bindings agree. A general WIT input, whose
+identifiers can use the `wimse` scheme, would need Section 4.3 in any
+case. Section 4.5
+of the same draft, on reassignment, is cited informatively from the
+companion's Security Considerations.
+
+Current drafts do not supply what a general WIT input lacks.
+`draft-ietf-wimse-wpt-02` proves possession of a WIT's key, but
+`SPIFFE-OAUTH` already proves possession of a WIT-SVID's key with the
+Client Attestation PoP JWT; a general input lacks a client
+authentication method and client identification for identifiers other
+than SPIFFE IDs. `draft-kemp-oauth-x509-bearer-00` (individual) could
+present a certificate that is not an X.509-SVID. It agrees with the
+X.509-SVID rule that an uncorroborated certificate establishes nothing
+(one "without either form of corroboration MUST be rejected"), but it
+takes the subject by a per-CA extraction rule where an input here needs
+an Identity Binding.
+`draft-schwenkschuster-wimse-trust-domain-discovery-00` (individual)
+discovers a trust domain's bundle from its name and agrees with the
+core that discovery establishes no trust: relying parties "MUST NOT
+treat the mere existence of a discoverable trust bundle as
+authorization to accept credentials from that trust domain" (Section
+6.1). It could supply keys for a trust domain that configuration
+already approves.
 
 #### Excluded Compositions
 
@@ -624,6 +744,11 @@ exclusion does not prevent the independently supported uses listed here.
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection`, except after a deferred redemption, which the oversight companion requires to be DPoP-bound |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 | Public or unattested native agents | Both grant paths authenticate the client (`scope`); a client that uses `none` and presents no attestation from a configured attester (`INPUTS`) has no governed grant path, and enrolling a key is out of scope (`overview`) |
+
+`draft-kavian-agent-enrollment-protocol-05` (individual) enrolls an
+agent's key, as a DID, with one service. It creates no trust that an
+IdP can use and no Identity Binding, so it gives an unattested native
+agent no governed grant path.
 
 ### Operational Dependencies
 
@@ -642,7 +767,10 @@ states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
 One is deferred rather than prohibited: it would carry an authenticated
 authorization generation in the grant, agreed with ID-JAG, and define the
-comparison the RAS applies.
+comparison the RAS applies. The authority epoch of
+`draft-watts-oauth-agent-revocation-closure-03` is not that generation:
+it is "opaque to this specification", travels in no grant, and has no
+comparison rule.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 
@@ -676,6 +804,27 @@ together. A client cannot:
 Only conditional activation conflicts. A comment to the authors could
 ask that activation be exempt from Section 6.7, or that a use-case
 profile be able to require conditional writes; nothing is filed.
+
+#### SCIM Agent Governance and Tenant Drafts
+
+Two individual SCIM drafts touch the resources here; neither is cited.
+
+* `draft-kushwaha-scim-agent-governance-00` (Informational) extends the
+  Agent resource with a `lifecycleState` from which a service provider
+  derives `active`. The profiles here read `active` and `externalId`,
+  so they can work beside it, with two frictions. A quarantined resource
+  "MUST NOT be modifiable except by the authorized review process",
+  which would stop a connector's disablement. An archived resource
+  cannot leave that state, where reactivation here is a write of
+  `active: true`.
+* `draft-kushwaha-scim-tenant-resource-00` (Standards Track) models a
+  tenant as a SCIM resource that users and groups join, not as the
+  Governance Tenant of a Provisioning Domain. An unauthorized tenant
+  gets HTTP 404, "indistinguishable from the response for a nonexistent
+  Tenant" (Section 8.2), where the SCIM agent management profile returns
+  403. While a tenant is suspended or archived, its state-changing
+  operations are rejected with HTTP 409 (Section 9.1), which would also
+  reject a disablement in it.
 
 ### Related Work
 
@@ -810,6 +959,77 @@ Points for its authors, not yet raised:
   platform JWT to an Agent Principal makes the same determination but
   issues an authorization grant. Sections 4.4 and 9 could say whether
   they cover an exchange whose output is a grant.
+
+#### Agent Authorization Proposals
+
+An audit of active OAuth, WIMSE, SCIM, and agent drafts on 2026-11-11
+found these proposals, which readers may compare with this family. None
+is cited. Each counterpart is the nearest mechanism here, not an
+equivalent.
+
+| Draft | Nearest counterpart here | Difference |
+|---|---|---|
+| `draft-hardt-oauth-aauth-protocol-11` (individual, September 2026): a replacement for OAuth built on HTTP Message Signatures | The IdP grant and the RAS access token | "An auth token carries no agent identifier and no delegation chain" (Section 9.4.1), where the RAS and API here require one `act`. Its agent identifier "identifies a specific instance", and an execution identifier cannot select an Agent Principal here (`identity-binding`) |
+| `draft-rosenberg-oauth-aauth-02` (individual, November 2026), unrelated to the above: a resource-signed scope challenge and an `agent_authorization` grant | Per-action approval and deferred redemption (the oversight companion) | It identifies no agent: it "does not depend on an authenticated identifier that is unique to AI Agents" (Section 8.2). Its resource-signed reason addresses what the oversight companion leaves open, since that companion "makes the request accurate, not the reason". Its Section 5.5.1 lets the authorization server "avoid a HITL entirely by running an AI agent", where approvers here are "never the client or an agent" |
+| `draft-ni-wimse-ai-agent-identity-04` (individual, Informational): a credential that binds agent and owner keys | An Identity Binding, and `owners` on the Agent resource | The owner link confers privileges from "existing IAM information (like RBAC)" (Section 4.1.1). Here owners "are not automatically user delegators" (`eligibility` in the lifecycle profile), and the user travels in the grant |
+| `draft-diaconu-agents-authz-info-sharing-01` (individual): a verifiable credential in client metadata, with authorized scopes and agent-to-agent delegation records | A per-resource IdP grant; continuation through gateways | Standing authority in client metadata, not a decision per grant. Its agent identifier "SHOULD be a dereferenceable URI pointing to client-id metadata" (Section 6.4.2.2); here a client identifier, including a CIMD URL, "identifies the client, not the agent" (`identity-binding`). Agent-to-agent delegation is out of scope here |
+| `draft-ietf-wimse-arch-08` (WIMSE WG, Informational) | The token service and external token service of Section 3.2.3 are the IdP and the RAS | Section 3.4.11: "Such autonomous actions MUST be clearly distinguished from delegated ones, for example by using separate workload identities or token scopes". Here one Agent Principal can act in both ways, and the grant, a WAG or an ID-JAG, tells them apart. Its "agent" is the helper with which "workloads bootstrap their identifiers and credentials" (Section 3.4.1.1), not an Agent Principal |
+
+`draft-reece-wimse-cross-org-delegation-02` (individual, Informational)
+states requirements for delegation across organizations and specifies
+no mechanism. This family contradicts its R2 by design: R2 asks that a
+relying party verify authority "without a pre-existing bilateral
+agreement specific to the interaction", and a RAS here accepts an
+issuer's grants only through configured trust (`redemption-validation`).
+That trust is configured per issuer, not per interaction.
+
+#### Nested Actor Designs
+
+These drafts record a chain of agents, or carry context from one domain
+to another. The core accepts one `act` and "no nested `act`"; the
+continuation companion keeps the Agent Principal as the actor and lists
+gateways in `continuation_via`. None is cited.
+
+| Draft | Nearest counterpart here | Difference |
+|---|---|---|
+| `draft-mw-oauth-actor-chain-03` (individual) | Continuation, with disclosure in `continuation_via` | Its Full and Subset disclosure modes emit nested `act`, which a RAS here rejects. Its Actor-Only mode, in which `act` "MUST contain exactly the current actor", fits. Its preserve step "creates no actor step" and discloses no intermediary |
+| `draft-liu-oauth-delegation-chaining-00` (individual) | Continuation, one exchange per source hop | Each delegating agent exchanges the ID-JAG it holds for a new one; the issuer makes the authenticated client the outer actor and "nests the act claim of the subject_token inside it" (Section 4.5). A RAS here rejects those grants, and agent-to-agent delegation is out of scope |
+| `draft-araut-oauth-transaction-tokens-for-agents-03` (individual, Informational) | The governed context in a Transaction Token's `tctx`, within one domain | It records agent hops in an `agentic_ctx` claim and leaves `act` alone: "The act claim, if present, MUST NOT be modified" |
+| `draft-fletcher-oauth-txn-token-chaining-profile-01` (individual) | Continuation across domains | A Transaction Token becomes the subject of an identity-chaining exchange for a grant in another domain. It defines no `act` handling, and it hides the internal path ("Claims that record intermediate workloads or the internal call chain within Trust Domain A MUST NOT be included in txn_claims", Section 7.4), where continuation discloses gateways |
+
+#### Client Metadata Proposals
+
+* `draft-emelia-oauth-as-metadata-dpop-required-00` (individual) adds
+  authorization server metadata that, when true, means the server "MUST
+  NOT issue access tokens that are not DPoP-bound", applying "to all
+  clients of the authorization server". The core selects access-token
+  protection per client and resource through trusted configuration,
+  "not by a request flag" (`access-token-protection`), and a RAS can
+  issue certificate-bound or, where configured, bearer tokens. Such a
+  RAS cannot advertise the value as true; for a RAS that issues only
+  DPoP-bound tokens, it is a hint to clients.
+* `draft-gerber-oauth-client-metadata-lookup-00` (individual) lets a
+  client read its effective configuration at an authorization server;
+  "Success describes current configuration, not endorsement". Where one
+  Client ID Metadata Document serves an IdP and a RAS
+  (`client-metadata`), it would show the client each server's accepted
+  methods before a token request fails (Client Authentication Drafts,
+  above).
+
+#### The Author's Other Drafts
+
+* `draft-mcguinness-oauth-grant-catalog-01`, cited by the core in
+  `discovery`, applies only to ID-JAG, not WAG, and its grant binding
+  methods include `mtls`, which bound grants here do not use (Excluded
+  Compositions).
+* `draft-mcguinness-oauth-actor-receipts-01` and
+  `draft-mcguinness-oauth-actor-proofs-01`, companions of the Actor
+  Profile, sign each actor hop. Here the IdP is the only issuer that
+  adds an actor, and the continuation companion's IdP hop records remain
+  authoritative, so neither is used.
+* `draft-mcguinness-oauth-mission-02` and
+  `draft-mcguinness-oauth-mission-resource-access-00`: see Mission under
+  the continuation companion, and Portable Authorization Deadlines.
 
 ## Identity Continuation Companion
 
@@ -975,6 +1195,10 @@ alone would not complete the composition. Also open:
   denial and a governed failure such as `invalid_continuation` both
   apply.
 
+`draft-mcguinness-oauth-mission-resource-access-00` proposes, in its
+Section 10, a scope projection: one candidate answer to the second
+item, not yet assessed against `restrictions`.
+
 A deadline for a whole task, which the per-hop continuation window does
 not provide, belongs to this composition.
 
@@ -1137,6 +1361,28 @@ revision 2026-07-28. SEP-2848 (asynchronous approval for tool calls)
 and SEP-2643 (structured authorization denials) are cited as
 proposals. If SEP-2848 is accepted, its task held in `working` is the
 per-action realization the companion describes.
+
+### Per-Action Approval Drafts
+
+Two individual drafts ask for approval of one operation; neither is
+cited.
+
+* `draft-rosomakho-oauth-txn-challenge-01`, co-authored by this
+  family's author, is the nearest counterpart to `per-action`. A
+  resource returns a signed challenge, and the authorization server
+  issues, through Deferred Token Response, a new token for that
+  operation: "This access token is scoped to the challenged operation".
+  Here an approval "does not add authority"; it is a condition within
+  the existing token. The draft also prefers HTTP 401 with
+  `transaction_authorization_required`, where the core answers a valid
+  token that lacks authority with HTTP 403 (`resource-errors` in the
+  core). Both differences are points for its editors, not yet raised.
+* `draft-williams-oauth-poi-core-00`: its baseline approvals need "zero
+  Authorization Server round-trips"; the resource verifies a signature
+  by a session key the client holds. That is the client confirmation
+  `per-action` excludes: "A confirmation the client shows in its own
+  interface is not an approval under this document". Its higher tiers,
+  which verify the user with WebAuthn at approval, come closer.
 
 ### References
 

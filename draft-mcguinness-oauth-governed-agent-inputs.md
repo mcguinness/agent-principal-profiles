@@ -41,6 +41,8 @@ normative:
   RFC9449:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-03
   WIT: I-D.ietf-wimse-workload-creds-03
+informative:
+  WIMSE-ID: I-D.ietf-wimse-identifier-04
 
 --- abstract
 
@@ -358,6 +360,12 @@ independent possession factor.
 
 Managed-installation resolution relies on the attester's continuity
 evidence and enrollment controls ({{Section 9 of INSTANCE}}).
+
+An Identity Binding resolves an exact SPIFFE ID to an Agent Principal,
+whichever workload holds that identifier. It therefore relies on the
+trust domain not reassigning the identifier to a different workload,
+which {{Section 4.5 of WIMSE-ID}} recommends against unless the trust
+domain's policy intends it.
 
 # Privacy Considerations
 

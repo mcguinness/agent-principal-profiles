@@ -88,6 +88,7 @@ informative:
     target: https://github.com/mcguinness/agent-principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   RFC7009:
   WAG: I-D.carleton-workload-authz-grant-02
+  STATUS-LIST: I-D.ietf-oauth-status-list-21
 --- abstract
 
 This document profiles SCIM for provisioning issuer-qualified,
@@ -570,13 +571,17 @@ conformance levels:
 | Introspection on each request | On the next successful authorization check; a failed or timed-out check cannot authorize the request |
 | Cached introspection | After any permitted active-response cache entry expires or is invalidated |
 | Offline JWT validation | At token expiration, unless an independent local restriction takes effect earlier |
+| Offline JWT validation with a Token Status List {{STATUS-LIST}} | When the API retrieves and validates a Status List Token that carries the token's changed status |
 
 Caching follows Federation and {{Section 4 of RFC7662}}. In particular,
 cached active responses cannot outlive token expiration or the
 configured freshness limit. Offline validation does not consult
-principal lifecycle state by itself. The RAS and API MUST configure
-token lifetimes, expiry leeway, and caching consistently with their
-accepted revocation delay.
+principal lifecycle state by itself. With a status list, the delay
+depends on when the RAS publishes the changed status, when the API
+retrieves the list, and the API's configured freshness policy; expiry
+of a cached list does not by itself show that a token is revoked. The
+RAS and API MUST configure token lifetimes, expiry leeway, and caching
+consistently with their accepted revocation delay.
 
 Deployments SHOULD document their expected and maximum disablement
 delays, including propagation, reconciliation, local application, token

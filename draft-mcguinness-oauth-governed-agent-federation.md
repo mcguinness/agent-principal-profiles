@@ -82,6 +82,9 @@ informative:
       Internet-Draft: draft-mcguinness-scim-agent-federation
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
   AIMS: I-D.ietf-wimse-aims-01
+  REFRESH-EXPIRATION: I-D.ietf-oauth-refresh-token-expiration-03
+  WIMSE-PRACTICES: I-D.ietf-wimse-workload-identity-practices-08
+  GRANT-CATALOG: I-D.mcguinness-oauth-grant-catalog-01
   AGENT-LIFECYCLE:
     title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -992,7 +995,10 @@ Profile applicability follows these rules:
    establish the applicable governed profile and minimum requirements
    for the client, issuer trust relationship, and target resource. The
    client, IdP, and RAS MUST use that configuration. This document
-   defines no transaction-level profile negotiation.
+   defines no transaction-level profile negotiation. An authorization
+   grant catalog {{GRANT-CATALOG}} is one way for a RAS to describe the
+   resources, scopes, and grant binding methods it accepts; it informs
+   that configuration and is not an authorization decision.
 2. **Enforce the minimum:** Each server MUST enforce its configured
    minimum regardless of absent `actor_token`, `act`, DPoP, or `cnf`.
    Their presence or absence MUST NOT select a different profile.
@@ -1189,7 +1195,9 @@ input.
 ### Existing Platform JWT {#imported-jwt-input}
 
 This common shared-client input accepts existing signed platform JWTs as
-issued, with no new media type or reissuance. {{scope}} states when it
+issued, with no new media type or reissuance; {{WIMSE-PRACTICES}}
+describes how workload platforms issue them and how a workload uses one
+to federate to an IdP. {{scope}} states when it
 is required, and {{aws-example}} gives an AWS STS example. The IdP MUST
 accept a platform JWT only when its issuer, credential class, and the
 authenticated client are explicitly configured together. Credential
@@ -2368,6 +2376,11 @@ multiple values or a different resource with `invalid_target`.
 5. **Output:** Issue access tokens under {{access-token-response}} and
    {{access-token-protection}}, expiring no later than the absolute
    authorization expiration.
+
+The RAS can report the absolute authorization expiration and the
+inactivity limit to the client with the token response parameters of
+{{REFRESH-EXPIRATION}}. A new ID-JAG does not extend an existing refresh
+token in place (step 4).
 
 ## Applied Disablement and Revocation {#applied-changes}
 
