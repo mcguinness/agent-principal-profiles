@@ -659,9 +659,11 @@ that {{FEDERATION}} requires for the redemption except the approver's
 decision:
 
 * **Both grants:** the proof and client, replay, and authority checks
-  of "Common Grant Validation" in {{FEDERATION}}, and the effective
+  of "Common Grant Validation" in {{FEDERATION}}; the effective
   eligibility of the agent and, for an ID-JAG, the user, including any
-  Local Suspension ({{AGENT-LIFECYCLE}}).
+  Local Suspension ({{AGENT-LIFECYCLE}}); and, for a grant from an
+  issuer configured for grant status, the grant's status
+  ({{AGENT-LIFECYCLE}}).
 * **ID-JAG:** ID-JAG validation, including the grant's time claims; the
   actor; user resolution; correlation of the `act` agent; and the actor
   gate ("Grant Validation" in {{FEDERATION}}).
@@ -860,7 +862,11 @@ Grant-derived revocation of the grant reaches "all redemptions" of it
 ({{AGENT-LIFECYCLE}}), so a participating RAS ends the pending governed
 redemption when the event arrives, and the next poll gets
 `access_denied`. Other changes made at the IdP after receipt reach the
-RAS only through such signals or provisioning. The maximum pending
+RAS only through such signals or provisioning. The RAS does not check
+grant status ({{AGENT-LIFECYCLE}}) again at resolution: a status change
+after receipt does not by itself end the pending governed redemption,
+and the IdP need not serve the grant's status after the grant's
+acceptance period, which an approval can follow. The maximum pending
 lifetime bounds the rest, and an intervention bound ({{supervised}})
 counts it.
 
@@ -1296,6 +1302,7 @@ Each case changes this variant as stated; all other checks succeed.
 | The resource is configured for mutual-TLS access tokens | RAS | HTTP 400, `access_denied`; no deferral |
 | A poll proves another key | RAS | HTTP 400, `invalid_dpop_proof` |
 | The grant's `exp` passes while the redemption is pending, and the steward then approves | RAS | The access token issues at the next poll |
+| With grant status configured, the IdP sets the grant to INVALID while the redemption is pending, and the steward then approves | RAS | The access token issues at the next poll |
 | The maximum pending lifetime is 24 hours, and the steward approves nine hours after receipt | RAS | `expires_in` was at most eight hours; HTTP 400, `expired_token`; no token |
 | Local Suspension of `agent-42` while the redemption is pending, and the steward then approves | RAS | HTTP 400, `access_denied` at the next poll; no token |
 | While the redemption is pending, `agent-42`'s correlation changes to another local agent principal, and the steward then approves | RAS | HTTP 400, `access_denied` at the next poll; no token |

@@ -74,7 +74,7 @@ implementation](README.md#running-against-another-implementation)).
 | Agent resolution input profiles | Each input claimed | inputs: Conformance |
 | Identity continuation | Delegated / self-acting continuation per role; grant-anchored continuation (IdP) | continuation: Conformance Claims |
 | Human oversight | Deferred governed issuance; deferred continuation; supervised issuance per target; deferred redemption; per-action oversight (each with its role) | oversight: Conformance |
-| Lifecycle | Provisioning, signals, grant-derived revocation | lifecycle: Conformance and Configuration |
+| Lifecycle | Each capability claimed, by name: provisioning, signals, grant-derived revocation, access-token status (RAS, API), grant status (IdP, RAS) | lifecycle: Conformance and Configuration; Token Status Lists |
 | SCIM management | Resources and operations supported | SCIM agent federation: Conformance and Administrative Trust |
 
 ## Part 4. Configuration a peer must agree on
