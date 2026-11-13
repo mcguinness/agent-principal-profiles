@@ -177,6 +177,50 @@ one ID-JAG's authority can be revoked without disabling the agent.
   including propagation, token lifetime, and caching, as the lifecycle
   profile recommends ("Resource Enforcement and Delay").
 
+#### Token status lists
+
+Where an API validates JWT access tokens offline, or a grant must fail
+after a change the resource domain may not have applied, publish token
+status ([token status lists][lifecycle-token-status]). The lifecycle
+profile defines two capabilities, configured and claimed separately,
+and neither needs SCIM provisioning:
+
+* **Access-token status.** The RAS marks an access token INVALID when
+  it revokes the token's session, and SUSPENDED or INVALID while a
+  Local Suspension applies; the API checks each request.
+* **Grant status.** The IdP marks a grant INVALID when it disables or
+  deletes the Agent Principal, disables the Identity Binding or
+  withdraws the Client Association the grant was issued under,
+  withdraws the Delegation Authorization or Agent Authorization, or
+  revokes the grant; the RAS checks once, at redemption.
+
+Neither revokes authorization already derived from a grant, and grant
+status does not end a redemption already accepted and deferred for
+approval. Agree the token status configuration that the implementer's
+guide lists under [choices to
+agree](IMPLEMENTERS-GUIDE.md#choices-to-agree).
+
+*Exit checks:*
+* After the RAS applies a disablement, the API rejects a previously
+  accepted access token as invalid within the RAS's publication
+  interval and the API's maximum status age, and still rejects it after
+  the agent is re-enabled.
+* A grant issued before the IdP disabled and re-enabled the agent, a
+  cycle the RAS never observed, fails redemption with `invalid_grant`,
+  including one past its expiration but within the RAS's clock skew; a
+  new grant redeems.
+* A token or grant configured to carry status, but without a
+  `status_list` member, is rejected.
+* With the Status Provider failing, or serving only a list that has
+  expired or is older than the maximum status age, the RAS issues
+  nothing and the API performs no operation; each answers HTTP 503,
+  unless a failure is established and no unfinished check ranks earlier
+  than it. A cached list still within those limits keeps serving.
+* The documented disablement delay includes the publication interval
+  and the maximum status age, which the lifecycle profile requires to
+  be configured consistently with the accepted revocation delay
+  ("Resource Enforcement and Delay").
+
 #### Continuation through gateways
 
 Where agents reach tools through gateways, deploy continuation
@@ -743,7 +787,8 @@ to deferral when it asks for `files.write`. The oversight profile's
 ## Vendor evidence
 
 Ask vendors for conformance claims, which name the profile, the role,
-the realization, and the inputs, and then record evidence that the
+the realization, and the inputs; a claim of the lifecycle profile also
+names each capability it covers. Then record evidence that the
 selected products work together. The governed profile URIs identify
 RAS and client processing, one for each realization and protection:
 `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent` and
@@ -782,6 +827,8 @@ are for the evaluator.
 | IdP: SCIM management Service Provider; platform: Provisioning Client | Platforms register agents | Step 2's exit checks | | | |
 | IdP or its connector: lifecycle provisioning of status changes | Keeping agent records current through lifecycle | Step 4's lifecycle checks | | | |
 | RAS: lifecycle Receiver | Keeping agent records current through lifecycle | Step 4's lifecycle checks, and the lifecycle profile's acceptance checklist | | | |
+| RAS (Status Issuer) and API: access-token status | Offline JWT validation at the API, with access-token status | Step 4's token status checks; the conformance suite's L01, L06, L07, L09, and L11 | | | |
+| IdP (Status Issuer) and RAS: grant status for ID-JAGs and WAGs | An unredeemed grant must fail after a change the resource domain has not applied, or a WAG must be stoppable before redemption | Step 4's token status checks; the conformance suite's L02 to L05, L08, and L10 | | | |
 | IdP (transmitter) and RAS: grant-derived revocation of ID-JAGs | Revoking one delegated grant | [Revoke one suspicious grant](#revoke-one-suspicious-grant), including a revocation that arrives before redemption | | | |
 | IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer; the target RAS, with DPoP at its token endpoint and, where policy requires it, path disclosure | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
