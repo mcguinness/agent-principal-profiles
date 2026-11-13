@@ -55,7 +55,7 @@ normative:
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   LIFECYCLE:
-    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile"
     author:
       - name: Karl McGuinness
     date: 2026-09-18

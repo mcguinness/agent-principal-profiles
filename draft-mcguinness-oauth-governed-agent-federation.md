@@ -86,7 +86,7 @@ informative:
   WIMSE-PRACTICES: I-D.ietf-wimse-workload-identity-practices-08
   GRANT-CATALOG: I-D.mcguinness-oauth-grant-catalog-01
   AGENT-LIFECYCLE:
-    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile"
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness

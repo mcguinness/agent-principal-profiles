@@ -94,7 +94,7 @@ addresses:
 | A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] ([source](draft-mcguinness-oauth-governed-agent-continuation.md)) | OAuth |
 | Platforms that register agents and their relationships at the IdP | [SCIM Profile for Agent Principal Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | SCIM |
 | OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] ([source](draft-mcguinness-scim-oauth-client-management.md)) | SCIM |
-| Resource domains provisioned with agents and their disablement | [Agent Principal Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | SCIM |
+| Resource domains provisioned with agents and their disablement, or status lists for access tokens and grants | [Agent Principal Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | SCIM |
 | A person to approve, or to observe and end, an agent's grants, redemptions, and actions | [Human Oversight Profile][oversight] ([source](draft-mcguinness-oauth-governed-agent-oversight.md)) | OAuth |
 
 The draft names link to the editor's copies. All seven are individual

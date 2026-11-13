@@ -54,7 +54,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   AGENT-LIFECYCLE:
-    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile"
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness

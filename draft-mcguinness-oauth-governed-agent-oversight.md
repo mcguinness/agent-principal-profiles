@@ -49,7 +49,7 @@ normative:
   RFC9449:
 informative:
   AGENT-LIFECYCLE:
-    title: "Agent Principal Lifecycle Profile for SCIM and OAuth"
+    title: "Agent Principal Lifecycle Profile"
     author:
       - name: Karl McGuinness
     date: false
