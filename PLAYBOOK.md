@@ -1216,9 +1216,16 @@ ended.
      the user's account there, or send grant-derived revocation for the
      user's retained grants. At a RAS configured for grant status, the
      withdrawal of the user's Delegation Authorizations in step 1 does
-     it, where the IdP's user lifecycle withdraws them. Where none of
-     these is available, wait until
-     every grant issued before step 1 is past the acceptance window.
+     it, where the IdP's user lifecycle withdraws them, but only once
+     the RAS can no longer rely on a Status List Token from before the
+     withdrawal: wait for the IdP's publication interval plus the RAS's
+     maximum status age after step 1 before step 3. Grant status does
+     not end a redemption that the RAS accepted and deferred for
+     approval before then ([oversight profile][oversight]); where the
+     RAS defers redemptions, also disable the user's account there,
+     send grant-derived revocation, or deny those pending requests.
+     Where none of these is available, wait until every grant issued
+     before step 1 is past the acceptance window.
   3. Then end existing sessions there: through that deprovisioning, or
      with CAEP user-and-tenant revocation. That event revokes existing
      sessions only; it does not stop a grant that has not yet been
