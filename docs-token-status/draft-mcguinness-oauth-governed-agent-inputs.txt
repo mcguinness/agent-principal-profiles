@@ -4,28 +4,31 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         14 October 2026
-Expires: 17 April 2027
+Intended status: Standards Track                        13 November 2026
+Expires: 17 May 2027
 
 
-     Agent Resolution Input Profiles for Governed Agent Federation
+         Agent Resolution Inputs for Agent Principal Federation
           draft-mcguinness-oauth-governed-agent-inputs-latest
 
 Abstract
 
    This document defines optional agent-resolution input profiles for
-   the OAuth 2.0 Profile for Governed Agent Federation: SPIFFE JWT-
-   SVIDs, WIT-SVIDs, and X.509-SVIDs, and OAuth Attestation-Based Client
-   Authentication, including resolution of managed installations by
-   client instance identifier.  Each profile satisfies the federation
-   profile's agent-resolution input contract and is claimed separately.
+   the OAuth 2.0 Profile for Agent Principal Federation, with which an
+   enterprise identity provider resolves an authenticated client or
+   workload identity to an enterprise-governed Agent Principal.  The
+   inputs are SPIFFE JWT-SVIDs, WIT-SVIDs, and X.509-SVIDs, and OAuth
+   Attestation-Based Client Authentication, including resolution of
+   managed installations by client instance identifier.  Each profile
+   satisfies the federation profile's agent-resolution input contract
+   and is claimed separately.
 
 About This Document
 
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/governed-agent-profiles/draft-
+   https://mcguinness.github.io/agent-principal-profiles/draft-
    mcguinness-oauth-governed-agent-inputs.html.  Status information for
    this document may be found at https://datatracker.ietf.org/doc/draft-
    mcguinness-oauth-governed-agent-inputs/.
@@ -36,7 +39,7 @@ About This Document
    Subscribe at https://www.ietf.org/mailman/listinfo/oauth/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/governed-agent-profiles.
+   https://github.com/mcguinness/agent-principal-profiles.
 
 Status of This Memo
 
@@ -53,7 +56,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 17 April 2027.
+   This Internet-Draft will expire on 17 May 2027.
 
 Copyright Notice
 
@@ -76,18 +79,23 @@ Table of Contents
    2.  Conformance
    3.  Common Rules for These Inputs
      3.1.  Qualified Identities
-     3.2.  Grant Lifetime
-     3.3.  Algorithms
+     3.2.  Trust Bundles from Client Metadata
+     3.3.  Grant Lifetime
+     3.4.  Algorithms
    4.  SPIFFE JWT-SVID
    5.  Client Attestation
    6.  SPIFFE WIT-SVID and X.509-SVID Resolution
      6.1.  WIT-SVID
      6.2.  X.509-SVID
-   7.  Resolution-Key Lifecycle
+   7.  Implementation Considerations
+     7.1.  Resolution-Key Lifecycle
+     7.2.  Instance Keys at the RAS
    8.  Security Considerations
    9.  Privacy Considerations
    10. IANA Considerations
-   11. Normative References
+   11. References
+     11.1.  Normative References
+     11.2.  Informative References
    Appendix A.  Input Variants
      A.1.  Identity Mapping Example
      A.2.  Shared Platform Client with SPIFFE
@@ -172,7 +180,46 @@ Table of Contents
    For Client Attestation, sub identifies the OAuth client, and the
    client-to-agent mapping is explicit.
 
-3.2.  Grant Lifetime
+   An approved trust domain is a SPIFFE trust domain that a server's
+   configuration trusts, with the source of its bundle: at the IdP, for
+   an input; at a RAS, for JWT-SVID client authentication (Section 4).
+   The source is a bundle or bundle endpoint configured as Section 6 of
+   [SPIFFE-OAUTH] describes, or, for one client only, that client's
+   Client ID Metadata Document (Section 3.2).
+
+3.2.  Trust Bundles from Client Metadata
+
+   A server selects the bundle that validates SVIDs from a client whose
+   metadata is a Client ID Metadata Document as follows: the IdP for the
+   SPIFFE inputs, and a RAS for JWT-SVID client authentication.
+
+   1.  A server configured with a bundle or bundle endpoint for the
+       trust domain of the document's spiffe_id, as Section 6 of
+       [SPIFFE-OAUTH] describes, MUST validate with that bundle and MUST
+       ignore the document's spiffe_bundle_endpoint, so a document
+       cannot supply keys for a trust domain the server already trusts
+       through its own configuration.  A bundle obtained from any Client
+       ID Metadata Document, this client's or another's, is not so
+       configured.  This narrows Section 6.1 of [SPIFFE-OAUTH], which
+       recommends that preference.
+
+   2.  Otherwise, a server configured to do so for the client MAY
+       validate SVIDs with a bundle it obtains from the document's
+       spiffe_bundle_endpoint only when the trust domain of the
+       document's spiffe_id equals, or is a subdomain of, the host of
+       the client's client_id URL (Section 8.2 of [SPIFFE-OAUTH]).  It
+       then uses the bundle only for SVIDs presented to authenticate as
+       that client (Section 6.1 of [SPIFFE-OAUTH]).  At the IdP, a
+       SPIFFE ID validated with it resolves an agent only through an
+       Identity Binding configured for that client.
+
+   3.  Otherwise, the server ignores the document's
+       spiffe_bundle_endpoint, and the document establishes no approved
+       trust domain.  A server that accepts no bundles from documents is
+       a deployment that does not accept that trust model, which
+       Section 8.2 of [SPIFFE-OAUTH] requires to ignore them.
+
+3.3.  Grant Lifetime
 
    Under the grant lifetime rule ("Common Grant Claims, Lifetime, and
    Response" in [FEDERATION]), these inputs bound the grant as follows:
@@ -192,40 +239,44 @@ Table of Contents
 
                    Table 2: Grant lifetime bound by input
 
-3.3.  Algorithms
+3.4.  Algorithms
 
-   Implementations that support the JWT-SVID input MUST support this
-   capability in addition to those of [FEDERATION]:
+   Implementations that support the JWT-SVID input, including a RAS that
+   accepts JWT-SVID client authentication ("Client Authentication and
+   Algorithms" in [FEDERATION]), MUST support this capability in
+   addition to those of [FEDERATION]:
 
-          +=================+==================================+
-          | Artifact        | Mandatory-to-implement (MTI)     |
-          |                 | capability                       |
-          +=================+==================================+
-          | JWT-SVID, where | IdP validation: RS256 under      |
-          | supported       | Section 3.1 of [SPIFFE-OAUTH],   |
-          |                 | plus ES256 added by this profile |
-          +-----------------+----------------------------------+
+      +=================+===========================================+
+      | Artifact        | Mandatory-to-implement (MTI) capability   |
+      +=================+===========================================+
+      | JWT-SVID, where | Validation at the IdP or the RAS: RS256   |
+      | supported       | and ES256, both required by this profile; |
+      |                 | [SPIFFE-OAUTH] requires no algorithm      |
+      +-----------------+-------------------------------------------+
 
-            Table 3: Mandatory-to-implement algorithm for JWT-
-                                  SVIDs
+          Table 3: Mandatory-to-implement algorithm for JWT-SVIDs
 
 4.  SPIFFE JWT-SVID
 
    This OPTIONAL input identifies workloads independently of the OAuth
    client identifier, including multiple agents behind a shared client.
    JWT-SVID client authentication at either the IdP or the RAS follows
-   this section.
+   this section.  At the RAS it authenticates the client only: the RAS
+   takes the Agent Principal from the grant ("Agent Principal
+   Correlation" in [FEDERATION]), and the validated SPIFFE ID, like a
+   client identifier, does not replace it.
 
    *  *Presentation:* Client authentication by client_assertion with
       client_assertion_type urn:ietf:params:oauth:client-assertion-
       type:jwt-spiffe.
 
-   *  *Validation:* Before resolving the agent, the IdP MUST apply
-      Section 3.1 of [SPIFFE-OAUTH], including the assertion type, and
-      Section 5 of [SPIFFE-OAUTH] and Section 6 of [SPIFFE-OAUTH] for
-      trust establishment and key distribution.  It MUST also verify the
-      signature, before resolving the agent, with keys authorized for
-      the SPIFFE ID's trust domain.  An optional iss MUST NOT select
+   *  *Validation:* The server MUST apply Section 3.2 of [SPIFFE-OAUTH],
+      including the assertion type and the client identification of
+      Section 3.1 of [SPIFFE-OAUTH], and Section 5 of [SPIFFE-OAUTH] and
+      Section 6 of [SPIFFE-OAUTH] for trust establishment and key
+      distribution.  It MUST also verify the signature with keys
+      authorized for the SPIFFE ID's trust domain.  The IdP MUST do both
+      before resolving the agent.  An optional iss MUST NOT select
       another trust domain or key authority.
 
    *  *Resolution:* The IdP MUST resolve the exact SPIFFE ID in the
@@ -292,14 +343,8 @@ Table of Contents
       match the attestation's confirmation key.  This narrows the
       allowance in Section 5.2 of [ATTEST] for a separate DPoP key.
       With attest_jwt_client_auth_dpop, one DPoP proof serves both
-      roles.  Key retention follows Section 7.
-
-   With [INSTANCE], instance keys differ per receiver scope (Section 4.1
-   of [INSTANCE]).  A bound grant carries the IdP-scoped key.  A client
-   that also authenticates to the RAS with a Client Attestation
-   therefore uses attest_jwt_client_auth there and proves the grant key
-   with a separate DPoP proof, unless the IdP and RAS share a receiver
-   scope.
+      roles.  Key retention follows Section 7.1, and Section 7.2 covers
+      instance keys at the RAS.
 
 6.  SPIFFE WIT-SVID and X.509-SVID Resolution
 
@@ -319,7 +364,7 @@ Table of Contents
    *  *Presentation:* The WIT-SVID in OAuth-Client-Attestation, with its
       proof in OAuth-Client-Attestation-PoP.
 
-   *  *Validation:* The IdP MUST apply Section 3.3 of [SPIFFE-OAUTH] and
+   *  *Validation:* The IdP MUST apply Section 3.4 of [SPIFFE-OAUTH] and
       [WIT], including their client-identifier association, trust,
       validity, and proof requirements.  It MUST require typ=wit+jwt.
       It MUST validate possession of the key in cnf.jwk through the
@@ -334,23 +379,26 @@ Table of Contents
    *  *Proof:* When DPoP is used at issuance, its key MUST match the
       WIT-SVID's cnf.jwk.  The IdP MUST compare the JWK thumbprints of
       the DPoP key and cnf.jwk as used in [RFC9449] and MUST reject a
-      mismatch with invalid_grant.  This carries the WIT-endorsed key
-      into the grant binding; the Client Attestation PoP JWT remains
-      required.  Key retention follows Section 7.
+      mismatch with invalid_request.  This narrows Section 5.2 of
+      [ATTEST], under which a DPoP key used alongside the Client
+      Attestation PoP JWT need not match the attestation's cnf key.
+      This carries the WIT-endorsed key into the grant binding; the
+      Client Attestation PoP JWT remains required.  Key retention
+      follows Section 7.1.
 
 6.2.  X.509-SVID
 
    *  *Presentation:* The client certificate on the mutual-TLS
       connection carrying the token request.
 
-   *  *Validation:* The IdP MUST apply Section 3.2 of [SPIFFE-OAUTH] and
-      [RFC8705] to the certificate and proof established by mutual TLS
-      for this request.  This includes their client-identifier
-      association, trust, validity, and proof requirements.  A
-      certificate supplied only in a request parameter or an untrusted
-      forwarding header MUST NOT establish the workload identity, and
-      the request then fails client authentication.  TLS termination
-      follows Section 6.5 of [RFC8705].
+   *  *Validation:* The IdP MUST apply Section 3.3 of [SPIFFE-OAUTH],
+      which profiles [RFC8705], to the certificate and proof established
+      by mutual TLS for this request.  This includes its client
+      identification (Section 3.1 of [SPIFFE-OAUTH]), trust, validity,
+      and proof requirements.  A certificate supplied only in a request
+      parameter or an untrusted forwarding header MUST NOT establish the
+      workload identity, and the request then fails client
+      authentication.  TLS termination follows Section 6.5 of [RFC8705].
 
    *  *Resolution:* The IdP MUST resolve the approved trust domain and
       exact SPIFFE ID in the certificate's URI Subject Alternative Name
@@ -363,16 +411,41 @@ Table of Contents
       key; the authenticated request associates it with this issuance,
       and the grant uses cnf.jkt, not certificate confirmation.
 
-7.  Resolution-Key Lifecycle
+7.  Implementation Considerations
 
-   When the resolution key is also the grant proof key, replacing it
-   does not rebind an outstanding grant, access token, or refresh token.
-   This is the case for WIT-SVID or Client Attestation when DPoP is
-   used.  Continued use requires retaining the corresponding proof key.
+   These considerations add no requirements.  They describe key handling
+   that decides whether bound grants and tokens remain usable.
+
+7.1.  Resolution-Key Lifecycle
+
+   The resolution key is the key whose possession an input proves: the
+   cnf.jwk of a WIT-SVID or the confirmation key of a Client
+   Attestation, or the key of an X.509-SVID certificate.  When the
+   resolution key is also the grant proof key, replacing it does not
+   rebind an outstanding grant, access token, or refresh token.  This is
+   the case for WIT-SVID or Client Attestation when DPoP is used.
+   Continued use requires retaining the corresponding proof key.
    Otherwise, the client obtains a new grant with the replacement key
-   and new RAS authorization.  Any subject-credential binding still
-   applies and may require a new subject credential.  Grant key
-   transition is not defined ("Excluded Compositions" in [FEDERATION]).
+   and new RAS authorization.  For a WIT-SVID, retention ends with the
+   credential: Section 9.5 of [WIT] forbids the workload to use the key
+   once the WIT-SVID has expired.  A client that follows it therefore
+   uses a grant, access token, or refresh token bound to that key only
+   while an unexpired WIT-SVID carries the same key; where each new WIT-
+   SVID carries a new key, it obtains a new grant with each one.  This
+   limits the client's use, not the tokens: neither the RAS nor the API
+   sees the WIT-SVID, so the tokens do not expire with it.  Any subject-
+   credential binding still applies and may require a new subject
+   credential.  Grant key transition is not defined ("Excluded
+   Compositions" in [FEDERATION]).
+
+7.2.  Instance Keys at the RAS
+
+   With [INSTANCE], instance keys differ per receiver scope (Section 4.1
+   of [INSTANCE]).  A bound grant carries the IdP-scoped key.  A client
+   that also authenticates to the RAS with a Client Attestation
+   therefore uses attest_jwt_client_auth there and proves the grant key
+   with a separate DPoP proof, unless the IdP and RAS share a receiver
+   scope.
 
 8.  Security Considerations
 
@@ -384,6 +457,12 @@ Table of Contents
    Managed-installation resolution relies on the attester's continuity
    evidence and enrollment controls (Section 9 of [INSTANCE]).
 
+   An Identity Binding resolves an exact SPIFFE ID to an Agent
+   Principal, whichever workload holds that identifier.  It therefore
+   relies on the trust domain not reassigning the identifier to a
+   different workload, which Section 4.5 of [WIMSE-ID] recommends
+   against unless the trust domain's policy intends it.
+
 9.  Privacy Considerations
 
    The privacy considerations of [FEDERATION] apply.  Client instance
@@ -393,13 +472,15 @@ Table of Contents
 
    This document has no IANA actions.
 
-11.  Normative References
+11.  References
+
+11.1.  Normative References
 
    [FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Governed Agent
+              McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 9 October
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-oauth-governed-agent-
               federation.html>.
 
@@ -413,16 +494,15 @@ Table of Contents
    [ATTESTER-ENDORSEMENT]
               McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-attesters-00, 28 September 2026,
+              client-attesters-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-attesters-00>.
+              oauth-client-attesters-01>.
 
-   [INSTANCE] McGuinness, K., "Client Instance Identification for
-              Attestation-Based Client Authentication", Work in
-              Progress, Internet-Draft, draft-mcguinness-oauth-client-
-              instance-id-00, 28 September 2026,
+   [INSTANCE] McGuinness, K., "OAuth 2.0 Client Instance Identifiers",
+              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
+              client-instance-id-01, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-client-instance-id-00>.
+              oauth-client-instance-id-01>.
 
    [RFC8705]  Campbell, B., Bradley, J., Sakimura, N., and T.
               Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication
@@ -439,16 +519,16 @@ Table of Contents
               Schwenkschuster, A., Kasselman, P., Rose, S., Thorgersen,
               S., and N. Cam-Winget, "OAuth SPIFFE Client
               Authentication", Work in Progress, Internet-Draft, draft-
-              ietf-oauth-spiffe-client-auth-02, 15 June 2026,
+              ietf-oauth-spiffe-client-auth-03, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              spiffe-client-auth-02>.
+              spiffe-client-auth-03>.
 
    [WIT]      Campbell, B., Salowey, J. A., Schwenkschuster, A.,
               Sheffer, Y., and Y. Rosomakho, "WIMSE Workload
               Credentials", Work in Progress, Internet-Draft, draft-
-              ietf-wimse-workload-creds-02, 2 July 2026,
+              ietf-wimse-workload-creds-03, 30 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
-              workload-creds-02>.
+              workload-creds-03>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
@@ -462,6 +542,14 @@ Table of Contents
               Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+11.2.  Informative References
+
+   [WIMSE-ID] Rosomakho, Y. and J. A. Salowey, "Workload Identifier",
+              Work in Progress, Internet-Draft, draft-ietf-wimse-
+              identifier-04, 23 October 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
+              identifier-04>.
 
 Appendix A.  Input Variants
 
@@ -501,7 +589,7 @@ Appendix A.  Input Variants
       proof, except that the WIT-SVID variant uses the WIT-SVID key.
       The X.509-SVID variant's DPoP key may differ from its TLS key.
 
-   *  *Lifetime:* The input bounds the grant lifetime under Section 3.2.
+   *  *Lifetime:* The input bounds the grant lifetime under Section 3.3.
 
    *  *Client Association:* Each variant needs a Client Association for
       its authenticated client.  The JWT-SVID variant needs a separate
@@ -527,10 +615,10 @@ A.1.  Identity Mapping Example
        agent-42 in the namespace of https://idp.example/, in Governance
        Tenant acme.
 
-   2.  *Authorize the client.* The IdP's configured SPIFFE association
-       authenticates the caller as platform-sso, and a separate Client
-       Association permits that client to use this binding for delegated
-       ID-JAG issuance.
+   2.  *Authorize the client.* The SPIFFE ID's registration with the
+       client (Section 3.1 of [SPIFFE-OAUTH]) authenticates the caller
+       as platform-sso, and a separate Client Association permits that
+       client to use this binding for delegated ID-JAG issuance.
 
    3.  *Authorize delegation.* Alice's ID Token, issued for platform-
        sso, identifies her as alice-app.  The IdP authorizes agent-42 to

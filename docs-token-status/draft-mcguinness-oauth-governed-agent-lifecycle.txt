@@ -4,21 +4,25 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         14 October 2026
-Expires: 17 April 2027
+Intended status: Standards Track                        13 November 2026
+Expires: 17 May 2027
 
 
-          Governed Agent Lifecycle Profile for SCIM and OAuth
+                   Agent Principal Lifecycle Profile
          draft-mcguinness-oauth-governed-agent-lifecycle-latest
 
 Abstract
 
-   This document profiles SCIM for provisioning issuer-qualified Agent
-   Principals into a resource domain and applying administrative
-   disablement to OAuth authorization.  Existing SCIM Events can
-   accelerate reconciliation; existing session-revocation events can
-   invalidate identified authorization sessions independently of
-   principal state.
+   This document defines how a resource domain applies the
+   administrative state of issuer-qualified, enterprise-governed Agent
+   Principals to OAuth authorization.  It profiles SCIM for provisioning
+   those principals into a resource domain and applying administrative
+   disablement.  Existing SCIM Events can accelerate reconciliation;
+   existing session-revocation events can invalidate identified
+   authorization sessions independently of principal state.
+   Independently of SCIM, Token Status Lists let an API reject revoked
+   access tokens that it validates offline, and a RAS reject grants
+   whose authority the IdP has withdrawn.
 
    The profile defines identity correlation, receiver actions, and the
    limits of propagation and resource enforcement.  It defines no new
@@ -31,7 +35,7 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/governed-agent-profiles/draft-
+   https://mcguinness.github.io/agent-principal-profiles/draft-
    mcguinness-oauth-governed-agent-lifecycle.html.  Status information
    for this document may be found at https://datatracker.ietf.org/doc/
    draft-mcguinness-oauth-governed-agent-lifecycle/.
@@ -43,7 +47,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/scim/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/governed-agent-profiles.
+   https://github.com/mcguinness/agent-principal-profiles.
 
 Status of This Memo
 
@@ -60,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 17 April 2027.
+   This Internet-Draft will expire on 17 May 2027.
 
 Copyright Notice
 
@@ -82,6 +86,7 @@ Table of Contents
      1.1.  Scope
    2.  Conventions and Terminology
    3.  Conformance and Configuration
+     3.1.  Delivering Administrative Status
    4.  Identity and Local Correlation
      4.1.  Just-in-Time Correlation
    5.  SCIM Provisioning
@@ -89,18 +94,29 @@ Table of Contents
      5.2.  Applying Administrative State
      5.3.  Effective Eligibility
    6.  Signals and Reconciliation
-     6.1.  Missed Transitions and Reactivation
    7.  OAuth Enforcement
      7.1.  Resource Enforcement and Delay
-   8.  Revocation Boundaries
-     8.1.  Self-Acting Access
-   9.  Platform-Hosted Agents
-   10. Security Considerations
-   11. Privacy Considerations
-   12. IANA Considerations
-   13. References
-     13.1.  Normative References
-     13.2.  Informative References
+   8.  Token Status Lists
+     8.1.  Common Rules
+     8.2.  Access-Token Status
+     8.3.  Grant Status
+   9.  Revocation Boundaries
+     9.1.  Self-Acting Access
+   10. Platform-Hosted Agents
+   11. Implementation Considerations
+     11.1.  Connector
+     11.2.  Receiver
+   12. Security Considerations
+     12.1.  Provisioning Writers
+     12.2.  Events
+     12.3.  Missed Transitions and Reactivation
+     12.4.  Offline Tokens
+     12.5.  Token Status
+   13. Privacy Considerations
+   14. IANA Considerations
+   15. References
+     15.1.  Normative References
+     15.2.  Informative References
    Appendix A.  Optional Shared Signals Profile
      A.1.  Trust and Delivery
      A.2.  SCIM Reconciliation Triggers
@@ -115,24 +131,19 @@ Table of Contents
    Appendix C.  Signal Examples
      C.1.  Provisioning Change Notice
      C.2.  Revoke Authorization Derived from an ID-JAG
-   Appendix D.  Platform-Hosted Agent Walkthrough
-     D.1.  Configure the Relationship
-     D.2.  Register the Agent
-     D.3.  Operate on the Platform
-     D.4.  Report a Credential Change
-     D.5.  Report Anomalous Behavior
-     D.6.  Raise the Agent's Risk
-     D.7.  Disable the Agent
-     D.8.  Re-enable
-     D.9.  Reach a Third-Party Resource
-     D.10. Retire the Agent
+   Appendix D.  Platform-Hosted Agent Example
+     D.1.  Report a Credential Change
+     D.2.  Report Anomalous Behavior
+     D.3.  Raise the Agent's Risk
+     D.4.  Disable the Agent
+     D.5.  Re-enable
    Appendix E.  Document History
    Acknowledgments
    Author's Address
 
 1.  Introduction
 
-   Governed Agent Federation [FEDERATION] separates agent identity,
+   Agent Principal Federation [FEDERATION] separates agent identity,
    client authority, user delegation, and resource authorization.  It
    identifies an Agent Principal by the pair (IdP issuer, agent
    identifier), independently of the client or workload credential used
@@ -148,28 +159,36 @@ Table of Contents
    resource domain and revokes what depends on it.
 
    This companion defines how a resource domain provisions that
-   principal and applies changes to its administrative status.  The
+   principal by SCIM and applies changes to its administrative status
+   (Section 5), which Shared Signals events can accelerate (Appendix A),
+   and how the RAS and the IdP publish the status of access tokens and
+   grants in Token Status Lists (Section 8).  A deployment can claim
+   provisioning, token status, or both (Section 3).  The
    responsibilities are:
 
-         +==============+========================================+
-         | Mechanism    | Responsibility                         |
-         +==============+========================================+
-         | SCIM Agent   | Provision and update the local         |
-         | [SCIM-AGENT] | representation, including active       |
-         +--------------+----------------------------------------+
-         | SCIM Events  | Notify the receiver that authoritative |
-         | [RFC9967]    | provisioning state changed             |
-         +--------------+----------------------------------------+
-         | Session      | Invalidate identified authorization    |
-         | revocation   | sessions without changing the          |
-         |              | principal's administrative status      |
-         +--------------+----------------------------------------+
-         | OAuth        | Apply local eligibility and revocation |
-         | enforcement  | at issuance, refresh, introspection,   |
-         |              | and API access                         |
-         +--------------+----------------------------------------+
+        +===============+========================================+
+        | Mechanism     | Responsibility                         |
+        +===============+========================================+
+        | SCIM Agent    | Provision and update the local         |
+        | [SCIM-AGENT]  | representation, including active       |
+        +---------------+----------------------------------------+
+        | SCIM Events   | Notify the receiver that authoritative |
+        | [RFC9967]     | provisioning state changed             |
+        +---------------+----------------------------------------+
+        | Session       | Invalidate identified authorization    |
+        | revocation    | sessions without changing the          |
+        |               | principal's administrative status      |
+        +---------------+----------------------------------------+
+        | OAuth         | Apply local eligibility and revocation |
+        | enforcement   | at issuance, refresh, introspection,   |
+        |               | and API access                         |
+        +---------------+----------------------------------------+
+        | Token Status  | Publish the status of access tokens to |
+        | List          | the API, and of grants to the RAS      |
+        | [STATUS-LIST] |                                        |
+        +---------------+----------------------------------------+
 
-                                  Table 1
+                                 Table 1
 
     Enterprise IdP / connector                  Resource domain
     +------------------------+                 +----------------------+
@@ -187,14 +206,18 @@ Table of Contents
         Figure 1: Administrative state and authorization revocation
 
    SCIM is the provisioning baseline.  Shared Signals is an optional
-   addition, profiled in Appendix A using existing event types.  A
-   deployment can use direct SCIM updates, event-driven reconciliation,
-   or both, provided that they apply the same authoritative
-   administrative decisions.  Events trigger retrieval of current state
-   rather than carrying it: a late notice resolves to the current
-   decision, whereas a late activation applied as an instruction would
-   revive a principal that was since disabled.  That asymmetry is the
-   design's safety property.
+   addition, profiled in Appendix A using existing event types.  Token
+   status lists (Section 8) are a separate capability that needs
+   neither.  A deployment can use direct SCIM updates, event-driven
+   reconciliation, or both, provided that they apply the same
+   authoritative administrative decisions.  Events trigger retrieval of
+   current state rather than carrying it: a late notice resolves to the
+   current decision, whereas a late activation applied as an instruction
+   would revive a principal that was since disabled.  That asymmetry is
+   the design's safety property.  Current state alone would lose a
+   disablement that a reactivation has since superseded, so the IdP
+   delivers that disablement first, by a SCIM write, and it invalidates
+   the authorization issued before it (Section 3.1).
 
    Disabling a principal and revoking a session are separate actions.
    Once applied, disablement prevents new authorization and invalidates
@@ -206,7 +229,7 @@ Table of Contents
    Disablement is one of several revocation boundaries.  Disabling the
    principal, disabling an Identity Binding, withdrawing a Client
    Association or a delegation, revoking a workload credential, and
-   revoking one grant each reach different authorization (Section 8).
+   revoking one grant each reach different authorization (Section 9).
    The resource domain also keeps its own authority: a Local Suspension
    denies the agent there regardless of upstream state, and upstream
    activation cannot clear it.
@@ -215,7 +238,7 @@ Table of Contents
 
    This profile covers IdP-to-resource-domain provisioning for delegated
    Federation, and a platform applying the IdP's administrative state to
-   agents it hosts (Section 9).  It does not define:
+   agents it hosts (Section 10).  It does not define:
 
    *  Platform enrollment or administration of Identity Bindings and
       Client Associations; [AGENT-MANAGEMENT] defines that separate
@@ -224,23 +247,25 @@ Table of Contents
    *  A new lifecycle state machine, signed eligibility lease,
       authorization cutoff, or distributed ordering protocol.
 
-   *  Automatic translation of binding or delegation withdrawal into all
-      affected grants, or a WAG wire profile.  A known ID-JAG can be
-      revoked selectively under Appendix A.4.
+   *  Automatic translation of binding or delegation withdrawal into the
+      authorization already derived from affected grants, or a WAG wire
+      profile beyond the status claim of Section 8.3.  A known ID-JAG's
+      derived authorization can be revoked under Appendix A.4; grant
+      status rejects later redemption of a grant whose authority was
+      withdrawn.
 
-   *  A guarantee that an unobserved disable-and-reenable cycle
-      invalidates all previously issued grants or sessions.
+   *  Without grant status, a guarantee that a disable-and-reenable
+      cycle invalidates a grant issued before the disablement and first
+      redeemed after the reactivation (Section 12.3).
 
    *  Runtime containment: stopping executions, tool calls, or network
-      access, or rejecting offline tokens before they expire.
-      Administrative disablement stops new authorization and revokes RAS
-      sessions; immediate containment needs complementary runtime
-      enforcement (Section 7.1).
+      access.  Administrative disablement stops new authorization and
+      revokes RAS sessions, and access-token status (Section 8.2) lets
+      an offline API reject revoked tokens before they expire; immediate
+      containment needs complementary runtime enforcement (Section 7.1).
 
-   Section 6 and Section 7 state the recovery and enforcement limits.
-   Deployments requiring stronger revocation-history guarantees need an
-   additional composition; timestamps in ordinary resource metadata do
-   not provide those guarantees.
+   Section 6, Section 7, and Section 12.3 state the recovery and
+   enforcement limits.
 
 2.  Conventions and Terminology
 
@@ -252,7 +277,9 @@ Table of Contents
 
    Agent Principal, Governance Tenant, Target Tenant, and resource
    authorization server (RAS) follow [FEDERATION].  SCIM terms follow
-   [RFC7643] and [RFC7644].
+   [RFC7643] and [RFC7644].  Status List, Status List Token, Status
+   Issuer, Status Provider, Referenced Token, and relying party follow
+   [STATUS-LIST].
 
    Governing IdP:  The IdP governing the Agent Principal.  An authorized
       connector can provision its decisions into the resource domain.
@@ -260,15 +287,17 @@ Table of Contents
    Receiver:  The resource-domain SCIM service provider and the
       components applying accepted changes at the RAS, or, for a
       platform-hosted agent, in the platform's own authorization
-      (Section 9).  They form one administrative deployment; they need
+      (Section 10).  They form one administrative deployment; they need
       not run in one process.  It is the resource-domain counterpart of
       the IdP Service Provider in [AGENT-MANAGEMENT].
 
    Provisioning Domain:  Trusted configuration identifying one governing
-      IdP issuer and one receiving Target Tenant, together with the
-      connectors authorized to manage their correlation and
-      administrative state.  This is the resource-domain counterpart of
-      the IdP-side Provisioning Domain.
+      IdP issuer, its tenant where the issuer is multi-tenant
+      ("Canonical Identity and Tenant Boundaries" in [FEDERATION]), and
+      one receiving Target Tenant, together with the connectors
+      authorized to manage their correlation and administrative state.
+      This is the resource-domain counterpart of the IdP-side
+      Provisioning Domain.
 
    Authorization Session:  RAS state retaining the identity and
       authority derived from a grant, including any associated refresh
@@ -281,12 +310,17 @@ Table of Contents
 
 3.  Conformance and Configuration
 
-   Conformance requires the SCIM provisioning and OAuth receiver
-   behavior in this document.  Events are optional; a deployment using
-   them MUST apply Appendix A.  Support for events alone is not
-   conformance to this lifecycle profile.  A platform applying state to
-   agents it hosts conforms through Section 9 instead of the OAuth
-   receiver behavior.
+   A deployment conforms to this profile by claiming SCIM provisioning
+   with the OAuth receiver behavior in this document, at least one token
+   status capability (Section 8), or both, and MUST meet the
+   requirements of each capability it claims.  A conformance claim MUST
+   name each capability it covers, so that a claim of token status alone
+   is not read as a claim of SCIM provisioning.  Token status requires
+   no SCIM provisioning.  Events are optional; a deployment using them
+   MUST apply Appendix A.  Support for events alone is not conformance
+   to this lifecycle profile.  A platform applying state to agents it
+   hosts conforms through Section 10 instead of the OAuth receiver
+   behavior.
 
    Before provisioning, the parties MUST establish:
 
@@ -301,12 +335,16 @@ Table of Contents
    *  Reconciliation responsibilities, stale-state policy, and resource
       enforcement settings under Section 6 and Section 7.
 
+   *  Whether the Receiver permits just-in-time correlation
+      (Section 4.1) and, if it does, the resources of its Target Tenant.
+
    A connector authorized for one context MUST NOT modify another
    context's principal or correlation.  Multiple writers MAY represent
    the same Governing IdP, but MUST reconcile against its current
    decisions rather than replay queued activation writes after newer
-   disablement.  SCIM conditional updates protect receiver resource
-   versions; they do not order independent source decisions.
+   disablement, and deliver a pending invalidation first (Section 3.1).
+   SCIM conditional updates protect receiver resource versions; they do
+   not order independent source decisions.
 
    The IdP continues to enforce current eligibility when issuing grants
    under [FEDERATION].  This profile adds resource-domain application of
@@ -316,12 +354,69 @@ Table of Contents
    The Governing IdP, directly or through its connector, MUST apply each
    change to a provisioned Agent Principal's administrative status to
    every resource domain it has provisioned for that principal, by a
-   SCIM write or by a subscribed event that triggers reconciliation, and
-   SHOULD do so promptly after the decision.  Where grant-derived
-   revocation under Appendix A.4 is enabled, the IdP MUST retain the
-   identifiers of the ID-JAGs it issued under each delegation, Identity
-   Binding, and Client Association, so that withdrawing any of them can
-   be propagated to the authorization derived from those grants.
+   SCIM write or by a subscribed event that triggers reconciliation, as
+   Section 3.1 requires, and SHOULD do so promptly after the decision.
+   Where grant-derived revocation under Appendix A.4 is enabled, the IdP
+   MUST retain the identifiers of the ID-JAGs it issued under each
+   delegation, Identity Binding, and Client Association, so that
+   withdrawing any of them can be propagated to the authorization
+   derived from those grants.
+
+3.1.  Delivering Administrative Status
+
+   Where a Receiver permits just-in-time correlation, an agent can hold
+   authorization in its domain before the Governing IdP has provisioned
+   it there.  Once the IdP has issued a grant for an Agent Principal, as
+   the act agent of an ID-JAG or the subject of a WAG, for a resource in
+   the Target Tenant of a Provisioning Domain whose Receiver permits
+   just-in-time correlation, the IdP MUST provision that principal in
+   the domain (Section 4.1).  It MUST do so even if it fails between
+   issuing the grant and starting to provision.  Recording the
+   obligation durably before issuing the grant meets this; an obligation
+   recorded for a grant that was never issued only provisions the agent
+   early.
+
+   A disablement that a later reactivation supersedes still has to take
+   effect at the Receiver, because it invalidates the authorization
+   issued before it (Section 5.2); delivering only the current status
+   would lose it.  For an Agent Principal and a Receiver, a pending
+   invalidation exists from a decision to disable the principal, made
+   once the IdP has provisioned the principal in that domain or owes
+   provisioning there, until the Receiver returns success for a
+   disablement that the IdP delivered after the decision.
+
+   When it delivers a principal's administrative status to a Receiver,
+   the IdP:
+
+   1.  MUST first deliver any pending invalidation as an applied
+       disablement: a SCIM write that sets active to false or, when it
+       provisions the principal, a create with active false.
+
+   2.  MUST NOT deliver an activation that a later decision superseded.
+
+   3.  MUST serialize delivery for the principal and the Receiver, and
+       MUST NOT lose a pending invalidation when one writer replaces
+       another.  A single writer per principal is one way to meet this.
+
+   An event that only triggers reconciliation does not discharge a
+   pending invalidation: the Receiver retrieves current state, in which
+   the principal can be active again.  After the applied disablement,
+   the IdP delivers the current status by either means.
+
+   A disablement and a reactivation that both occur while delivery is
+   down therefore reach the Receiver as active false and then active
+   true: the disablement invalidates the earlier authorization, and the
+   reactivation permits new decisions only.  A disablement, a
+   reactivation, and a second disablement reach it as one disablement,
+   with no activation.
+
+   A retried disablement can cost availability.  If the success response
+   to a disablement write is lost, the IdP still holds the pending
+   invalidation and retries the write.  When the Receiver's own
+   reconciliation has meanwhile found the principal active, the retry
+   invalidates the authorization issued in between.  It restores no
+   revoked authority, and once it succeeds the IdP delivers the current
+   status, so new decisions follow.
 
 4.  Identity and Local Correlation
 
@@ -345,42 +440,17 @@ Table of Contents
       update.  Attempts to change externalId use SCIM's mutability
       error.
 
+   *  At a multi-tenant issuer, an Agent belongs to the Provisioning
+      Domain of its Governance Tenant, the issuer tenant that the
+      agent's grants name in tenant.  A connector authorized for another
+      tenant of the same issuer is authorized for another context.
+
    Thus, externalId alone is not a globally qualified identity.  A
    deployment with multiple IdPs MUST retain the context with each
    resource; it cannot merge records on equal externalId values across
    issuers.  This use of externalId is specific to the IdP-to-resource
-   interface.  A platform's externalId at the IdP remains its own
-   provisioning correlation value.  The mutability differs for the same
-   reason: at the platform-to-IdP interface of [AGENT-MANAGEMENT] it is
-   the connector's record key and stays readWrite; here it carries the
-   principal identifier and is immutable once established.
-
-   When the source uses [AGENT-MANAGEMENT], the connector maps the
-   interfaces as follows; it does not copy the source Agent unchanged:
-
-    +=========================+======================================+
-    | IdP-side source         | Resource-domain use                  |
-    +=========================+======================================+
-    | Configured governing    | Issuer established by the            |
-    | issuer                  | authenticated Provisioning Domain    |
-    +-------------------------+--------------------------------------+
-    | AgentFederation.subject | Exact value of the destination       |
-    |                         | Agent's externalId                   |
-    +-------------------------+--------------------------------------+
-    | Agent active            | Upstream administrative state; local |
-    |                         | restrictions remain independent      |
-    +-------------------------+--------------------------------------+
-    | Agent id                | Source-resource correlation, not the |
-    |                         | destination SCIM id                  |
-    +-------------------------+--------------------------------------+
-    | Platform-assigned       | Platform correlation only; not the   |
-    | externalId              | federated principal identifier       |
-    +-------------------------+--------------------------------------+
-
-                                 Table 2
-
-   This mapping applies equally to direct provisioning and event-driven
-   reconciliation.  It introduces no additional destination attributes.
+   interface; Section 11.1 maps it from the IdP-side interface of
+   [AGENT-MANAGEMENT].
 
    For delegated access, the RAS MUST resolve the validated ID-JAG's
    act.iss and act.sub to this pair within the authorized Target Tenant.
@@ -405,37 +475,54 @@ Table of Contents
 4.1.  Just-in-Time Correlation
 
    [FEDERATION] defines just-in-time correlation: the resource-policy
-   gate per governing issuer and Target Tenant, exact keying by the
-   pair, and the local restrictions and retained revocation state
-   applied before issuance.  A Receiver that correlates agents that way
-   without supporting this interface uses those rules alone and does not
-   conform to this profile.
+   gate per governing issuer, or issuer and tenant at a multi-tenant
+   issuer, and Target Tenant; exact keying by the pair; and the local
+   restrictions and retained revocation state applied before issuance.
+   A Receiver that correlates agents that way without supporting this
+   interface uses those rules alone and does not conform to this
+   profile.
 
-   A conforming Receiver that permits just-in-time correlation MUST
-   expose the created principal in its Provisioning Domain with
-   externalId set to the agent identifier, and MUST subject it to the
-   same provisioning, reconciliation, and disablement rules as a
-   provisioned one.  Local Suspension is among the local restrictions
-   Federation requires it to apply, and the initial active value
-   reflects the initial eligibility set by local policy.
+   A conforming Receiver that permits just-in-time correlation MUST NOT
+   expose a record it created that way through SCIM before the Governing
+   IdP provisions its pair (Section 3.1).  Until then the record has no
+   SCIM active.  Its eligibility, which local policy sets, is one of the
+   local restrictions that Federation requires the RAS to apply, as is
+   Local Suspension.
 
-   A later SCIM create for the same pair therefore fails with
-   uniqueness; the connector finds the record with the externalId query
-   in Section 5 and updates it.  Provisioning that lags the first grant
-   thus converges on one principal rather than creating a second.  A
-   grant does not carry the IdP's administrative status, so just-in-time
-   correlation does not replace SCIM provisioning for disablement.
+   An otherwise valid and authorized create of an Agent whose externalId
+   is that pair's agent identifier, in the Provisioning Domain of the
+   triggering grant's issuer and, at a multi-tenant issuer, its tenant,
+   MUST NOT fail solely because the record exists.  The Receiver MUST
+   bind the new resource to the record's local principal, creating no
+   second one, and MUST keep that principal's local restrictions and
+   retained revocation state.  Ordinary SCIM validation still applies,
+   including required attributes and agentUserName uniqueness.  The
+   create's active value is an administrative status change to that
+   principal (Section 5.2), so an inactive create invalidates the
+   authorization issued before it.
+
+   Once the record is adopted this way, the Agent is provisioned like
+   any other.  A later create for the same pair fails with uniqueness,
+   and the connector finds the resource with the externalId query in
+   Section 5.  Of concurrent creates for the pair, one binds the record
+   and the others fail the same way (Section 4).  A record not yet
+   adopted has never been reconciled, so a stale-state interval claimed
+   under Section 6 runs from its creation.  A grant does not carry the
+   IdP's administrative status, so just-in-time correlation does not
+   replace provisioning for disablement.
 
 5.  SCIM Provisioning
 
    The interface uses /Agents and the attributes of [SCIM-AGENT],
    including required agentUserName, plus the common attributes of
-   [RFC7643].  It defines no extension schema.  Receivers MUST support
-   creation, retrieval, filtering by externalId, PUT, PATCH, and
-   deletion using [RFC7644].  The Receiver MUST advertise filtering,
-   PATCH, and ETag support in /ServiceProviderConfig.  Connectors for
-   /Agents are purpose-built for this resource; User/Group support alone
-   is insufficient.
+   [RFC7643].  It defines no extension schema.  The agentUserName
+   uniqueness that [SCIM-AGENT] requires applies within the Provisioning
+   Domain: this interface reads its server uniqueness that way, because
+   access controls, not only a base URI, can select the context
+   (Section 3).  Receivers MUST support creation, retrieval, filtering
+   by externalId, PUT, PATCH, and deletion using [RFC7644].  The
+   Receiver MUST advertise filtering, PATCH, and ETag support in
+   /ServiceProviderConfig.
 
 5.1.  Creation and Updates
 
@@ -460,7 +547,9 @@ Table of Contents
    this interface, meta.version is not a lifecycle counter and
    meta.lastModified is not a source decision time or a grant-revocation
    boundary; a descriptive edit can change both without affecting
-   authorization.
+   authorization.  SCIM modification times, SET issuance times, and
+   event timestamps MUST NOT be treated as interchangeable grant-
+   issuance cutoffs under this profile.
 
 5.2.  Applying Administrative State
 
@@ -491,7 +580,7 @@ Table of Contents
    |                      |                       | authority          |
    +----------------------+-----------------------+--------------------+
 
-                                  Table 3
+                                  Table 2
 
    The durable restriction rule of [OAUTH-CLIENT] applies to disablement
    and deletion with the RAS decision point as the decision point; an
@@ -538,13 +627,8 @@ Table of Contents
    state.
 
    Direct SCIM connectors and event-driven workers MUST coordinate local
-   writes through the same correlation and conditional-update rules.  A
-   reconciliation worker reads the receiver's ETag before retrieving
-   source state, then uses that ETag for its conditional write.  After a
-   conflict, it retrieves both again.  This prevents an in-flight fetch
-   from overwriting a later local restriction; it does not create a
-   cross-domain transaction or establish that a remote source replica is
-   current.
+   writes through the same correlation and conditional-update rules
+   (Section 11.2).
 
    Deployments SHOULD periodically reconcile managed principals even
    when an event stream appears operational.  They MUST document how
@@ -567,30 +651,6 @@ Table of Contents
    acknowledgment confirms acceptance under the transport, not API
    denial.
 
-6.1.  Missed Transitions and Reactivation
-
-   Current state does not establish transition history.  If disablement
-   and reactivation both occur between successful observations, a later
-   active resource does not reveal the missed revocation.  A different
-   ETag can also result from an ordinary descriptive edit; it does not
-   identify that history.
-
-   Consequently, this profile does not guarantee rejection after
-   reactivation of an old unredeemed ID-JAG or an authorization session
-   whose revocation was never observed.  Grant validation, replay
-   prevention, and expiration still apply.  Sessions actually revoked by
-   the RAS remain revoked.
-
-   Deployments requiring revocation to survive every missed transition
-   need retained revocation history, an authoritative authorization
-   check, or a separately specified authorization-generation mechanism.
-   That mechanism is a deferred composition rather than a prohibition:
-   it would carry an authenticated authorization generation in the
-   grant, agreed with ID-JAG, and define the comparison the RAS applies.
-   SCIM modification times, SET issuance times, and event timestamps
-   MUST NOT be treated as interchangeable grant-issuance cutoffs under
-   this profile.
-
 7.  OAuth Enforcement
 
    The RAS requirements that apply administrative state to authorization
@@ -600,45 +660,56 @@ Table of Contents
    Tenant, and not letting refresh bypass a restriction or restore
    revoked authorization.  Authorization invalidated under those rules
    is not active for token introspection [RFC7662].  This document
-   supplies the provisioning and signals that feed those decisions and
-   adds no grant issuance-time claim or timestamp comparison.  The
-   optional capability in Appendix A.4 additionally retains the ID-JAG
-   issuer and jti.  Once reactivated, the principal may establish new
-   authorization under ordinary Federation processing, subject to
-   Section 6.1.  Existing tokens whose agent correlation cannot be
-   established MUST NOT be represented as covered by this profile.
+   supplies the provisioning, signals, and token status that feed those
+   decisions.  It adds no grant issuance-time claim or timestamp
+   comparison; grant status (Section 8.3) adds only the status claim of
+   [STATUS-LIST].  The optional capability in Appendix A.4 additionally
+   retains the ID-JAG issuer and jti.  Once reactivated, the principal
+   may establish new authorization under ordinary Federation processing,
+   subject to Section 12.3.  Existing tokens whose agent correlation
+   cannot be established MUST NOT be represented as covered by this
+   profile.
 
 7.1.  Resource Enforcement and Delay
 
    The API applies Federation's token validation, actor gate, tenant,
    and sender-constraint rules.  The following are deployment choices,
-   not new conformance levels:
+   not new conformance levels; access-token status is also a capability
+   that a deployment can claim (Section 8.2):
 
-        +=================+======================================+
-        | Resource        | When an applied RAS revocation       |
-        | processing      | becomes visible                      |
-        +=================+======================================+
-        | Introspection   | On the next successful authorization |
-        | on each request | check; a failed or timed-out check   |
-        |                 | cannot authorize the request         |
-        +-----------------+--------------------------------------+
-        | Cached          | After any permitted active-response  |
-        | introspection   | cache entry expires or is            |
-        |                 | invalidated                          |
-        +-----------------+--------------------------------------+
-        | Offline JWT     | At token expiration, unless an       |
-        | validation      | independent local restriction takes  |
-        |                 | effect earlier                       |
-        +-----------------+--------------------------------------+
+     +========================+======================================+
+     | Resource processing    | When an applied RAS revocation       |
+     |                        | becomes visible                      |
+     +========================+======================================+
+     | Introspection on each  | On the next successful authorization |
+     | request                | check; a failed or timed-out check   |
+     |                        | cannot authorize the request         |
+     +------------------------+--------------------------------------+
+     | Cached introspection   | After any permitted active-response  |
+     |                        | cache entry expires or is            |
+     |                        | invalidated                          |
+     +------------------------+--------------------------------------+
+     | Offline JWT validation | At token expiration, unless an       |
+     |                        | independent local restriction takes  |
+     |                        | effect earlier                       |
+     +------------------------+--------------------------------------+
+     | Offline JWT validation | When the API retrieves and validates |
+     | with access-token      | a Status List Token that carries the |
+     | status (Section 8.2)   | token's changed status               |
+     +------------------------+--------------------------------------+
 
-                                 Table 4
+                                  Table 3
 
    Caching follows Federation and Section 4 of [RFC7662].  In
    particular, cached active responses cannot outlive token expiration
    or the configured freshness limit.  Offline validation does not
-   consult principal lifecycle state by itself.  The RAS and API MUST
-   configure token lifetimes, expiry leeway, and caching consistently
-   with their accepted revocation delay.
+   consult principal lifecycle state by itself.  With a status list, the
+   delay depends on when the RAS publishes the changed status, when the
+   API retrieves the list, and the API's maximum status age; expiry of a
+   cached list does not by itself show that a token is revoked.  The RAS
+   and API MUST configure token lifetimes, expiry leeway, caching, and
+   any maximum status age consistently with their accepted revocation
+   delay.
 
    Deployments SHOULD document their expected and maximum disablement
    delays, including propagation, reconciliation, local application,
@@ -649,7 +720,176 @@ Table of Contents
    stale-state restriction can limit new issuance; it does not by itself
    revoke already-issued tokens.
 
-8.  Revocation Boundaries
+8.  Token Status Lists
+
+   A Token Status List [STATUS-LIST] is a signed, compressed list in
+   which an issuer publishes the status of the tokens it issued, and
+   which a relying party retrieves and caches instead of asking about
+   each token.  This profile defines two capabilities that use it.  Each
+   is optional and claimed separately:
+
+   +=====================+===============+============+===============+
+   | Capability          | Status Issuer | Tokens     | Relying party |
+   +=====================+===============+============+===============+
+   | Access-token status | RAS           | JWT access | API, on each  |
+   | (Section 8.2)       |               | tokens     | request       |
+   +---------------------+---------------+------------+---------------+
+   | Grant status        | Governing IdP | ID-JAGs    | RAS, at       |
+   | (Section 8.3)       |               | and WAGs   | redemption    |
+   +---------------------+---------------+------------+---------------+
+
+                    Table 4: Token status capabilities
+
+   Access-token status lets an API that validates JWT access tokens
+   offline reject one once the RAS has revoked its authorization, before
+   it expires.  Grant status lets a RAS reject a grant whose authority
+   the IdP withdrew after issuing it, including a grant issued before a
+   disablement and first redeemed after a reactivation (Section 12.3).
+   Neither capability requires SCIM provisioning or Appendix A, and
+   neither changes an Agent Principal's administrative state.
+
+8.1.  Common Rules
+
+   Before a relying party relies on token status, the parties MUST
+   establish by configuration:
+
+   *  the tokens that carry status: for access-token status, the
+      resources whose access tokens do; for grant status, the governing
+      issuer, its tenant at a multi-tenant issuer, and the Target Tenant
+      whose grants do;
+
+   *  the keys that validate the Status List Tokens for those tokens
+      (Section 11.3 of [STATUS-LIST]), and the locations from which the
+      relying party retrieves them; and
+
+   *  the Status Issuer's publication interval, and the relying party's
+      maximum status age and permitted clock skew.
+
+   A token's acceptance period is the time during which the relying
+   party can accept it: until its expiration plus that clock skew
+   ("Time, Replay, and Key Validation" in [FEDERATION]).
+
+   A Status Issuer:
+
+   *  MUST include a status claim with a status_list member (Section 6.2
+      of [STATUS-LIST]) in every token it issues that is configured to
+      carry status;
+
+   *  MUST NOT allocate a Status List or uri value to one agent, user,
+      client, or token, and MUST NOT include an identifier of the agent,
+      user, or client in uri (Section 12.2 of [STATUS-LIST]);
+
+   *  MUST use only VALID (0x00), INVALID (0x01), and, for access-token
+      status, SUSPENDED (0x02);
+
+   *  MUST NOT change a status from INVALID; and
+
+   *  MUST reflect a status change in every Status List Token it issues
+      after the change takes effect, and MUST issue such a Status List
+      Token within its publication interval.
+
+   For a token configured to carry status, the relying party:
+
+   1.  MUST complete the token's own validation first.  A token that
+       fails it is rejected without a status check (Section 8.3 of
+       [STATUS-LIST]).
+
+   2.  MUST reject the token if it lacks a valid status_list member.
+
+   3.  MUST obtain a Status List Token for its uri from a configured
+       location and validate it under Section 8.3 of [STATUS-LIST] with
+       the configured keys.  A uri does not authorize retrieval from any
+       other location, including by redirection.  The relying party MUST
+       NOT rely on a Status List Token that has expired or whose iat is
+       older than its maximum status age.
+
+   4.  MUST accept the token only if its status is VALID.
+
+   A relying party that cannot obtain or validate a Status List Token it
+   may rely on has a check that cannot complete.  The RAS and the API
+   follow the rules of [FEDERATION] for that case, in "Redemption Error
+   Precedence" and "Error Responses" respectively: neither accepts the
+   token, and neither reports it revoked.
+
+   The Status Issuer's publication interval and the relying party's
+   maximum status age bound how long after a change a token can still be
+   accepted.  They are part of the revocation delay that Section 7.1
+   requires deployments to configure.
+
+8.2.  Access-Token Status
+
+   The RAS is the Status Issuer for the JWT access tokens [RFC9068] it
+   issues for a resource configured for this capability, and the API is
+   the relying party.
+
+   When the RAS revokes an authorization session, whether by applying a
+   disablement or deletion (Section 5.2), by grant-derived revocation
+   (Appendix A.4), by token revocation [RFC7009], or under its own
+   policy, it MUST set to INVALID every access token derived from that
+   session whose acceptance period (Section 8.1) has not ended.  While a
+   Local Suspension applies to an agent, the RAS MUST set to SUSPENDED
+   or INVALID that agent's access tokens whose acceptance period has not
+   ended, and it MUST NOT return a SUSPENDED token to VALID while a
+   restriction or revocation applies to its session.
+
+   The API applies Section 8.1 to each request whose access token is for
+   a configured resource, after the token validation of [FEDERATION].  A
+   token that fails it is an invalid access token, under the first row
+   of the resource server error responses in [FEDERATION].  An opaque
+   access token carries no status claim; the API learns its status by
+   introspection [RFC7662].
+
+8.3.  Grant Status
+
+   The Governing IdP is the Status Issuer for the ID-JAGs and WAGs it
+   issues to a RAS configured for this capability, and that RAS is the
+   relying party.
+
+   The IdP MUST set to INVALID each grant whose acceptance period
+   (Section 8.1) has not ended when it:
+
+   *  disables or deletes the grant's Agent Principal;
+
+   *  disables the Identity Binding, or withdraws the Client
+      Association, under which it issued the grant;
+
+   *  withdraws the Delegation Authorization or Agent Authorization
+      under which it issued the grant; or
+
+   *  revokes the grant, including by grant-derived revocation
+      (Appendix A.4).
+
+   To do so, the IdP MUST retain, for each grant it issued under this
+   capability and until the grant's acceptance period ends, its status
+   entry and the Agent Principal, Identity Binding, Client Association,
+   and Delegation Authorization or Agent Authorization under which it
+   issued the grant.  The IdP MAY set a grant to INVALID for any other
+   withdrawal of its authority.  Reactivating the principal or restoring
+   a relationship does not return a grant to VALID (Section 8.1).  The
+   IdP MUST keep each grant's entry in the Status List Tokens it serves
+   until the grant's acceptance period ends.
+
+   The RAS applies Section 8.1 at each redemption of a grant from a
+   configured issuer, as part of the grant's validation, the second step
+   of "Redemption Error Precedence" in [FEDERATION], and before it
+   records the grant as accepted.  A grant that fails it is rejected
+   with invalid_grant.  The RAS checks grant status once for each
+   redemption, when it accepts the grant.  A status change after that
+   acceptance does not by itself cancel a pending redemption; an applied
+   disablement (Section 5.2) or grant-derived revocation (Appendix A.4)
+   can.  Nor does the RAS check grant status at refresh: authorization
+   derived from a grant follows Section 5.2 and Appendix A.4, and an
+   issuer can stop serving the status of expired tokens (Section 13.1 of
+   [STATUS-LIST]).
+
+   Grant status rejects a grant whose authority the IdP withdrew before
+   the grant's acceptance period ended, including across a disablement
+   and reactivation that the Receiver never observed (Section 12.3),
+   within the IdP's publication interval and the RAS's maximum status
+   age.  It does not revoke authorization already derived from the
+   grant.
+
+9.  Revocation Boundaries
 
     +=============+===================================================+
     | Change      | Boundary                                          |
@@ -699,16 +939,17 @@ Table of Contents
    principals; losing one credential does not necessarily disable a
    principal with other valid bindings.
 
-8.1.  Self-Acting Access
+9.1.  Self-Acting Access
 
    The self-acting WAG realization in [FEDERATION] correlates the same
    Agent Principal with the same local principal.  Delegated access
    preserves the qualified actor in act; self-acting access represents
    the correlated agent as a local subject.  Their authority remains
-   distinct.  This document defines no [WAG] wire composition or
-   additional WAG claim.
+   distinct.  Apart from the status claim of grant status (Section 8.3),
+   this document defines no [WAG] wire composition or additional WAG
+   claim.
 
-9.  Platform-Hosted Agents
+10.  Platform-Hosted Agents
 
    A platform that hosts agents and authorizes them for its own
    resources can register them with the IdP for governance
@@ -753,13 +994,84 @@ Table of Contents
    consumers can correlate them.  This document defines no log or
    telemetry format.
 
-10.  Security Considerations
+11.  Implementation Considerations
+
+   These considerations add no requirements.  They describe how a
+   connector and a Receiver meet the requirements of the sections cited.
+
+11.1.  Connector
+
+   When the source uses [AGENT-MANAGEMENT], the connector maps the
+   interfaces as follows; it does not copy the source Agent unchanged:
+
+    +=========================+======================================+
+    | IdP-side source         | Resource-domain use                  |
+    +=========================+======================================+
+    | Configured governing    | Issuer established by the            |
+    | issuer                  | authenticated Provisioning Domain    |
+    +-------------------------+--------------------------------------+
+    | AgentFederation.subject | Exact value of the destination       |
+    |                         | Agent's externalId                   |
+    +-------------------------+--------------------------------------+
+    | Agent active            | Upstream administrative state; local |
+    |                         | restrictions remain independent      |
+    +-------------------------+--------------------------------------+
+    | Agent displayName       | The same descriptive value; it       |
+    |                         | selects nothing (Section 5)          |
+    +-------------------------+--------------------------------------+
+    | Agent agentUserName     | A value unique in the destination    |
+    |                         | Provisioning Domain: the source      |
+    |                         | value, or one the connector assigns; |
+    |                         | it selects nothing (Section 5)       |
+    +-------------------------+--------------------------------------+
+    | Agent id                | Source-resource correlation, not the |
+    |                         | destination SCIM id                  |
+    +-------------------------+--------------------------------------+
+    | Platform-assigned       | Platform correlation only; not the   |
+    | externalId              | federated principal identifier       |
+    +-------------------------+--------------------------------------+
+
+                 Table 6: Mapping from the IdP-side Agent
+
+   This mapping applies equally to direct provisioning and event-driven
+   reconciliation.  It introduces no destination attributes beyond those
+   of [SCIM-AGENT].  A platform's externalId at the IdP remains its own
+   provisioning correlation value.  The mutability differs for the same
+   reason: at the platform-to-IdP interface of [AGENT-MANAGEMENT] it is
+   the connector's record key and stays readWrite; here it carries the
+   principal identifier and is immutable once established (Section 4).
+
+   Names follow the destination's uniqueness, not the source's.  At the
+   IdP, agentUserName is unique within a Provisioning Domain scoped to
+   one Provisioning Client ([AGENT-MANAGEMENT]), so Agents of two such
+   domains can share a name and still reach one destination Provisioning
+   Domain, where it must be unique (Section 5).  A uniqueness error on a
+   create whose externalId query finds no Agent is such a collision.
+   The connector then assigns a destination-unique agentUserName, and
+   reuses the value it assigned when it retries. displayName is copied
+   unchanged, and correlation stays on externalId.
+
+   Connectors for /Agents are purpose-built for this resource; User and
+   Group support alone is insufficient.
+
+11.2.  Receiver
+
+   A reconciliation worker reads the Receiver's ETag before retrieving
+   source state, then uses that ETag for its conditional write.  After a
+   conflict, it retrieves both again.  This prevents an in-flight fetch
+   from overwriting a later local restriction; it does not create a
+   cross-domain transaction or establish that a remote source replica is
+   current (Section 6).
+
+12.  Security Considerations
+
+12.1.  Provisioning Writers
 
    Provisioning writers can enable principals and change eligibility.
-   Their authority MUST remain scoped to the configured issuer and
-   Target Tenant.  An event signature, matching display name, or equal
-   externalId outside that context does not establish permission to
-   correlate a principal.
+   Their authority MUST remain scoped to the configured issuer, its
+   tenant at a multi-tenant issuer, and Target Tenant.  An event
+   signature, matching display name, or equal externalId outside that
+   context does not establish permission to correlate a principal.
 
    Conditional writes prevent stale updates to a known receiver version;
    they do not prove that a connector consulted current source state.
@@ -768,6 +1080,8 @@ Table of Contents
    reconciliation, and local suspension therefore remain separate
    controls.
 
+12.2.  Events
+
    Event trust, provisioning permission, and session-revocation
    authority remain separate.  Receivers MUST constrain source retrieval
    and credential forwarding to authorized endpoints.  A signed subject
@@ -775,17 +1089,66 @@ Table of Contents
    revocation.
 
    Event loss and reordering can delay enforcement.  Receivers SHOULD
-   retry reconciliation, monitor failures, and retain revoked-session
-   state across restarts.  Recovery from lost revocation state MUST NOT
-   silently restore sessions represented as revoked.  The explicit limit
-   in Section 6.1 is particularly relevant to unattended refresh.
+   retry reconciliation and monitor failures.  Revocation state is
+   retained, including across restarts, as Section 5.2 requires.
+   Recovery from lost revocation state MUST NOT silently restore
+   sessions represented as revoked.  The explicit limit in Section 12.3
+   is particularly relevant to unattended refresh.
+
+12.3.  Missed Transitions and Reactivation
+
+   Current state does not establish transition history.  If disablement
+   and reactivation both occur between successful observations, a later
+   active resource does not reveal the missed revocation.  A different
+   ETag can also result from an ordinary descriptive edit; it does not
+   identify that history.  Section 3.1 therefore does not rely on
+   observation: the Governing IdP delivers each disablement it decided
+   as an applied one, even after it has reactivated the principal, so
+   the Receiver invalidates the authorization issued before it.
+
+   Two limits remain.  Until the disablement is delivered, authorization
+   issued before it stays usable, within the delays of Section 7.1.  And
+   a grant issued before the disablement and first redeemed after the
+   reactivation has no derived authorization for the disablement to
+   invalidate.  Grant status (Section 8.3) rejects either grant at
+   redemption.  Without it, grant-derived revocation (Appendix A.4) can
+   reach such an ID-JAG, and nothing in this profile reaches such a WAG.
+   Grant validation, replay prevention, and expiration still apply.
+   Sessions actually revoked by the RAS remain revoked.
+
+   Deployments requiring rejection of such grants need grant status,
+   grant-derived revocation, retained revocation history, an
+   authoritative authorization check, or a separately specified
+   authorization-generation mechanism.
+
+12.4.  Offline Tokens
 
    A disabled principal may still have tokens accepted by an offline
-   API.  Token expiry and cached responses MUST be included in
-   operational claims; stopping issuance alone does not terminate
-   ongoing work or retract operations already performed.
+   API.  Once the RAS applies the disablement (Section 5.2) or otherwise
+   revokes the authorization, access-token status (Section 8.2) limits
+   further acceptance to the RAS's publication interval and the API's
+   maximum status age.  The delay before the RAS does so, including
+   propagation from the Governing IdP, is separate; without a bound on
+   it, this profile claims no finite end-to-end bound (Section 7.1).
+   Grant status does not shorten that delay, because it does not revoke
+   authorization already derived from a grant (Section 8.3).  Token
+   expiry and cached responses MUST be included in operational claims;
+   stopping issuance alone does not terminate ongoing work or retract
+   operations already performed.
 
-11.  Privacy Considerations
+12.5.  Token Status
+
+   A relying party that accepted a token whenever it could not obtain a
+   current Status List Token would let an outage of the Status Provider,
+   or an attacker who blocks it, extend acceptance of revoked tokens.
+   Section 8.1 treats that case as a check that cannot complete.  A
+   replayed older Status List Token is bounded by its exp and the
+   relying party's maximum status age.  A key that signs Status List
+   Tokens can revoke tokens, or present revoked ones as valid, in the
+   populations configured for it, so it needs the protection of the keys
+   that sign the tokens themselves.
+
+13.  Privacy Considerations
 
    The qualified identity permits correlation across users and
    resources.  Provisioning and event access SHOULD be limited to the
@@ -793,13 +1156,19 @@ Table of Contents
    actions and affected identities without copying reusable grants,
    access tokens, or credentials.
 
-12.  IANA Considerations
+   A Status List covers many tokens, so retrieving it does not reveal
+   which token a relying party is checking (Section 12.1 of
+   [STATUS-LIST]); Section 8.1 forbids lists and uri values specific to
+   one agent, user, client, or token, which would reveal it.  The Status
+   Issuer still learns when relying parties retrieve its lists.
+
+14.  IANA Considerations
 
    This document requests no IANA actions.
 
-13.  References
+15.  References
 
-13.1.  Normative References
+15.1.  Normative References
 
    [CAEP]     OpenID Foundation, "OpenID Continuous Access Evaluation
               Profile 1.0", 29 August 2025,
@@ -843,12 +1212,12 @@ Table of Contents
    [ID-JAG]   Parecki, A., McGuinness, K., and B. Campbell, "Identity
               Assertion JWT Authorization Grant", Work in Progress,
               Internet-Draft, draft-ietf-oauth-identity-assertion-authz-
-              grant-04, 21 May 2026,
+              grant-06, 30 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              identity-assertion-authz-grant-04>.
+              identity-assertion-authz-grant-06>.
 
    [FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Governed Agent
+              McGuinness, K., "OAuth 2.0 Profile for Agent Principal
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 18 September
               2026, <https://datatracker.ietf.org/doc/html/draft-
@@ -866,7 +1235,7 @@ Table of Contents
               McGuinness, K., "SCIM Profile for OAuth 2.0 Client
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-oauth-client-management, 18 September
-              2026, <https://mcguinness.github.io/governed-agent-
+              2026, <https://mcguinness.github.io/agent-principal-
               profiles/draft-mcguinness-scim-oauth-client-
               management.html>.
 
@@ -884,6 +1253,17 @@ Table of Contents
               RFC 7662, DOI 10.17487/RFC7662, October 2015,
               <https://www.rfc-editor.org/rfc/rfc7662>.
 
+   [RFC9068]  Bertocci, V., "JSON Web Token (JWT) Profile for OAuth 2.0
+              Access Tokens", RFC 9068, DOI 10.17487/RFC9068, October
+              2021, <https://www.rfc-editor.org/rfc/rfc9068>.
+
+   [STATUS-LIST]
+              Looker, T., Bastian, P., and C. Bormann, "Token Status
+              List (TSL)", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-status-list-21, 21 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              status-list-21>.
+
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
               At the time of writing, this BCP comprises the following:
@@ -897,14 +1277,18 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-13.2.  Informative References
+15.2.  Informative References
 
    [AGENT-MANAGEMENT]
-              McGuinness, K., "SCIM Profile for Governed Agent
-              Federation Management", Work in Progress, Internet-Draft,
-              draft-mcguinness-scim-agent-federation, 18 September 2026,
-              <https://mcguinness.github.io/governed-agent-profiles/
+              McGuinness, K., "SCIM Profile for Agent Principal
+              Management", Work in Progress, Internet-Draft, draft-
+              mcguinness-scim-agent-federation, 18 September 2026,
+              <https://mcguinness.github.io/agent-principal-profiles/
               draft-mcguinness-scim-agent-federation.html>.
+
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
+              Federation", <https://github.com/mcguinness/agent-
+              principal-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
    [RFC7009]  Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,
@@ -913,9 +1297,9 @@ Table of Contents
    [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
               A., and B. Campbell, "Workload Authorization Grant", Work
               in Progress, Internet-Draft, draft-carleton-workload-
-              authz-grant-01, 22 September 2026,
+              authz-grant-02, 2 November 2026,
               <https://datatracker.ietf.org/doc/html/draft-carleton-
-              workload-authz-grant-01>.
+              workload-authz-grant-02>.
 
 Appendix A.  Optional Shared Signals Profile
 
@@ -938,9 +1322,9 @@ A.1.  Trust and Delivery
    *  For SCIM event reconciliation, the source SCIM service, retrieval
       authority, and source-resource correlation under Section 6.
 
-   *  For grant-derived revocation, the governing ID-JAG issuer whose
-      grants the Transmitter may revoke, and agreement to apply
-      Appendix A.4.
+   *  For grant-derived revocation, the governing ID-JAG issuer, and its
+      tenant at a multi-tenant issuer, whose grants the Transmitter may
+      revoke, and agreement to apply Appendix A.4.
 
    *  For coarse user-and-tenant revocation, the authorized user
       namespace and revocation scope defined in Appendix A.4.
@@ -991,7 +1375,7 @@ A.2.  SCIM Reconciliation Triggers
       |                     | not establish deletion or disablement |
       +---------------------+---------------------------------------+
 
-                                  Table 6
+                                  Table 7
 
    Transmitters MUST report administrative changes for resources covered
    by an agreed stream using an appropriate subscribed event.  Event
@@ -1033,7 +1417,7 @@ A.2.  SCIM Reconciliation Triggers
 
 A.3.  Platform Signals to the IdP
 
-   A platform hosting registered agents (Section 9) MAY transmit events
+   A platform hosting registered agents (Section 10) MAY transmit events
    about them to the IdP.  Trusted stream configuration MUST establish
    the platform as Transmitter for the agents its connector registered,
    and the IdP MUST reject an event about any other agent.
@@ -1089,10 +1473,12 @@ A.4.  Grant-Derived Session Revocation
 
    *  The Receiver MUST verify that the subject's iss matches the
       governing ID-JAG issuer authorized in the stream configuration.
-      That configuration supplies the Target Tenant.  The revocation key
-      is (ID-JAG issuer, ID-JAG jti, Target Tenant); it MUST NOT be
-      matched as a bare RAS session identifier or used outside that
-      tenant.
+      That configuration supplies the Target Tenant.  At a multi-tenant
+      issuer, the Receiver MUST apply the revocation, including a denial
+      retained before redemption, only to a grant whose tenant is the
+      tenant that configuration authorizes.  The revocation key is (ID-
+      JAG issuer, ID-JAG jti, Target Tenant); it MUST NOT be matched as
+      a bare RAS session identifier or used outside that tenant.
 
    *  On redemption, a participating RAS MUST retain that key with every
       derived authorization session, access token, and refresh
@@ -1147,7 +1533,7 @@ A.5.  Unit of Revocation
     |                         | tenant                    |           |
     +-------------------------+---------------------------+-----------+
 
-                                  Table 7
+                                  Table 8
 
    None establishes a shorter API enforcement delay than Section 7.1.
 
@@ -1197,7 +1583,7 @@ B.2.  Activate and Exchange
 
    The placeholder connector token is not a test credential.  The
    Receiver returns a new ETag.  At 12:01:03, the IdP issues ID-JAG
-   grant-7 for Alice with act.iss https://idp.example/ and act.sub
+   grant-1 for Alice with act.iss https://idp.example/ and act.sub
    agent-42.  No lifecycle timestamp is added to the grant or compared
    with its iat.
 
@@ -1222,11 +1608,11 @@ B.3.  Disable and Re-enable
    principal.
 
    At 12:03, reactivation permits new authorization decisions.  It does
-   not restore the sessions revoked at 12:02.  If the Receiver missed
-   the entire disable-and-reenable cycle, a later active GET alone
-   cannot establish that those sessions were revoked.  An old unredeemed
-   grant is likewise subject to normal grant validation, not a new
-   lifecycle cutoff.
+   not restore the sessions revoked at 12:02.  Had the Receiver been
+   unreachable from 12:02 to 12:03, the connector would still have
+   delivered the disablement before the activation (Section 3.1), with
+   the same effect.  An old unredeemed grant is subject to normal grant
+   validation, not a new lifecycle cutoff.
 
 B.4.  Acceptance Checklist
 
@@ -1235,6 +1621,15 @@ B.4.  Acceptance Checklist
     +===========================+====================================+
     | Equal externalId under a  | Distinct qualified identity; no    |
     | different IdP context     | automatic correlation              |
+    +---------------------------+------------------------------------+
+    | Create for a pair the RAS | Adopted: one principal, keeping    |
+    | correlated just in time   | its local restrictions and         |
+    |                           | revocation state                   |
+    +---------------------------+------------------------------------+
+    | Two Agents sharing an     | Both provisioned; the connector    |
+    | agentUserName from        | assigns one a destination-unique   |
+    | different IdP-side        | name; each correlates by its own   |
+    | Provisioning Domains      | externalId                         |
     +---------------------------+------------------------------------+
     | Stale If-Match            | HTTP 412; retrieve and reconcile   |
     |                           | before retrying                    |
@@ -1252,8 +1647,25 @@ B.4.  Acceptance Checklist
     |                           | not apply the notice as an         |
     |                           | activation command                 |
     +---------------------------+------------------------------------+
-    | Entire disable-and-       | Current active state cannot        |
-    | reenable cycle missed     | recover revocation history         |
+    | Disable and re-enable     | The disablement is delivered, then |
+    | while the Receiver is     | the activation; sessions from      |
+    | unreachable               | before stay revoked                |
+    +---------------------------+------------------------------------+
+    | Disable, re-enable, and   | One disablement is delivered, and  |
+    | disable while the         | no activation                      |
+    | Receiver is unreachable   |                                    |
+    +---------------------------+------------------------------------+
+    | Disablement write retried | The retry invalidates              |
+    | after a lost success      | authorization issued in between;   |
+    | response, once            | new decisions follow the IdP's     |
+    | reconciliation has found  | next delivery                      |
+    | the principal active      |                                    |
+    +---------------------------+------------------------------------+
+    | Grant issued before a     | With grant status, rejected with   |
+    | disablement, first        | invalid_grant; without it, not     |
+    | redeemed after            | invalidated by the disablement,    |
+    | reactivation              | and grant-derived revocation can   |
+    |                           | reach an ID-JAG                    |
     +---------------------------+------------------------------------+
     | Grant revocation arrives  | Retain the denial; reject later    |
     | before redemption         | redemption                         |
@@ -1278,11 +1690,20 @@ B.4.  Acceptance Checklist
     | SCIM success or SET       | Does not establish immediate API   |
     | acknowledgment            | denial                             |
     +---------------------------+------------------------------------+
-    | Offline JWT               | May remain usable until expiration |
+    | Offline JWT               | With access-token status, rejected |
+    |                           | once the API holds a valid Status  |
+    |                           | List Token that marks it;          |
+    |                           | otherwise usable until expiration  |
     |                           | unless separately restricted       |
     +---------------------------+------------------------------------+
+    | Token status that cannot  | No redemption or operation; HTTP   |
+    | be obtained, or only from | 503 unless an earlier failure is   |
+    | an expired Status List    | established                        |
+    | Token or one older than   |                                    |
+    | the maximum status age    |                                    |
+    +---------------------------+------------------------------------+
 
-                                 Table 8
+                                 Table 9
 
 Appendix C.  Signal Examples
 
@@ -1324,7 +1745,7 @@ C.1.  Provisioning Change Notice
 C.2.  Revoke Authorization Derived from an ID-JAG
 
    Separately, an authorized Transmitter can report revocation of the
-   ID-JAG grant-7 issued in Appendix B while the principal remains
+   ID-JAG grant-1 issued in Appendix B while the principal remains
    active:
 
    {
@@ -1333,11 +1754,11 @@ C.2.  Revoke Authorization Derived from an ID-JAG
      "https://ras.example/signals/acme-data"
     ],
     "iat": 1789646520,
-    "jti": "revoke-grant-7",
+    "jti": "revoke-grant-1",
     "sub_id": {
      "format": "jwt_id",
      "iss": "https://idp.example/",
-     "jti": "grant-7"
+     "jti": "grant-1"
     },
     "events": {
    "https://schemas.openid.net/secevent/caep/event-type/session-revoked"
@@ -1352,16 +1773,21 @@ C.2.  Revoke Authorization Derived from an ID-JAG
    }
 
    No principal-state update is implied.  Revocation covers every
-   session derived from grant-7, not another grant's sessions or every
+   session derived from grant-1, not another grant's sessions or every
    session involving the same agent.
 
-Appendix D.  Platform-Hosted Agent Walkthrough
+Appendix D.  Platform-Hosted Agent Example
 
-   This non-normative walkthrough follows one first-party agent on a
-   data platform from creation to retirement, under Section 9 and
-   [AGENT-MANAGEMENT].  It is a specification walkthrough, not an
-   executed implementation test.  Signatures, credentials, and tokens
-   are omitted or shown as placeholders.
+   This non-normative example follows one first-party agent on a data
+   platform through signals, a risk change, disablement, and re-
+   enablement under Section 10.  The platform's connector registered the
+   agent with the IdP under [AGENT-MANAGEMENT], which returned the Agent
+   Principal identifier, and streams in both directions are configured
+   as Appendix A.3 describes.  This deployment sets no revalidation
+   bound (Section 6), so the platform keeps authorizing on locally
+   applied state while the IdP is unreachable.  [GUIDE] shows that
+   setup, and the agent's later federation and retirement.  Signatures,
+   credentials, and tokens are omitted or shown as placeholders.
 
       +=====================+======================================+
       | Party               | Identifier                           |
@@ -1380,97 +1806,14 @@ Appendix D.  Platform-Hosted Agent Walkthrough
       +---------------------+--------------------------------------+
       | Agent Principal     | (https://idp.example/, agent-58)     |
       +---------------------+--------------------------------------+
-      | Agent owner, an IdP | u-2819                               |
-      | User                |                                      |
-      +---------------------+--------------------------------------+
 
-                     Table 9: Walkthrough identifiers
+                      Table 10: Example identifiers
 
-D.1.  Configure the Relationship
+D.1.  Report a Credential Change
 
-   Once, before any agent exists, the IdP administrator:
-
-   *  authorizes the platform's connector to register and describe
-      Agents in Governance Tenant acme, without authority to create
-      Identity Bindings or Client Associations, or to enable an Agent
-      the IdP disabled;
-
-   *  configures a stream from the IdP to the platform for SCIM change
-      notices about the Agents that connector registered, and for CAEP
-      risk-level-change with principal value AGENT agreed for registered
-      agents; and
-
-   *  configures a stream from the platform to the IdP for WISE
-      credential and posture events and CAEP session-revoked about those
-      Agents.
-
-   The platform needs nothing else from the IdP to run its agents.  This
-   deployment sets no revalidation bound, so the platform keeps
-   authorizing on locally applied state while the IdP is unreachable.
-
-D.2.  Register the Agent
-
-   At 14:00 UTC on September 17, 2026, a customer creates a report-
-   building agent on the platform.  The platform names it agt-31, with
-   workload identifier wimse://dataplatform.example/agents/agt-31, and
-   its connector registers the agent:
-
-   POST /scim/acme/Agents HTTP/1.1
-   Host: idp.example
-   Authorization: Bearer CONNECTOR_ACCESS_TOKEN
-   Content-Type: application/scim+json
-
-   {
-     "schemas": [
-       "urn:ietf:params:scim:schemas:core:2.0:Agent",
-     "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent"
-     ],
-    "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
-       {},
-     "externalId": "wimse://dataplatform.example/agents/agt-31",
-     "agentUserName": "report-builder",
-     "displayName": "Quarterly report builder",
-     "description": "Builds finance reports from platform tables",
-     "owners": [{"value": "u-2819"}],
-     "active": true
-   }
-
-   IdP policy approves registrations from this connector automatically,
-   so the Agent is created active.  The response carries SCIM id a58 and
-   AgentFederation.subject agent-58.  The platform stores the
-   correlation from agt-31 to (https://idp.example/, agent-58).  The
-   Agent has no Identity Binding or Client Association, so the IdP
-   issues it no grant.
-
-   Under an approval policy, the IdP would instead create the Agent with
-   active: false, and the platform would deny the agent authorization
-   until the IdP activated it.
-
-D.3.  Operate on the Platform
-
-   The agent reads finance tables and writes reports through the
-   platform's own authorization; no request reaches the IdP.  The
-   platform's audit record for one read carries both identifiers, for
-   example:
-
-   {
-     "time": "2026-09-17T14:05:00Z",
-     "action": "table.read",
-     "resource": "finance.q3_ledger",
-     "agent": {
-       "platform_id": "wimse://dataplatform.example/agents/agt-31",
-       "principal": {"iss": "https://idp.example/", "sub": "agent-58"}
-     }
-   }
-
-   This shape is illustrative; Section 9 defines no log format.  The
-   IdP, a SIEM, or a posture tool joins this record with the Agent's
-   SCIM resource and the events below on the qualified identifier.
-
-D.4.  Report a Credential Change
-
-   At 14:20, the platform rotates the agent's Workload Identity
-   Certificate and reports it to the IdP in a SET with these claims:
+   At 14:20 UTC on September 17, 2026, the platform rotates the agent's
+   Workload Identity Certificate and reports it to the IdP in a SET with
+   these claims:
 
    {
      "iss": "https://dataplatform.example/",
@@ -1510,13 +1853,13 @@ D.4.  Report a Credential Change
    registered agent-58 and both identifiers name that Agent.  The event
    updates the IdP's view of the agent; it does not change active.
 
-D.5.  Report Anomalous Behavior
+D.2.  Report Anomalous Behavior
 
    At 14:25, the platform observes the agent reading tables outside its
    usual pattern and sends WISE anomalous-behavior-detected with
    severity high and the same subject.  The event is advisory.
 
-D.6.  Raise the Agent's Risk
+D.3.  Raise the Agent's Risk
 
    At 14:30, the IdP's risk analysis, combining the platform's report
    with other signals, rates the agent HIGH.  It sends CAEP risk-level-
@@ -1524,12 +1867,12 @@ D.6.  Raise the Agent's Risk
    Platform policy restricts the agent to read-only operations.  The
    agent remains active; a risk event is not a disablement.
 
-D.7.  Disable the Agent
+D.4.  Disable the Agent
 
    At 14:31, an IdP administrator disables agent-58.  The IdP sends the
    platform a SCIM change notice for /Agents/a58, as in Appendix C.  The
    platform retrieves /Agents/a58 from the IdP, observes active: false,
-   and under Section 9:
+   and under Section 10:
 
    *  denies new authorization for agt-31;
 
@@ -1544,7 +1887,7 @@ D.7.  Disable the Agent
    reconciliation retrieves the Agent.  An unreachable IdP neither
    disables nor re-enables the agent.
 
-D.8.  Re-enable
+D.5.  Re-enable
 
    At 15:00, the IdP administrator re-enables the Agent, and the
    platform retrieves and applies active: true.  The agent can obtain
@@ -1554,42 +1897,6 @@ D.8.  Re-enable
 
    If the platform had suspended the agent itself, re-enablement at the
    IdP would not clear that Local Suspension.
-
-D.9.  Reach a Third-Party Resource
-
-   Later, the agent needs a third-party API on behalf of Alice, a
-   finance analyst who is not its owner.  An administrator authorized
-   for bindings adds an Identity Binding to /Agents/a58 with credential
-   class platform-jwt, source authority https://dataplatform.example/,
-   and source subject wimse://dataplatform.example/agents/agt-31.  The
-   administrator also adds a Client Association permitting the
-   platform's OAuth client to use that binding ([AGENT-MANAGEMENT]).
-   Separately, the IdP records Alice's delegation authorization for the
-   agent at that resource and scope.  The Agent's owners do not
-   establish that delegation.
-
-   For access on Alice's behalf, the platform authenticates its OAuth
-   client and presents Alice's ID Token as subject_token and its JWT for
-   agt-31 as actor_token.  After validating delegation authorization for
-   the requested resource and scope, the IdP issues an ID-JAG
-   identifying Alice in sub and (https://idp.example/, agent-58) in act
-   under [FEDERATION].  The third-party RAS correlates that pair as in
-   Appendix B.
-
-   For the agent's own access, with no user, the IdP would instead need
-   Agent Authorization and a Client Association for self-acting
-   issuance, and would issue a WAG with agent-58 as sub.
-
-   Either way, the principal identifier, owner, and audit history
-   registered at 14:00 carry over unchanged.
-
-D.10.  Retire the Agent
-
-   At 16:00, the customer deletes the agent.  The connector deletes
-   /Agents/a58 at the IdP.  The binding and association become unusable,
-   and agent-58 is never assigned to another agent.  A third-party
-   resource domain provisioned for agent-58 applies the deletion under
-   Section 5.2.
 
 Appendix E.  Document History
 
