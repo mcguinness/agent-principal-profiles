@@ -58,6 +58,7 @@ import copy
 import hashlib
 import http.client
 import json
+import math
 import secrets
 import threading
 import time
@@ -245,6 +246,9 @@ CHECKS = {
     "ras.status_unavailable": "a grant whose status no Status List Token may be relied on for "
                               "gets HTTP 503, not acceptance",
     "ras.status_max_age": "a Status List Token older than the maximum status age is not relied on",
+    "ras.status_time": "a Status List Token's iat is not after now plus skew, and any "
+                       "NumericDate, integer or not, is accepted in its time claims",
+    "ras.status_nbf": "a Status List Token whose nbf is after now plus skew is not relied on",
     "ras.access_token_status_revoke": "applying a disablement sets the agent's access tokens "
                                       "to INVALID",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
@@ -294,6 +298,9 @@ CHECKS = {
     "api.status_unavailable": "an access token whose status no Status List Token may be relied "
                               "on for gets HTTP 503, not acceptance",
     "api.status_max_age": "a Status List Token older than the maximum status age is not relied on",
+    "api.status_time": "a Status List Token's iat is not after now plus skew, and any "
+                       "NumericDate, integer or not, is accepted in its time claims",
+    "api.status_nbf": "a Status List Token whose nbf is after now plus skew is not relied on",
 }
 
 
@@ -360,6 +367,18 @@ def _time_valid(claims, require_iat, check_future=True, now=None):
         if value is not None and (not isinstance(value, int) or value > now + SKEW):
             return False
     return True
+
+
+def _numeric_date(value):
+    """A NumericDate: a finite JSON number, integer or not (RFC 7519 Section 2)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and \
+        math.isfinite(value)
+
+
+def _integer_date(value):
+    """An integer time value; only a relying party with its status_time check off
+    requires one for a Status List Token."""
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def _typ_is(header, media_type):
@@ -452,10 +471,13 @@ class Server:
         # DPoP nonces (RFC 9449 Sections 8 and 9): off unless test control
         # requires them.
         self.require_nonce, self.nonce = False, secrets.token_urlsafe(16)
-        # Test control: the Status Provider fails ("error") or serves a Status
+        # Test control: the Status Provider fails ("error"), or serves a Status
         # List Token issued before the relying party's maximum status age
-        # ("stale").
+        # ("stale"), with iat an hour ahead ("future_iat"), or with nbf an
+        # hour ahead ("future_nbf"); or it serves time claims that are not
+        # integers.
         self.status_unavailable = False
+        self.status_fractional_times = False
         # A relying party's cached Status List Tokens, by uri (TSL Section
         # 13.7): each with its claims, decompressed list, and retrieval time.
         self.status_cache = {}
@@ -490,9 +512,12 @@ class Server:
         elif op == "set" and body.get("what") == "dpop_nonce":
             self.require_nonce = bool(body["value"])
         elif op == "set" and body.get("what") == "status_unavailable":
-            if body["value"] not in (False, None, "error", "stale"):
-                raise OAuthError("invalid_request", 400, "error, stale or false")
+            if body["value"] not in (False, None, "error", "stale", "future_iat", "future_nbf"):
+                raise OAuthError("invalid_request", 400,
+                                 "error, stale, future_iat, future_nbf or false")
             self.status_unavailable = body["value"] or False
+        elif op == "set" and body.get("what") == "status_fractional_times":
+            self.status_fractional_times = bool(body["value"])
         elif op == "disable_check":
             if body["name"] not in CHECKS:
                 raise OAuthError("invalid_request", description="unknown check")
@@ -508,10 +533,14 @@ class Server:
         5.1 and 8.1), signed with the key that signs its other tokens."""
         if self.status_unavailable == "error":
             raise OAuthError(None, 503)
-        now = int(self.now())
-        iat = now - 2 * STATUS_MAX_AGE if self.status_unavailable == "stale" else now
+        now, mode = int(self.now()), self.status_unavailable
+        iat = {"stale": now - 2 * STATUS_MAX_AGE, "future_iat": now + 3600}.get(mode, now)
         claims = {"sub": self.status_list.uri, "iat": iat, "exp": now + STATUS_LIST_LIFETIME,
                   "ttl": STATUS_LIST_TTL, "status_list": self.status_list.encoded()}
+        if mode == "future_nbf":
+            claims["nbf"] = now + 3600
+        if self.status_fractional_times:
+            claims.update(iat=iat - 0.5, nbf=iat - 0.25, exp=claims["exp"] + 0.5)
         token = jws.sign({"typ": "statuslist+jwt", "kid": self.kid}, claims, self.key)
         return _respond(start_response, 200, token.encode("ascii"),
                         content_type="application/statuslist+jwt")
@@ -575,9 +604,21 @@ class Server:
                 header, listed = jws.verify(resp.read().decode("ascii"), key, "RS256")
         except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
             raise StatusUnavailable()
-        iat, ttl, lst = listed.get("iat"), listed.get("ttl", 1), listed.get("status_list")
+        iat, nbf = listed.get("iat"), listed.get("nbf")
+        ttl, lst = listed.get("ttl", 1), listed.get("status_list")
+        if self.on(f"{self.role}.status_time"):
+            # iat is a NumericDate not after now plus skew (core: Time, Replay,
+            # and Key Validation).
+            times = _numeric_date(iat) and iat <= now + SKEW
+        else:
+            # Non-conforming: an integer iat, and a future one accepted.
+            times = _integer_date(iat)
+        if nbf is not None and self.on(f"{self.role}.status_nbf"):
+            # nbf, where present, not after now plus skew (RFC 7519 Section
+            # 4.1.5); with the check off, nbf is ignored.
+            times = times and _numeric_date(nbf) and nbf <= now + SKEW
         if not _typ_is(header, "statuslist+jwt") or listed.get("sub") != uri or \
-                not isinstance(iat, int) or not self.status_usable(listed, now) or \
+                not times or not self.status_usable(listed, now) or \
                 not isinstance(ttl, (int, float)) or isinstance(ttl, bool) or ttl <= 0 or \
                 not isinstance(lst, dict) or lst.get("bits") not in (1, 2, 4, 8) or \
                 not isinstance(lst.get("lst"), str):
@@ -592,7 +633,8 @@ class Server:
         """Whether a relying party may still rely on a Status List Token: not expired,
         and issued within its maximum status age."""
         exp = listed.get("exp")
-        if exp is not None and (not isinstance(exp, int) or exp + SKEW < now):
+        date = _numeric_date if self.on(f"{self.role}.status_time") else _integer_date
+        if exp is not None and (not date(exp) or exp + SKEW < now):
             return False
         return not (listed["iat"] < now - STATUS_MAX_AGE and
                     self.on(f"{self.role}.status_max_age"))

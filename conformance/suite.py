@@ -418,7 +418,13 @@ class Adapter:
                                           an unexpired Status List Token
                                           issued before the relying
                                           party's maximum status age;
-                                          false: normal)
+                                          "future_iat" and "future_nbf"
+                                          serve one whose iat or nbf is
+                                          an hour ahead; false: normal),
+                                          status_fractional_times (its
+                                          Status List Tokens carry iat,
+                                          nbf and exp that are not
+                                          integers)
                                      ras: agent_active, actor_gate,
                                           multi_tenant_issuer (false: the
                                           RAS's configuration treats the
@@ -480,6 +486,7 @@ class Adapter:
                                           access_token_status (status in
                                           its access tokens for
                                           `resource`), status_unavailable
+                                          and status_fractional_times
                                           (as at the IdP)
                                      api: bearer_permitted (accept bearer
                                           tokens for `resource`), actor_gate,
@@ -3871,7 +3878,12 @@ def token_status(ctx, claims, label):
         raise AssertionError(f"the Status List Token {uri} does not decode: {err}")
     check(typ_is(header, "statuslist+jwt"), f"Status List Token typ {header.get('typ')!r}")
     check(listed.get("sub") == uri, f"Status List Token sub {listed.get('sub')!r} is not {uri}")
-    check(numeric(listed.get("iat")), "the Status List Token has no iat")
+    now, skew = ctx.now(), ctx.cfg.clock_skew
+    check(numeric(listed.get("iat")) and listed["iat"] <= now + skew,
+          f"the Status List Token's iat {listed.get('iat')!r} is missing or in the future")
+    if "nbf" in listed:
+        check(numeric(listed["nbf"]) and listed["nbf"] <= now + skew,
+              f"the Status List Token's nbf {listed['nbf']!r} is in the future")
     if "exp" in listed:
         check(numeric(listed["exp"]) and listed["exp"] >= ctx.now(),
               f"the Status List Token expired at {listed['exp']!r}")
@@ -3904,6 +3916,12 @@ def access_token_status(ctx):
     """Configure access-token status at the RAS and the API."""
     ctx.adapter.set("ras", "access_token_status", True)
     ctx.adapter.set("api", "access_token_status", True)
+
+
+# A Status Provider that fails, or serves a Status List Token no relying party
+# may rely on: issued before the maximum status age, or with iat or nbf in the
+# future.
+UNUSABLE_PROVIDER = ("error", "stale", "future_iat", "future_nbf")
 
 
 def await_publication(ctx):
@@ -4064,14 +4082,15 @@ def l04(ctx):
       "be relied on, and redeems the grant once one may",
       "lifecycle: Common Rules; Grant Status; core: Redemption Error Precedence",
       needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.status_unavailable"),
-      defeats=("ras.status_unavailable", "ras.status_max_age"))
+      defeats=("ras.status_unavailable", "ras.status_max_age", "ras.status_time",
+               "ras.status_nbf"))
 def l05(ctx):
     # The RAS retrieves no Status List Token before this redemption, so it
     # holds none it may rely on. A redemption that gets 503 records nothing,
     # so the grant stays redeemable.
     grant_status(ctx)
     grant = ctx.grant()
-    for mode in ("error", "stale"):
+    for mode in UNUSABLE_PROVIDER:
         ctx.adapter.set("idp", "status_unavailable", mode)
         expect_unfinished(ctx, ctx.client.redeem(grant), f"Status Provider {mode}")
     ctx.adapter.set("idp", "status_unavailable", False)
@@ -4083,7 +4102,8 @@ def l05(ctx):
       "lifecycle: Common Rules; Access-Token Status; core: Error Responses",
       needs=("set:ras.access_token_status", "set:api.access_token_status",
              "set:ras.status_unavailable"),
-      defeats=("api.status_unavailable", "api.status_max_age"))
+      defeats=("api.status_unavailable", "api.status_max_age", "api.status_time",
+               "api.status_nbf"))
 def l06(ctx):
     # The API reads nothing before the outage, so it holds no Status List
     # Token it may rely on. The read that succeeds afterwards supplies the
@@ -4091,7 +4111,7 @@ def l06(ctx):
     access_token_status(ctx)
     token = ctx.access_token()
     responses = []
-    for mode in ("error", "stale"):
+    for mode in UNUSABLE_PROVIDER:
         ctx.adapter.set("ras", "status_unavailable", mode)
         responses.append((mode, ctx.client.get(ctx.cfg.read_path, token)))
     ctx.adapter.set("ras", "status_unavailable", False)
@@ -4159,6 +4179,36 @@ def l09(ctx):
     ctx.adapter.set("ras", "status_unavailable", False)
     resp = ctx.client.get(ctx.cfg.read_path, token)
     check(resp.status == 200, f"read failed once the Status List Token was available: {resp}")
+
+
+@case("L10", "RAS", "Redeems a grant whose Status List Token carries time claims that are not "
+      "integers",
+      "lifecycle: Common Rules; TSL Section 8.3; RFC 7519 Section 2 (NumericDate)",
+      needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.status_fractional_times"),
+      defeats=("ras.status_time",))
+def l10(ctx):
+    grant_status(ctx)
+    ctx.adapter.set("idp", "status_fractional_times", True)
+    grant = ctx.grant()
+    check(token_status(ctx, jws.decode(grant)[1], "the ID-JAG") == VALID,
+          "a new ID-JAG is not VALID")
+    expect_token_response(ctx.client.redeem(grant))
+
+
+@case("L11", "API", "Serves an access token whose Status List Token carries time claims that are "
+      "not integers",
+      "lifecycle: Common Rules; TSL Section 8.3; RFC 7519 Section 2 (NumericDate)",
+      needs=("set:ras.access_token_status", "set:api.access_token_status",
+             "set:ras.status_fractional_times"),
+      defeats=("api.status_time",))
+def l11(ctx):
+    access_token_status(ctx)
+    ctx.adapter.set("ras", "status_fractional_times", True)
+    token = ctx.access_token()
+    check(token_status(ctx, access_token_jwt(token)[1], "the access token") == VALID,
+          "a new access token is not VALID")
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 200, f"read failed: {resp}")
 
 
 def run_case(c, cfg, adapter, disable=()):

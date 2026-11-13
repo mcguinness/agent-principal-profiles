@@ -232,11 +232,13 @@ single-tenant issuer omits.
 | L02 | RAS | With grant status configured, the ID-JAG's Status List Token marks it VALID; the IdP disables and then re-enables the agent, which the RAS never observes; after the publication interval, the list marks the grant INVALID, the RAS, which has retrieved no list before, rejects it with `invalid_grant`, and a grant issued after the reactivation is redeemed | lifecycle: Grant Status; Missed Transitions and Reactivation | Configure grant status at the IdP and the RAS; disable and re-enable the agent at the IdP; advance the clock where the publication interval is not zero |
 | L03 | RAS | L02 for a WAG, redeemed under the self-acting registration | lifecycle: Grant Status; Missed Transitions and Reactivation | As L02; the self-acting registration's key |
 | L04 | RAS | Midway between the grant's `exp` and the end of the RAS's permitted clock skew (`clock_skew`, 60 s), less the publication interval, the IdP disables the agent; after the publication interval, a second grant is still redeemed with grant status configured off at the RAS; with it on again, the list marks the first grant INVALID and the RAS rejects it with `invalid_grant` | lifecycle: Common Rules (acceptance period); Grant Status | As L02; configure grant status off and on at the RAS; advance the clock |
-| L05 | RAS | While the IdP's Status Provider answers HTTP 503, and again while it serves a Status List Token older than the RAS's maximum status age, the redemption gets HTTP 503 with no error code; once it serves a current one, the same grant is redeemed | lifecycle: Common Rules; Grant Status; core: Redemption Error Precedence | As L02; make the IdP's Status Provider fail or serve a stale list |
-| L06 | API | The same at the API, which has read nothing before, with the RAS's Status Provider: HTTP 503 without the file's data, then the read is served | lifecycle: Common Rules; Access-Token Status; core: Error Responses | Configure access-token status at the RAS and the API; make the RAS's Status Provider fail or serve a stale list |
+| L05 | RAS | While the IdP's Status Provider answers HTTP 503, and again while it serves a Status List Token older than the RAS's maximum status age, one whose `iat` is an hour ahead, and one whose `nbf` is, the redemption gets HTTP 503 with no error code; once it serves a current one, the same grant is redeemed | lifecycle: Common Rules; Grant Status; core: Redemption Error Precedence; Time, Replay, and Key Validation | As L02; make the IdP's Status Provider fail or serve such a list |
+| L06 | API | The same at the API, which has read nothing before, with the RAS's Status Provider: HTTP 503 without the file's data, then the read is served | lifecycle: Common Rules; Access-Token Status; core: Error Responses; Time, Replay, and Key Validation | Configure access-token status at the RAS and the API; make the RAS's Status Provider fail or serve such a list |
 | L07 | API | With access-token status configured, a minted access token without a `status` claim, which the API served before, gets 401 `invalid_token` | lifecycle: Common Rules | Configure access-token status at the API; mint an access token |
 | L08 | RAS | With grant status configured, a minted grant without a `status` claim fails with `invalid_grant`; configured off again, the same grant is redeemed | lifecycle: Common Rules; Grant Status | Configure grant status at the RAS; mint a grant |
 | L09 | API | Where the API caches (`status_cache`): after a served read, the RAS's Status Provider fails; three quarters of the maximum status age later, the cached list still serves the read; one second past that age, the read gets HTTP 503; once the provider recovers, it is served | lifecycle: Common Rules; TSL Section 13.7 | As L06; advance the clock |
+| L10 | RAS | With the IdP's Status List Token carrying `iat`, `nbf` and `exp` that are not integers, the grant's status reads VALID and the grant is redeemed | lifecycle: Common Rules; TSL Section 8.3; RFC 7519 Section 2 | As L02; have the IdP's Status Provider serve such time claims |
+| L11 | API | The same at the API, with the RAS's Status List Token: the read is served | lifecycle: Common Rules; TSL Section 8.3; RFC 7519 Section 2 | As L06; have the RAS's Status Provider serve such time claims |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -612,9 +614,9 @@ Some cases depend on choices made for the reference:
 The L cases test the lifecycle profile's token status capabilities.
 Access-token status: the RAS publishes the status of its JWT access
 tokens for the resource, and the API checks it on each request (L01,
-L06, L07, L09). Grant status: the IdP publishes the status of the ID-JAGs and
+L06, L07, L09, L11). Grant status: the IdP publishes the status of the ID-JAGs and
 WAGs it issues to the RAS, and the RAS checks it at redemption (L02 to
-L05, L08). Test control turns each capability on at both ends, since the
+L05, L08, L10). Test control turns each capability on at both ends, since the
 profile makes it configuration the parties agree on.
 
 **The suite as relying party.** The cases also read the issuer's Status
@@ -642,10 +644,18 @@ and HTTP 503 once that list is too old.
 
 **Stale and failing providers.** L05 and L06 make the Status Provider
 answer HTTP 503, and then serve an unexpired Status List Token issued
-before the relying party's maximum status age. Either way the relying
-party has no list it may rely on, so the check cannot complete: HTTP 503
-with no error code, and nothing recorded, so the same grant or token
-succeeds once a current list is served.
+before the relying party's maximum status age, one whose `iat` is an
+hour ahead, and one whose `nbf` is. Each time the relying party has no
+list it may rely on, so the check cannot complete: HTTP 503 with no
+error code, and nothing recorded, so the same grant or token succeeds
+once a current list is served.
+
+**Time claims.** A relying party validates a Status List Token's time
+claims as for any JWT: `iat`, and `nbf` where present, no later than the
+current time plus its permitted clock skew, and `exp`, where present, not
+passed. Each is a NumericDate, which need not be an integer (RFC 7519
+Section 2), so L10 and L11 serve fractional values, which must be
+accepted. The suite applies the same checks when it reads a list.
 
 Some cases depend on choices made for the reference:
 
@@ -733,7 +743,7 @@ The suite tests nothing outside the path above, including:
   account link while pending, an absolute expiration set before the
   deferral, a grant status change while pending, and `slow_down`;
 * other oversight, lifecycle propagation (the token status capabilities
-  only as L01 to L09 test them), and SCIM management.
+  only as L01 to L11 test them), and SCIM management.
 
 ## Running against another implementation
 
@@ -809,8 +819,8 @@ another IdP, RAS or API:
    timing: `status_publication_interval`, `status_max_age` and
    `status_cache`. L04 also needs `clock_skew`, the RAS's permitted
    clock skew, which the IdP and the RAS configure. L09 runs only where
-   `status_cache` is set. L02 to L05 are not run in RAS-only mode, which
-   has no IdP to publish grant status.
+   `status_cache` is set. L02 to L05 and L10 are not run in RAS-only
+   mode, which has no IdP to publish grant status.
 2. Implement `suite.Adapter` for the deployment. Every case whose grant
    the IdP issues needs `id_token`; the "Test control" column lists the
    other capabilities. A case whose capability the deployment cannot
@@ -844,9 +854,10 @@ another IdP, RAS or API:
    that does not serve the request counts, and only the reference
    adapter requires 404 and 405 with `Allow: GET`. The L cases use
    `set` on the IdP (`grant_status`, `agent_active`,
-   `status_unavailable`), on the RAS (`grant_status`,
-   `access_token_status`, `agent_active`, `status_unavailable`) and on
-   the API (`access_token_status`).
+   `status_unavailable`, `status_fractional_times`), on the RAS
+   (`grant_status`, `access_token_status`, `agent_active`,
+   `status_unavailable`, `status_fractional_times`) and on the API
+   (`access_token_status`).
 3. Call `suite.run_case` for each case in `suite.CASES`. It returns
    `None` in place of a pass or failure for a case it did not run.
 
