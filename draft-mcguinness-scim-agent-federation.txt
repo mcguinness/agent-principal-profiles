@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        12 November 2026
-Expires: 16 May 2027
+Intended status: Standards Track                        13 November 2026
+Expires: 17 May 2027
 
 
               SCIM Profile for Agent Principal Management
@@ -65,7 +65,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 16 May 2027.
+   This Internet-Draft will expire on 17 May 2027.
 
 Copyright Notice
 
@@ -1225,12 +1225,11 @@ Table of Contents
 12.2.  Informative References
 
    [LIFECYCLE]
-              McGuinness, K., "Agent Principal Lifecycle Profile for
-              SCIM and OAuth", Work in Progress, Internet-Draft, draft-
-              mcguinness-oauth-governed-agent-lifecycle, 18 September
-              2026, <https://mcguinness.github.io/agent-principal-
-              profiles/draft-mcguinness-oauth-governed-agent-
-              lifecycle.html>.
+              McGuinness, K., "Agent Principal Lifecycle Profile", Work
+              in Progress, Internet-Draft, draft-mcguinness-oauth-
+              governed-agent-lifecycle, 18 September 2026,
+              <https://mcguinness.github.io/agent-principal-profiles/
+              draft-mcguinness-oauth-governed-agent-lifecycle.html>.
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Agent Principal
               Federation", <https://github.com/mcguinness/agent-

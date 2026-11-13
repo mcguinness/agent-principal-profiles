@@ -4,29 +4,31 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                        12 November 2026
-Expires: 16 May 2027
+Intended status: Standards Track                        13 November 2026
+Expires: 17 May 2027
 
 
-          Agent Principal Lifecycle Profile for SCIM and OAuth
+                   Agent Principal Lifecycle Profile
          draft-mcguinness-oauth-governed-agent-lifecycle-latest
 
 Abstract
 
-   This document profiles SCIM for provisioning issuer-qualified,
-   enterprise-governed Agent Principals into a resource domain and
-   applying administrative disablement to OAuth authorization.  Existing
-   SCIM Events can accelerate reconciliation; existing session-
-   revocation events can invalidate identified authorization sessions
-   independently of principal state.
+   This document defines how a resource domain applies the
+   administrative state of issuer-qualified, enterprise-governed Agent
+   Principals to OAuth authorization.  It profiles SCIM for provisioning
+   those principals into a resource domain and applying administrative
+   disablement.  Existing SCIM Events can accelerate reconciliation;
+   existing session-revocation events can invalidate identified
+   authorization sessions independently of principal state.
+   Independently of SCIM, Token Status Lists let an API reject revoked
+   access tokens that it validates offline, and a RAS reject grants
+   whose authority the IdP has withdrawn.
 
    The profile defines identity correlation, receiver actions, and the
-   limits of propagation and resource enforcement.  Independently of
-   SCIM, Token Status Lists let an API reject revoked access tokens that
-   it validates offline, and a RAS reject grants whose authority the IdP
-   has withdrawn.  The profile defines no new SCIM schema, event type,
-   eligibility lease, or authorization timestamp.  Current
-   administrative state does not establish a history of revocation.
+   limits of propagation and resource enforcement.  It defines no new
+   SCIM schema, event type, eligibility lease, or authorization
+   timestamp.  Current administrative state does not establish a history
+   of revocation.
 
 About This Document
 
@@ -62,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 16 May 2027.
+   This Internet-Draft will expire on 17 May 2027.
 
 Copyright Notice
 
@@ -157,7 +159,11 @@ Table of Contents
    resource domain and revokes what depends on it.
 
    This companion defines how a resource domain provisions that
-   principal and applies changes to its administrative status.  The
+   principal by SCIM and applies changes to its administrative status
+   (Section 5), which Shared Signals events can accelerate (Appendix A),
+   and how the RAS and the IdP publish the status of access tokens and
+   grants in Token Status Lists (Section 8).  A deployment can claim
+   provisioning, token status, or both (Section 3).  The
    responsibilities are:
 
         +===============+========================================+
