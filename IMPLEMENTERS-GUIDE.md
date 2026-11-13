@@ -399,8 +399,12 @@ names neither choice:
 
 Optional capabilities add their own exchanges, which their chapters
 list; lifecycle propagation adds a provisioning connection or a Shared
-Signals stream ([AGENT-LIFECYCLE]), and SCIM management the connector's
-authority at the IdP ([AGENT-MANAGEMENT]).
+Signals stream, and token status the tokens that carry status, the keys
+and locations of the Status List Tokens, the Status Issuer's
+publication interval, and the relying party's maximum status age and
+clock skew ([AGENT-LIFECYCLE]); SCIM
+management adds the connector's authority at the IdP
+([AGENT-MANAGEMENT]).
 
 ## Distributed platforms and key use
 
@@ -621,6 +625,23 @@ applies.
     presentation of an accepted grant other than recovery, and a
     refresh that the kept approval no longer permits.
   * At a CAI, a token from a deferred redemption: `invalid_request`.
+* **Token status, at the RAS and the API** ([Common
+  Rules][lc-status-common]; [Access-Token
+  Status][lc-access-token-status]; [Grant Status][lc-grant-status];
+  cases L01 to L11):
+  * `invalid_grant`, at the RAS: a grant configured to carry status
+    that has no valid `status_list` member, or whose status is not
+    VALID. The check is part of the grant's validation, step 2 of the
+    order above, and runs once, when the RAS accepts the grant (L02 to
+    L04, L08).
+  * HTTP 401 `invalid_token`, at the API: an access token configured to
+    carry status that has no valid `status_list` member, or whose
+    status is not VALID (L01, L07).
+  * HTTP 503 without an `error`, with `Retry-After` recommended: no
+    Status List Token can be relied on, because none can be retrieved
+    from a configured location or validated, or the one held has
+    expired or is older than the maximum status age, unless a failure
+    is established earlier (L05, L06, L09).
 
 A client recovers as the core's [recovery list][implementation-client]
 describes: at most one bounded attempt after `invalid_client`, after an
@@ -1709,6 +1730,9 @@ agent cannot use the token directly.
 [imported-jwt-input]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#imported-jwt-input
 [inputs-jwt-svid]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html#jwt-svid-input
 [lc-grant-revocation]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#grant-revocation
+[lc-status-common]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#status-common
+[lc-access-token-status]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#access-token-status
+[lc-grant-status]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#grant-status
 [CB4A]: https://www.ietf.org/archive/id/draft-hartman-credential-broker-4-agents-00.html
 [governance-boundary]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#governance-boundary
 [client-token-reuse]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-token-reuse
