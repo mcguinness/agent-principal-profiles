@@ -646,13 +646,31 @@ issued runs until its own revocation or expiry.
 | Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource domain lifting it; upstream activation cannot. A provisional suspension caused by a deactivation event can also be cleared by successful reconciliation |
 | Remove a Continuation Association | That client's continuation of the agent's chains; the chains continue through other clients | Tokens already obtained, until revoked or expired; a target's refresh token extends access further | Restoring it |
 
+Two optional capabilities of the lifecycle profile narrow the "Already
+issued" column ([token status lists][lifecycle-token-status]). With
+grant status, the IdP marks a grant INVALID when it disables or deletes
+the Agent Principal, disables the Identity Binding or withdraws the
+Client Association the grant was issued under, withdraws the Delegation
+Authorization or Agent Authorization it relied on, or revokes the grant.
+A RAS configured for grant status then rejects that grant, ID-JAG or
+WAG, at redemption, within the IdP's publication interval and the RAS's
+maximum status age, whether or not the resource domain has applied any
+lifecycle change. Authorization already derived from the grant still
+ends as the row says. With access-token status, an API that validates
+JWT access tokens offline rejects one once the RAS has revoked its
+session or applied a Local Suspension to its agent, within the RAS's
+publication interval and the API's maximum status age.
+
 Re-enabling never restores revoked sessions. Under the lifecycle
 profile, the IdP delivers a disablement before a re-enablement that
 superseded it, so the disablement revokes the sessions issued before it
 even when the resource domain was unreachable for the whole cycle. It
 does not reach a grant issued before the disablement and first redeemed
-after the re-enablement. How quickly an API stops accepting tokens
-depends on introspection, caching, and token lifetimes. Without a bound
+after the re-enablement; grant status does, at a RAS configured for
+it. How quickly an API stops
+accepting tokens depends on introspection, caching, token lifetimes,
+and, with access-token status, the RAS's publication interval and the
+API's maximum status age. Without a bound
 on propagation and enforcement, the drafts claim no finite end-to-end
 denial time; a deployment should document its expected and maximum
 delay.
@@ -680,6 +698,7 @@ flowchart TB
   ap["Agent Principal disabled at the IdP"]
   idp["IdP issues no new grant through it, and chains rooted there end"]
   ras["RAS denies redemption and refresh"]
+  gstatus["RAS rejects grants issued before the change, at redemption"]
   api["API rejects tokens within its enforcement delay"]
   inst -.-> binding
   inst -.-> cred
@@ -692,6 +711,7 @@ flowchart TB
   binding --> idp
   clients --> idp
   ap --> idp
+  idp -- "grant status, for a disabled agent or binding, where configured" --> gstatus
   ap -- "lifecycle delivery, sessions revoked" --> ras
   grants -- "grant-derived revocation" --> ras
   owner -. "Local Suspension" .-> ras
@@ -708,7 +728,10 @@ working, and disabling the agent remains a policy decision. Stopping an
 instance or disabling its binding does not itself
 revoke resource-domain tokens; where the IdP's issuance records identify
 the instance's ID-JAGs, grant-derived revocation invalidates the
-authorization derived from them at participating RASs. The playbook's
+authorization derived from them at participating RASs. With grant
+status, disabling a managed installation's binding also makes the
+grants issued through it fail at redemption at each RAS configured for
+it, but revokes nothing already derived from them. The playbook's
 [kill switch](PLAYBOOK.md#kill-switch) maps each trigger to its runbook
 and to what keeps working afterward.
 
@@ -726,6 +749,7 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
 | Lifecycle delivery is delayed or lost | The undelivered change stops nothing until it is applied; a revalidation bound denies new authorization and refresh once it passes | Decisions on the last applied state | Reconciliation with the source |
 | The RAS has no record for the agent | Its redemptions, unless just-in-time correlation applies | Agents already correlated | Provisioning, or just-in-time correlation |
 | Introspection is unavailable at the API | Requests that need a check; the API answers that it is unavailable, not that the token is invalid, unless a failure such as an invalid proof is established | Cached active responses, within the cache policy | A retry after any `Retry-After` interval |
+| No Status List Token can be relied on, under token status | Redemption of a grant, and requests with an access token, configured to carry status; the RAS or API answers that it is unavailable, not that the token is invalid, unless a failure is established and no unfinished check ranks earlier than it | Checks against a cached Status List Token, until it expires or passes the maximum status age | A retry after any `Retry-After` interval |
 | A policy decision service is unavailable | Operations that need its decision; the API answers that it is unavailable, not that it denies, unless a failure is established and no unfinished check ranks earlier | Operations the API decides without it | A retry after any `Retry-After` interval |
 | A continuation is refused | That continuation; once the chain has ended, every continuation of it | Tokens already issued, for their lifetimes | A new root grant once the chain has ended; otherwise a different request, or a retry under a rate limit's policy |
 
@@ -1020,3 +1044,4 @@ What each draft needs from the specifications it depends on is in
 [lifecycle-example]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
 [management]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
 [lifecycle]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+[lifecycle-token-status]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#token-status

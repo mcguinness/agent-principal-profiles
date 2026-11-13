@@ -1365,7 +1365,10 @@ Cache-Control: no-store
 
 The agent is still enabled, so a new exchange yields a new grant;
 `grant-1` stays unusable. An API that validated `access-1` offline,
-instead of introspecting it, would accept it until it expires.
+instead of introspecting it, would accept it until it expires, unless
+the deployment used access-token status: the RAS then marks `access-1`
+INVALID when it revokes the session, and the API rejects it once it
+holds a Status List Token showing that.
 
 ### Disable the agent everywhere
 

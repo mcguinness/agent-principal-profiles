@@ -62,7 +62,7 @@ that the later steps test:
 | Resolution input | A dedicated client authenticating with `private_key_jwt`, or a shared client presenting its existing platform JWT | Whether the client's own authentication identifies the agent, or a platform JWT does |
 | Grant protection | Bound governed agent access, with DPoP at grant issuance and redemption; or governed agent access, with unbound grants only where policy explicitly permits them | Whether a stolen grant can be redeemed |
 | Access-token protection, per resource | DPoP, mutual TLS, or bearer where the resource explicitly permits it | What a stolen access token allows |
-| Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
+| Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation, with or without access-token status | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, within the RAS's publication interval and the API's maximum status age, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
 | Creating agent records at the RAS | Provisioned in advance, or created just in time from a validated grant where resource policy enables it | Whether the first redemption needs provisioning to have run; without a record, the RAS denies it |
 | Keeping agent records current | Lifecycle provisioning and reconciliation, another supported signal, or local administration only | How the RAS learns that the agent was disabled. A grant does not carry the IdP's administrative status, so without lifecycle integration, any record learns of it only through local action or another signal |
 | Oversight | Human out of the loop, under standing authorization only; human in the loop, with approval before issuance, approval before redemption at a RAS, approval of actions, or a combination; or human on the loop, with supervised issuance for a target | Whether clients opt in to deferral and wait for a decision; who approves, and how they authenticate; and, for supervised issuance, who oversees and the intervention bound documented for each target. Policy selects the mode for each agent, user, client, target, and authority; a client's opt-in never does |
@@ -498,7 +498,11 @@ reads `report-7` again, not when the IdP accepts an exchange. Sessions
 revoked in the meantime stay revoked. An API that validated `access-1`
 offline, instead of introspecting it, would accept it until its 600
 seconds end, whichever action was taken, unless an independent local
-restriction at the API took effect earlier.
+restriction at the API took effect earlier. With access-token status,
+the RAS marks `access-1` INVALID when it revokes the session, or
+SUSPENDED or INVALID when it applies the Local Suspension, and the API
+rejects it within the RAS's publication interval and the API's maximum
+status age.
 
 **Evidence to retain.** The drafts define no log format; as a
 deployment convention, retain:
@@ -516,13 +520,14 @@ token's `jti` joins the RAS's to the API's.
 **Limitations.**
 
 * Tokens that an API validates offline or caches stay usable until they
-  expire or the cache entry ends or is invalidated, unless an
-  independent local restriction stops them earlier. Document the
-  expected and maximum disablement delay.
+  expire or the cache entry ends or is invalidated, unless access-token
+  status or an independent local restriction stops them earlier.
+  Document the expected and maximum disablement delay.
 * Without the lifecycle profile, current administrative state cannot
   reveal a missed disable-and-re-enable cycle. With it, the IdP delivers
   the disablement before the re-enablement. Neither invalidates a grant
-  issued before the cycle and first redeemed after it.
+  issued before the cycle and first redeemed after it; the lifecycle
+  profile's grant status does, at a RAS configured for it.
 * Each SaaS application is its own resource domain. Repeat the RAS and
   API configuration, the client registration association, and these
   tests for each one.
@@ -846,7 +851,9 @@ A narrow trigger reaches a wider stop in one of two ways:
   the IdP refuses its new grants and ends its continuation chains.
   Under the lifecycle profile, the IdP delivers the disablement to each
   resource domain, whose authorization server denies redemption and
-  refresh and revokes the agent's sessions.
+  refresh and revokes the agent's sessions. With grant status, the IdP
+  also marks the agent's grants INVALID, and each RAS configured for it
+  rejects them at redemption without waiting for that delivery.
 * **Policy, from an instance or a platform up.** A platform's events,
   such as `workload-compromised` and its own `workload-disabled`,
   inform IdP policy and monitoring. They do not change the agent's state
@@ -864,7 +871,10 @@ credentials that resolve to the same agent keep working.
 Stopping an instance or disabling its binding does not itself revoke
 resource-domain tokens. Where the IdP's issuance records identify the
 ID-JAGs issued to the instance, grant-derived revocation invalidates the
-authorization derived from them at participating RASs. Access derived
+authorization derived from them at participating RASs. With grant
+status, disabling a managed installation's binding also makes the
+grants issued through it, ID-JAGs and WAGs, fail at redemption at each
+RAS configured for it. Access derived
 from a WAG, onward grants already continued, and tokens accepted offline
 or from a cache remain; [Stop one instance](#stop-one-instance) lists
 everything that remains.
@@ -896,8 +906,12 @@ or event acknowledgment is one checkpoint, not completion; completion
 is verified where the access is enforced. Tokens that an API accepts
 offline or from a cache stay usable until they expire or the cache
 entry ends, unless an independent local restriction stops them
-earlier. Recovery undoes only the action taken: revoked sessions
-stay revoked, and ended continuation chains stay ended.
+earlier; with access-token status, an API that validates offline
+rejects a token within the RAS's publication interval and the API's
+maximum status age after the RAS revokes its session ([token status
+lists][lifecycle-token-status]). Recovery undoes only the action taken:
+revoked sessions stay revoked, and ended continuation chains stay
+ended.
 
 ### Disable an agent everywhere
 
@@ -912,7 +926,11 @@ stay revoked, and ended continuation chains stay ended.
 * **Action:**
   1. Set the Agent to `active: false` at the IdP. No new grant issues
      for it through any binding or client, and its continuation chains
-     end.
+     end. With grant status, the IdP also marks INVALID each of the
+     agent's grants still in its acceptance period, and a RAS
+     configured for it rejects them at redemption within the IdP's
+     publication interval and the RAS's maximum status age, even if the
+     disablement has not reached that domain.
   2. Confirm propagation to each resource domain, through lifecycle
      provisioning or a change notice that triggers reconciliation. Each
      resource domain's authorization server denies redemption and
@@ -932,9 +950,10 @@ stay revoked, and ended continuation chains stay ended.
   | A domain has not applied it | Recorded as pending, with its owner and the containment applied |
   | Restoration is complete | Fresh authorization succeeds; revoked sessions and ended chains remain unusable |
 
-* **Residual access:** grants, refresh authorizations, and access
-  tokens at a domain that has not applied the change or was never
-  provisioned; tokens accepted offline or from a cache.
+* **Residual access:** at a domain that has not applied the change or
+  was never provisioned, refresh authorizations and access tokens, and
+  grants unless its RAS is configured for grant status; tokens accepted
+  offline or from a cache.
 * **Recovery:** set `active: true` and confirm propagation. Activation
   at the IdP cannot clear a Local Suspension, so each resource owner
   explicitly lifts the suspensions recorded for this incident, leaving
@@ -967,11 +986,14 @@ stay revoked, and ended continuation chains stay ended.
   chain rooted under it, for all targets.
 * **Verification:** with a Local Suspension, the RAS issues no new
   access token or refresh for the agent, and activation at the IdP does
-  not clear it. With narrowing, a new grant for that target is refused,
-  continuation to it fails with `invalid_target`, and access to other
-  targets still works.
+  not clear it. With access-token status, the RAS also marks the
+  agent's tokens SUSPENDED or INVALID, and the API rejects them within
+  the RAS's publication interval and the API's maximum status age. With
+  narrowing, a new grant for that target is refused, continuation to it
+  fails with `invalid_target`, and access to other targets still works.
 * **Residual access:** tokens already issued for that application,
-  until revocation or expiry.
+  until revocation or expiry, or, under a Local Suspension with
+  access-token status, until the API rejects them as above.
 * **Recovery:** the resource owner lifts the Local Suspension, or the
   identity team restores the authorization.
 * **Completion evidence:** the suspension or authorization change; the
@@ -992,11 +1014,17 @@ stay revoked, and ended continuation chains stay ended.
 * **Verification:** redemption of the grant is rejected, and sessions
   derived from it are invalidated. An event that arrives before
   redemption still makes later redemption fail. The agent stays
-  enabled.
+  enabled. Where the RAS is also configured for grant status, the IdP
+  marks the grant INVALID when it revokes it, so redemption fails there
+  within the IdP's publication interval and the RAS's maximum status
+  age, even if the event is not delivered; sessions derived from the
+  grant still need the event.
 * **Residual access:** tokens accepted offline or from a cache; onward
   grants already continued from the revoked grant, and their tokens,
   until they expire or are revoked. For access derived from a WAG,
-  revoking one grant is deployment-specific.
+  revoking one grant is deployment-specific: no event in the drafts
+  names a WAG, but a WAG that the IdP revokes by its own means fails at
+  redemption at a RAS configured for grant status.
 * **Recovery:** none for that grant; the client obtains a new one.
 * **Completion evidence:** the event and its delivery acknowledgment,
   and the RAS's record of the revoked grant by issuer, `jti`, and
@@ -1073,9 +1101,11 @@ stay revoked, and ended continuation chains stay ended.
      issuing it new credentials.
   2. Refuse the instance at the IdP. For a managed installation,
      disable its Identity Binding; its other installations keep their
-     own bindings. For an execution with a credential of its own, have
-     its credential authority send WISE `credential-revoked`, or
-     `credential-compromised`, for that credential. The IdP then stops
+     own bindings. With grant status, the IdP also marks INVALID the
+     grants it issued through that binding. For an execution with a
+     credential of its own, have its credential authority send WISE
+     `credential-revoked`, or `credential-compromised`, for that
+     credential. The IdP then stops
      accepting it for agent resolution ([core][core-time-validation]),
      and the other executions' credentials keep working.
   3. Revoke each ID-JAG the IdP issued to the instance, as in [Revoke
@@ -1097,7 +1127,9 @@ stay revoked, and ended continuation chains stay ended.
   expires or the IdP stops accepting it; where executions share one
   credential, or no revocation the IdP accepts names it, the IdP cannot
   refuse one execution alone. ID-JAGs not revoked in step 3, and the
-  authority derived from them, until they expire; authority derived from
+  authority derived from them, until they expire, except that with grant
+  status a grant issued through a disabled binding fails at redemption;
+  authority derived from
   a revoked ID-JAG at a RAS that does not participate in grant-derived
   revocation. Onward grants already continued from the instance's
   grants, and their tokens. Access derived from a WAG, whose selective
@@ -1169,8 +1201,11 @@ stay revoked, and ended continuation chains stay ended.
   grant acceptance window, including clock leeway; and, for each
   resource domain where the user's agents held delegated access, a way
   to stop new redemption for the user (the product's own user
-  deprovisioning, since a RAS rejects redemption for a disabled user, or
-  grant-derived revocation of the grants the IdP retained) and a way to
+  deprovisioning, since a RAS rejects redemption for a disabled user;
+  grant-derived revocation of the grants the IdP retained; or grant
+  status, where disabling the user withdraws the user's Delegation
+  Authorizations at the IdP, which then marks their grants INVALID)
+  and a way to
   end existing sessions (that deprovisioning, or CAEP user-and-tenant
   revocation).
 * **Owner:** identity team; each resource owner for their domain.
@@ -1179,8 +1214,18 @@ stay revoked, and ended continuation chains stay ended.
      issues for the user.
   2. For each of those resource domains, stop new redemption: disable
      the user's account there, or send grant-derived revocation for the
-     user's retained grants. Where neither is available, wait until
-     every grant issued before step 1 is past the acceptance window.
+     user's retained grants. At a RAS configured for grant status, the
+     withdrawal of the user's Delegation Authorizations in step 1 does
+     it, where the IdP's user lifecycle withdraws them, but only once
+     the RAS can no longer rely on a Status List Token from before the
+     withdrawal: wait for the IdP's publication interval plus the RAS's
+     maximum status age after step 1 before step 3. Grant status does
+     not end a redemption that the RAS accepted and deferred for
+     approval before then ([oversight profile][oversight]); where the
+     RAS defers redemptions, also disable the user's account there,
+     send grant-derived revocation, or deny those pending requests.
+     Where none of these is available, wait until every grant issued
+     before step 1 is past the acceptance window.
   3. Then end existing sessions there: through that deprovisioning, or
      with CAEP user-and-tenant revocation. That event revokes existing
      sessions only; it does not stop a grant that has not yet been
@@ -1272,10 +1317,12 @@ stay revoked, and ended continuation chains stay ended.
         confirms.
 
      This revokes existing authorization; it does not invalidate grants
-     issued before the gap and not yet redeemed. If the recovery must
-     exclude those too, revoke the known ID-JAGs through grant-derived
-     revocation, or keep the containment until their acceptance window
-     closes.
+     issued before the gap and not yet redeemed. At a RAS configured
+     for grant status they already fail at redemption: the IdP marked
+     them INVALID when it disabled the agent. Elsewhere, if the
+     recovery must exclude those too, revoke the known ID-JAGs through
+     grant-derived revocation, or keep the containment until their
+     acceptance window closes.
 * **Verification:** each agent's applied state matches the source; no
   reconciliation remains pending; each resent revocation is recorded by
   the receiver; and where step 4 ran, each domain confirmed its
@@ -1286,7 +1333,7 @@ stay revoked, and ended continuation chains stay ended.
   where it ran, revokes existing authorization at each confirmed
   receiver. Previously issued, unredeemed grants may still be accepted
   after reactivation under their validity, replay, and proof rules,
-  unless separately revoked.
+  unless separately revoked or rejected through grant status.
 * **Recovery:** this runbook is the recovery. Review access during the
   gap with the [audit trace](#audit-evidence).
 * **Completion evidence:** the reconciliation report (agents checked,
@@ -1458,6 +1505,7 @@ tooling can rely on.
 [continuation-scheduled]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [oversight-walkthrough]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough
 [lifecycle]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+[lifecycle-token-status]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#token-status
 [management]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen
 [guide-risk]: IMPLEMENTERS-GUIDE.md#risk-signals
