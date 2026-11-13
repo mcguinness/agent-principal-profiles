@@ -47,6 +47,10 @@ implementation](README.md#running-against-another-implementation)).
 | Policy services | Reference-implementation tests: S01 to S11, S14 to S19, S26, S27, S29, S30, S37 |
 | The API's error selection order | N20, N53; reference-implementation tests: S14 to S31 |
 | Deferred redemption (RAS) | D01, D03, D07, D08, D18 (configuration only); reference-implementation tests: D02, D04 to D06, D09 to D17, D19 to D29 |
+| Lifecycle access-token status (RAS) | L01 (the suite reads the RAS's Status List Token), L06 |
+| Lifecycle access-token status (API) | L01, L06, L07, L09 (where the API caches), L11 |
+| Lifecycle grant status (IdP) | L02 to L04 (the suite reads the IdP's Status List Token), L05 |
+| Lifecycle grant status (RAS) | L02 to L05, L08, L10 |
 | RAS refresh tokens | Reference-implementation tests, within a deferred redemption only: D13 to D15, D21, D22, D26 |
 | Client ID Metadata Documents | None |
 | Mutual-TLS access tokens; re-redemption under policy | None |

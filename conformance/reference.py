@@ -35,6 +35,15 @@ at the RAS over HTTP with its own credential. The RAS mints opaque
 tokens only through test control. Nothing caches an introspection
 response.
 
+The lifecycle profile's token status capabilities are off until test
+control turns them on at both ends. The IdP then publishes the status of
+the grants it issues to the RAS, and the RAS the status of its access
+tokens for the resource, each in one Token Status List served at
+GET /statuslists/1. The RAS checks grant status at redemption, and the
+API access-token status on each request, each fetching Status List
+Tokens only from its configured location, validating them with its
+configured key, and caching them until their ttl.
+
 Every check the negative cases exercise has a name (see CHECKS). The
 runner's vacuity mode switches one off to show that the case that cites
 it fails without it.
@@ -49,12 +58,14 @@ import copy
 import hashlib
 import http.client
 import json
+import math
 import secrets
 import threading
 import time
 import urllib.error
 import urllib.request
 import uuid
+import zlib
 from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
@@ -67,6 +78,19 @@ ACCESS_TOKEN_LIFETIME = 600
 MAX_PENDING_LIFETIME = 3600         # a deferred redemption's longest pending time
 AUTHORIZATION_LIFETIME = 8 * 3600   # absolute authorization expiration, from receipt
 POLL_INTERVAL = 5
+# Token Status Lists (lifecycle: Token Status Lists). Each issuer keeps one
+# list of 2-bit statuses, so that SUSPENDED fits, and signs a fresh Status
+# List Token for each request: its publication interval is zero. A relying
+# party caches each Status List Token until its ttl, and while it cannot
+# retrieve a fresh one, keeps relying on it until it expires or exceeds the
+# maximum status age.
+VALID, INVALID, SUSPENDED = 0x00, 0x01, 0x02
+STATUS_BITS = 2
+STATUS_LIST_SIZE = 4096        # Referenced Tokens per list
+STATUS_LIST_LIFETIME = 300     # a Status List Token's exp, from issuance
+STATUS_LIST_TTL = 60
+STATUS_MAX_AGE = 120           # each relying party's maximum status age
+STATUS_PATH = "/statuslists/1"
 
 TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer"
@@ -85,6 +109,9 @@ IDP_ISSUER = "https://idp.example/"
 # control mints them. Its agent-42 is not the home IdP's agent-42.
 PARTNER_IDP_ISSUER = "https://partner-idp.example/"
 RAS_ISSUER = "https://ras.example/"
+# The uri of each issuer's Status List Token (TSL Section 6.2).
+IDP_STATUS_URI = IDP_ISSUER + "statuslists/1"
+RAS_STATUS_URI = RAS_ISSUER + "statuslists/1"
 # A platform that issues workload JWTs for the agents it hosts, presented
 # by its shared client (core: Existing Platform JWT).
 PLATFORM_ISSUER = "https://platform.example/"
@@ -132,6 +159,9 @@ CHECKS = {
     "idp.categorical_prohibition": "policy's categorical prohibition of the agent for a requested "
                                    "scope is enforced",
     "idp.scope_ceiling": "the issued scope stays within the Delegation Authorization's scope set",
+    "idp.grant_status_final": "a grant set to INVALID stays INVALID when the agent is re-enabled",
+    "idp.grant_status_skew": "withdrawal sets INVALID every grant the RAS can still accept, "
+                             "including within its permitted clock skew after exp",
     "ras.client_id": "grant client_id matches the authenticated client",
     "ras.grant_replay": "a grant the RAS has accepted is refused when presented again",
     "ras.commit_point": "a grant is accepted when the RAS issues a token or defers, so a "
@@ -211,6 +241,16 @@ CHECKS = {
                                   "same local principal",
     "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
     "ras.refresh_ends": "a refresh rejected on re-evaluation ends the refresh authorization",
+    "ras.grant_status": "a grant whose status is not VALID, or that has no valid status_list "
+                        "member, is rejected with invalid_grant",
+    "ras.status_unavailable": "a grant whose status no Status List Token may be relied on for "
+                              "gets HTTP 503, not acceptance",
+    "ras.status_max_age": "a Status List Token older than the maximum status age is not relied on",
+    "ras.status_time": "a Status List Token's iat is not after now plus skew, and any "
+                       "NumericDate, integer or not, is accepted in its time claims",
+    "ras.status_nbf": "a Status List Token whose nbf is after now plus skew is not relied on",
+    "ras.access_token_status_revoke": "applying a disablement sets the agent's access tokens "
+                                      "to INVALID",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
     "api.nonce_match": "a DPoP proof carries the nonce the API provided",
     "api.bound_token_scheme": "a DPoP-bound access token presented with the Bearer scheme is "
@@ -253,6 +293,14 @@ CHECKS = {
     "api.proof_method": "the DPoP proof's htm is checked against the request's own method",
     "api.issuer_qualified_agent": "the API identifies the agent by issuer and subject, never by "
                                   "subject alone",
+    "api.access_token_status": "an access token whose status is not VALID, or that has no valid "
+                               "status_list member, is rejected as an invalid token",
+    "api.status_unavailable": "an access token whose status no Status List Token may be relied "
+                              "on for gets HTTP 503, not acceptance",
+    "api.status_max_age": "a Status List Token older than the maximum status age is not relied on",
+    "api.status_time": "a Status List Token's iat is not after now plus skew, and any "
+                       "NumericDate, integer or not, is accepted in its time claims",
+    "api.status_nbf": "a Status List Token whose nbf is after now plus skew is not relied on",
 }
 
 
@@ -321,6 +369,18 @@ def _time_valid(claims, require_iat, check_future=True, now=None):
     return True
 
 
+def _numeric_date(value):
+    """A NumericDate: a finite JSON number, integer or not (RFC 7519 Section 2)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and \
+        math.isfinite(value)
+
+
+def _integer_date(value):
+    """An integer time value; only a relying party with its status_time check off
+    requires one for a Status List Token."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _typ_is(header, media_type):
     """typ names the media type, with or without "application/" (RFC 7515 Section 4.1.9)."""
     value = header.get("typ")
@@ -341,6 +401,49 @@ def _single_audience(aud, expected):
     return aud == expected
 
 
+class StatusList:
+    """The Token Status List an issuer keeps (TSL Sections 4.1 and 4.2).
+
+    Each Referenced Token gets an index chosen at random and never reused,
+    so an index reveals nothing about issuance order.
+    """
+
+    def __init__(self, uri):
+        self.uri, self.statuses = uri, {}
+
+    def allocate(self):
+        """A new VALID entry; returns the Referenced Token's status claim."""
+        if len(self.statuses) >= STATUS_LIST_SIZE:
+            raise RuntimeError("status list full")
+        while True:
+            idx = secrets.randbelow(STATUS_LIST_SIZE)
+            if idx not in self.statuses:
+                self.statuses[idx] = VALID
+                return {"status_list": {"idx": idx, "uri": self.uri}}
+
+    def encoded(self):
+        """The status_list claim: the byte array packed from the least significant
+        bit, compressed with DEFLATE in the ZLIB format, and base64url-encoded."""
+        data = bytearray(STATUS_LIST_SIZE * STATUS_BITS // 8)
+        for idx, status in self.statuses.items():
+            bit = idx * STATUS_BITS
+            data[bit // 8] |= status << (bit % 8)
+        return {"bits": STATUS_BITS, "lst": jws.b64u(zlib.compress(bytes(data), 9))}
+
+
+class StatusUnavailable(Exception):
+    """No Status List Token the relying party may rely on: its status check cannot
+    complete (lifecycle: Common Rules)."""
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A uri does not authorize retrieval from any other location, including by
+    redirection (lifecycle: Common Rules): a redirect is an error."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class Server:
     """Shared plumbing: WSGI dispatch, test control, client and proof checks."""
 
@@ -349,6 +452,9 @@ class Server:
         self.disabled = set()
         self.assertion_replay = {}
         self.proof_replay = {}
+        # A relying party's configured Status List Tokens: uri -> (location,
+        # key). start() sets them; reset() keeps them.
+        self.status_sources = {}
         self.reset()
 
     def on(self, check):
@@ -365,6 +471,16 @@ class Server:
         # DPoP nonces (RFC 9449 Sections 8 and 9): off unless test control
         # requires them.
         self.require_nonce, self.nonce = False, secrets.token_urlsafe(16)
+        # Test control: the Status Provider fails ("error"), or serves a Status
+        # List Token issued before the relying party's maximum status age
+        # ("stale"), with iat an hour ahead ("future_iat"), or with nbf an
+        # hour ahead ("future_nbf"); or it serves time claims that are not
+        # integers.
+        self.status_unavailable = False
+        self.status_fractional_times = False
+        # A relying party's cached Status List Tokens, by uri (TSL Section
+        # 13.7): each with its claims, decompressed list, and retrieval time.
+        self.status_cache = {}
 
     def __call__(self, environ, start_response):
         path = environ.get("PATH_INFO", "")
@@ -395,6 +511,13 @@ class Server:
             return {"offset": self.offset}
         elif op == "set" and body.get("what") == "dpop_nonce":
             self.require_nonce = bool(body["value"])
+        elif op == "set" and body.get("what") == "status_unavailable":
+            if body["value"] not in (False, None, "error", "stale", "future_iat", "future_nbf"):
+                raise OAuthError("invalid_request", 400,
+                                 "error, stale, future_iat, future_nbf or false")
+            self.status_unavailable = body["value"] or False
+        elif op == "set" and body.get("what") == "status_fractional_times":
+            self.status_fractional_times = bool(body["value"])
         elif op == "disable_check":
             if body["name"] not in CHECKS:
                 raise OAuthError("invalid_request", description="unknown check")
@@ -404,6 +527,117 @@ class Server:
 
     def control_op(self, op, body):
         raise OAuthError("invalid_request", 404, "unknown test-control op")
+
+    def serve_status_list(self, start_response):
+        """GET /statuslists/1: a Status List Token for the issuer's list (TSL Sections
+        5.1 and 8.1), signed with the key that signs its other tokens."""
+        if self.status_unavailable == "error":
+            raise OAuthError(None, 503)
+        now, mode = int(self.now()), self.status_unavailable
+        iat = {"stale": now - 2 * STATUS_MAX_AGE, "future_iat": now + 3600}.get(mode, now)
+        claims = {"sub": self.status_list.uri, "iat": iat, "exp": now + STATUS_LIST_LIFETIME,
+                  "ttl": STATUS_LIST_TTL, "status_list": self.status_list.encoded()}
+        if mode == "future_nbf":
+            claims["nbf"] = now + 3600
+        if self.status_fractional_times:
+            claims.update(iat=iat - 0.5, nbf=iat - 0.25, exp=claims["exp"] + 0.5)
+        token = jws.sign({"typ": "statuslist+jwt", "kid": self.kid}, claims, self.key)
+        return _respond(start_response, 200, token.encode("ascii"),
+                        content_type="application/statuslist+jwt")
+
+    def referenced_status(self, claims):
+        """A Referenced Token's status, after the token's own validation (TSL Section
+        8.3; lifecycle: Common Rules).
+
+        None for a token without a valid status_list member, or whose index the
+        list does not cover: the relying party rejects it. StatusUnavailable where
+        no Status List Token may be relied on (status_list_token).
+        """
+        status = claims.get("status")
+        ref = status.get("status_list") if isinstance(status, dict) else None
+        if not isinstance(ref, dict):
+            return None
+        idx, uri = ref.get("idx"), ref.get("uri")
+        if not isinstance(idx, int) or isinstance(idx, bool) or idx < 0 or \
+                not isinstance(uri, str) or not uri:
+            return None
+        data, bits = self.status_list_token(uri)
+        bit = idx * bits
+        if bit // 8 >= len(data):
+            return None
+        return (data[bit // 8] >> (bit % 8)) & ((1 << bits) - 1)
+
+    def status_list_token(self, uri):
+        """The decompressed list and bits of a Status List Token for uri that the
+        relying party may rely on (lifecycle: Common Rules; TSL Section 13.7).
+
+        A retrieved Status List Token is cached until its ttl. After that the
+        relying party retrieves a fresh one, and if it cannot, keeps relying on
+        the cached one while that has not expired and is within the maximum
+        status age. Without such a list, StatusUnavailable.
+        """
+        now = self.now()
+        cached = self.status_cache.get(uri)
+        if cached is not None and not self.status_usable(cached["claims"], now):
+            cached = None
+        if cached is not None and now < cached["fetched"] + cached["claims"].get("ttl", 0):
+            return cached["data"], cached["claims"]["status_list"]["bits"]
+        try:
+            entry = self.fetch_status_list(uri, now)
+        except StatusUnavailable:
+            if cached is None:
+                raise
+            entry = cached
+        self.status_cache[uri] = entry
+        return entry["data"], entry["claims"]["status_list"]["bits"]
+
+    def fetch_status_list(self, uri, now):
+        """Retrieve and validate a Status List Token for uri: only from the configured
+        location, without following a redirect, signed with the configured key."""
+        source = self.status_sources.get(uri)
+        if source is None:
+            raise StatusUnavailable()
+        location, key = source
+        req = urllib.request.Request(location, headers={"Accept": "application/statuslist+jwt"})
+        try:
+            with urllib.request.build_opener(_NoRedirect).open(req, timeout=10) as resp:
+                header, listed = jws.verify(resp.read().decode("ascii"), key, "RS256")
+        except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
+            raise StatusUnavailable()
+        iat, nbf = listed.get("iat"), listed.get("nbf")
+        ttl, lst = listed.get("ttl", 1), listed.get("status_list")
+        if self.on(f"{self.role}.status_time"):
+            # iat is a NumericDate not after now plus skew (core: Time, Replay,
+            # and Key Validation).
+            times = _numeric_date(iat) and iat <= now + SKEW
+        else:
+            # Non-conforming: an integer iat, and a future one accepted.
+            times = _integer_date(iat)
+        if nbf is not None and self.on(f"{self.role}.status_nbf"):
+            # nbf, where present, not after now plus skew (RFC 7519 Section
+            # 4.1.5); with the check off, nbf is ignored.
+            times = times and _numeric_date(nbf) and nbf <= now + SKEW
+        if not _typ_is(header, "statuslist+jwt") or listed.get("sub") != uri or \
+                not times or not self.status_usable(listed, now) or \
+                not isinstance(ttl, (int, float)) or isinstance(ttl, bool) or ttl <= 0 or \
+                not isinstance(lst, dict) or lst.get("bits") not in (1, 2, 4, 8) or \
+                not isinstance(lst.get("lst"), str):
+            raise StatusUnavailable()
+        try:
+            data = zlib.decompress(jws.b64u_decode(lst["lst"]))
+        except (zlib.error, ValueError):
+            raise StatusUnavailable()
+        return {"claims": listed, "data": data, "fetched": now}
+
+    def status_usable(self, listed, now):
+        """Whether a relying party may still rely on a Status List Token: not expired,
+        and issued within its maximum status age."""
+        exp = listed.get("exp")
+        date = _numeric_date if self.on(f"{self.role}.status_time") else _integer_date
+        if exp is not None and (not date(exp) or exp + SKEW < now):
+            return False
+        return not (listed["iat"] < now - STATUS_MAX_AGE and
+                    self.on(f"{self.role}.status_max_age"))
 
     def authenticate_client(self, form, clients, audience, check_prefix):
         """RFC 7523 private_key_jwt as the core's Dedicated Client Identity narrows it."""
@@ -553,6 +787,13 @@ class IdP(Server):
                                                        "platform-client": "platform-api"},
                                      "self_acting_registrations": {
                                          "analysis-client": SELF_ACTING_CLIENT}}}
+        # Grant status for the grants issued to the RAS (lifecycle: Grant
+        # Status): off until test control turns it on. Each grant issued
+        # under it is recorded with its exp and the relationships it was
+        # issued under.
+        self.grant_status = False
+        self.status_list = StatusList(IDP_STATUS_URI)
+        self.grant_records = []
 
     def control_op(self, op, body):
         if op == "id_token":
@@ -573,18 +814,25 @@ class IdP(Server):
             what, value = body["what"], body["value"]
             if what == "binding_enabled":
                 self.bindings["b12"]["enabled"] = value
+                if not value:
+                    self.invalidate_grants(binding="b12")
             elif what == "client_association":
                 fn = self.client_associations.add if value else self.client_associations.discard
                 fn(("analysis-client", "b12", "delegated"))
+                if not value:
+                    self.invalidate_grants(association=("analysis-client", "b12", "delegated"))
             elif what == "self_acting_association":
                 fn = self.client_associations.add if value else self.client_associations.discard
                 fn(("analysis-client", "b12", "self-acting"))
+                if not value:
+                    self.invalidate_grants(association=("analysis-client", "b12", "self-acting"))
             elif what == "delegation":
                 key = ("agent-42", "alice", "analysis-client", RESOURCE)
                 if value:
                     self.delegations[key] = {"files.read"}
                 else:
                     self.delegations.pop(key, None)
+                    self.invalidate_grants(authorization=key)
             elif what == "delegation_scope":
                 # The delegation's scope set, creating the delegation.
                 key = ("agent-42", "alice", "analysis-client", RESOURCE)
@@ -593,6 +841,16 @@ class IdP(Server):
                 self.prohibitions[("agent-42", RESOURCE)] = set(value or ())
             elif what == "agent_active":
                 self.agents["agent-42"]["active"] = value
+                if not value:
+                    self.invalidate_grants(agent="agent-42")
+                elif not self.on("idp.grant_status_final"):
+                    # Non-conforming: status follows current state, so
+                    # reactivation returns the agent's grants to VALID.
+                    for record in self.grant_records:
+                        if record["agent"] == "agent-42":
+                            self.status_list.statuses[record["idx"]] = VALID
+            elif what == "grant_status":
+                self.grant_status = bool(value)
             elif what == "agent_governance_tenant":
                 self.agents["agent-42"]["governance_tenant"] = value
             elif what == "user_tenant":
@@ -612,6 +870,8 @@ class IdP(Server):
         return super().control_op(op, body)
 
     def handle(self, environ, start_response):
+        if environ.get("PATH_INFO") == STATUS_PATH and environ["REQUEST_METHOD"] == "GET":
+            return self.serve_status_list(start_response)
         if environ.get("PATH_INFO") != "/token" or environ["REQUEST_METHOD"] != "POST":
             return _respond(start_response, 404, {"error": "not_found"})
         form = _form(environ)
@@ -714,6 +974,11 @@ class IdP(Server):
                   "act": {"iss": self.issuer, "sub": agent}, "tenant": tenant}
         if jkt is not None:
             claims["cnf"] = {"jkt": jkt}
+        if self.grant_status and audience == RAS_ISSUER:
+            claims["status"] = self.track_grant(
+                exp, agent=agent, binding=binding_id,
+                association=(client_id, binding_id, "delegated"),
+                authorization=(agent, user, client_id, resource))
         grant = jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid}, claims, self.key)
         return _respond(start_response, 200, {
             "access_token": grant, "issued_token_type": ID_JAG_TYPE,
@@ -770,9 +1035,33 @@ class IdP(Server):
                   "scope": " ".join(granted), "tenant": tenant}
         if jkt is not None:
             claims["cnf"] = {"jkt": jkt}
+        if self.grant_status and audience == RAS_ISSUER:
+            claims["status"] = self.track_grant(
+                claims["exp"], agent=agent, binding=binding_id,
+                association=(client_id, binding_id, "self-acting"),
+                authorization=(agent, resource))
         wag = jws.sign({"typ": "oauth-wag+jwt", "kid": self.kid}, claims, self.key)
         return {"access_token": wag, "issued_token_type": WAG_TYPE, "token_type": "N_A",
                 "expires_in": GRANT_LIFETIME, "scope": claims["scope"]}
+
+    def track_grant(self, exp, **relationships):
+        """A grant's status claim, recording the grant's exp and the relationships it
+        is issued under (lifecycle: Grant Status)."""
+        status = self.status_list.allocate()
+        self.grant_records.append(dict(relationships, idx=status["status_list"]["idx"],
+                                       exp=exp))
+        return status
+
+    def invalidate_grants(self, **withdrawn):
+        """Set to INVALID each grant issued under a withdrawn relationship whose
+        acceptance period has not ended: its exp plus the RAS's permitted clock skew,
+        which the parties configure (lifecycle: Common Rules; Grant Status)."""
+        now = self.now()
+        skew = SKEW if self.on("idp.grant_status_skew") else 0
+        for record in self.grant_records:
+            if record["exp"] + skew >= now and \
+                    all(record[name] == value for name, value in withdrawn.items()):
+                self.status_list.statuses[record["idx"]] = INVALID
 
     def validate_id_token(self, token, client_id):
         # An invalid subject credential, including one whose sub is not a
@@ -1038,6 +1327,14 @@ class RAS(Server):
         # with a body that is not a JSON object ("malformed"), or close the
         # connection before the body it declares ("truncated").
         self.introspection_unavailable = False
+        # Token status (lifecycle: Token Status Lists), off until test control
+        # turns it on: the (issuer, issuer tenant, Target Tenant) whose grants
+        # carry status, and whether the access tokens for RESOURCE do. Each
+        # such access token is recorded with its exp and agent.
+        self.grant_status = set()
+        self.access_token_status = False
+        self.status_list = StatusList(RAS_STATUS_URI)
+        self.token_records = []
 
     def control_op(self, op, body):
         if op == "set":
@@ -1046,6 +1343,7 @@ class RAS(Server):
                 self.agents[(IDP_ISSUER, "agent-42")]["active"] = value
                 if not value:
                     self.invalidate_refresh((IDP_ISSUER, "agent-42"))
+                    self.invalidate_access_tokens((IDP_ISSUER, "agent-42"))
             elif what == "agent_local":
                 self.agents[(IDP_ISSUER, "agent-42")]["local"] = value
             elif what == "actor_gate":
@@ -1086,6 +1384,7 @@ class RAS(Server):
                 self.agents.pop(pair, None)
                 self.removed_correlations.add(pair)
                 self.invalidate_refresh(pair)
+                self.invalidate_access_tokens(pair)
             elif what == "multi_tenant_issuer":
                 # value: false has the RAS treat the IdP's issuer as
                 # single-tenant, trusting it without tenant configuration
@@ -1130,6 +1429,11 @@ class RAS(Server):
                 self.authorization_lifetime = int(value)
             elif what == "introspection_omit_act":
                 self.introspection_omit_act = bool(value)
+            elif what == "grant_status":
+                issuer = (IDP_ISSUER, "acme", "acme-data")
+                (self.grant_status.add if value else self.grant_status.discard)(issuer)
+            elif what == "access_token_status":
+                self.access_token_status = bool(value)
             elif what == "introspection_unavailable":
                 if value not in (False, None, "error", "malformed", "truncated"):
                     raise OAuthError("invalid_request", 400,
@@ -1168,6 +1472,8 @@ class RAS(Server):
 
     def handle(self, environ, start_response):
         path = environ.get("PATH_INFO")
+        if path == STATUS_PATH and environ["REQUEST_METHOD"] == "GET":
+            return self.serve_status_list(start_response)
         if path not in ("/token", "/introspect") or environ["REQUEST_METHOD"] != "POST":
             return _respond(start_response, 404, {"error": "not_found"})
         if path == "/introspect":
@@ -1294,6 +1600,19 @@ class RAS(Server):
                 self.on("ras.unbound_proof_required"):
             raise OAuthError("invalid_grant", description="sender-constrained access token "
                              "required for this resource")
+        # Grant status, where configured for the grant's issuer, issuer tenant
+        # and Target Tenant: part of the grant's validation, before the RAS
+        # records the grant as accepted, so before any deferral (lifecycle:
+        # Grant Status). A check that cannot complete is HTTP 503.
+        if (claims["iss"], issuer_tenant, config["tenant"]) in self.grant_status:
+            try:
+                status = self.referenced_status(claims)
+            except StatusUnavailable:
+                if self.on("ras.status_unavailable"):
+                    raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
+                status = VALID   # non-conforming: an outage read as VALID
+            if status != VALID and self.on("ras.grant_status"):
+                raise OAuthError("invalid_grant", description="grant status")
         # Replay. A grant is accepted when the RAS issues a token or defers
         # the redemption (core: Common Grant Validation, Grant replay); a
         # request rejected before then records nothing. This reference
@@ -1378,6 +1697,9 @@ class RAS(Server):
                         "client_id": client_id, "scope": scope, "act": issued_act}
         if bind:
             token_claims["cnf"] = {"jkt": jkt}
+        status = self.token_status(resource, (act["iss"], act["sub"]), token_claims["exp"])
+        if status:
+            token_claims["status"] = status
         token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
         self.agent_clients.setdefault((act["iss"], act["sub"]), set()).add(client_id)
@@ -1409,6 +1731,9 @@ class RAS(Server):
                         "client_id": client_id, "scope": scope}
         if bind:
             token_claims["cnf"] = {"jkt": jkt}
+        status = self.token_status(resource, agent_key, token_claims["exp"])
+        if status:
+            token_claims["status"] = status
         token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
         return {"access_token": token, "token_type": "DPoP" if bind else "Bearer",
@@ -1446,6 +1771,28 @@ class RAS(Server):
             for token in [t for t, auth in self.refresh_tokens.items()
                           if auth["agent"] == agent_key]:
                 del self.refresh_tokens[token]
+
+    def token_status(self, resource, agent_key, exp):
+        """The status claim of an access token for a resource configured for
+        access-token status, recording its exp and agent; None for any other
+        resource (lifecycle: Access-Token Status)."""
+        if not self.access_token_status or resource != RESOURCE:
+            return None
+        status = self.status_list.allocate()
+        self.token_records.append({"idx": status["status_list"]["idx"], "agent": agent_key,
+                                   "exp": exp})
+        return status
+
+    def invalidate_access_tokens(self, agent_key):
+        """On revoking an agent's sessions, set to INVALID its access tokens whose
+        acceptance period has not ended: exp plus the API's permitted clock skew
+        (lifecycle: Access-Token Status). INVALID is final."""
+        if not self.on("ras.access_token_status_revoke"):
+            return
+        now = self.now()
+        for record in self.token_records:
+            if record["agent"] == agent_key and record["exp"] + SKEW >= now:
+                self.status_list.statuses[record["idx"]] = INVALID
 
     def removal_applies(self, agent_key):
         """Whether the RAS removed this pair's correlation, which a record created
@@ -1673,6 +2020,9 @@ class RAS(Server):
                   "iat": int(now), "exp": exp, "jti": uuid.uuid4().hex,
                   "client_id": auth["client_id"], "scope": auth["scope"],
                   "act": copy.deepcopy(auth["act"]), "cnf": {"jkt": auth["jkt"]}}
+        status = self.token_status(auth["resource"], auth["agent"], exp)
+        if status:
+            claims["status"] = status
         return jws.sign({"typ": "at+jwt", "kid": self.kid}, claims, self.key), exp
 
     def refresh(self, environ, form):
@@ -2052,6 +2402,9 @@ class API(Server):
         # anything else, or authorize_first, after authorization. A
         # conforming API reports the same failure either way.
         self.evaluation_order = "validate_first"
+        # Resources whose access tokens carry status (lifecycle: Access-Token
+        # Status); none until test control configures it.
+        self.access_token_status = set()
 
     def control_op(self, op, body):
         if op == "set" and body["what"] == "bearer_permitted":
@@ -2061,6 +2414,10 @@ class API(Server):
         if op == "set" and body["what"] == "actor_gate":
             entry = (IDP_ISSUER, "agent-42", "user-108", "acme-data")
             (self.actor_gate.add if body["value"] else self.actor_gate.discard)(entry)
+            return {}
+        if op == "set" and body["what"] == "access_token_status":
+            (self.access_token_status.add if body["value"] else
+             self.access_token_status.discard)(RESOURCE)
             return {}
         if op == "set" and body["what"] == "policy_service":
             self.policy_service = bool(body["value"])
@@ -2168,6 +2525,20 @@ class API(Server):
                 raise invalid
         else:
             raise invalid
+        # Access-token status, for a resource configured for it: after the
+        # token's own validation, its proof, and its applicability (lifecycle:
+        # Access-Token Status). A status other than VALID is an invalid token;
+        # a check that cannot complete is HTTP 503. An opaque token's status
+        # comes from introspection.
+        if aud in self.access_token_status and not introspected:
+            try:
+                status = self.referenced_status(claims)
+            except StatusUnavailable:
+                if self.on("api.status_unavailable"):
+                    raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
+                status = VALID   # non-conforming: an outage read as VALID
+            if status != VALID and self.on("api.access_token_status"):
+                raise invalid
         # Route, now that the token is known to be for this API: an unknown
         # path, then a method the read does not support.
         if not routed:
@@ -2451,4 +2822,8 @@ def start(client_keys, grant_signer=None, platform_key=None):
     urls = {name: url for name, (_, url) in servers.items()}
     # The API introspects over HTTP at the RAS's transport.
     api.introspection = (urls["ras"] + "/introspect", INTROSPECTION_CLIENT, secret)
+    # Each relying party's configured location and key for the Status List
+    # Tokens it may rely on (lifecycle: Common Rules).
+    ras.status_sources = {IDP_STATUS_URI: (urls["idp"] + STATUS_PATH, idp.key.public_key())}
+    api.status_sources = {RAS_STATUS_URI: (urls["ras"] + STATUS_PATH, ras.key.public_key())}
     return urls, [s for s, _ in servers.values()]

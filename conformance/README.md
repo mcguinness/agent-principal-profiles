@@ -22,7 +22,8 @@ deferred redemption at the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
 Policy Services, error selection order, self-acting access and
 introspection at the reference API ([Policy services at the
-API](#policy-services-at-the-api)).
+API](#policy-services-at-the-api)), and of the lifecycle profile's
+token status capabilities ([Token status lists](#token-status-lists)).
 
 The drafts define every requirement. The suite tests a subset of them,
 and passing it is evidence for that subset only, not a conformance claim.
@@ -35,6 +36,7 @@ suite results offered as evidence.
 * [Cases](#cases)
 * [Deferred redemption at the RAS](#deferred-redemption-at-the-ras)
 * [Policy services at the API](#policy-services-at-the-api)
+* [Token status lists](#token-status-lists)
 * [What the suite does not cover](#what-the-suite-does-not-cover)
 * [Running against another implementation](#running-against-another-implementation)
 * [Configuration the reference assumes](#configuration-the-reference-assumes)
@@ -226,6 +228,17 @@ single-tenant issuer omits.
 | S37 | API | Through the policy service, whose gate permits only the home issuer's `agent-42`, the partner issuer's `agent-42` gets 403 `actor_unauthorized`, and the evaluation names it with the partner's issuer | core: Optional Policy Services; Delegated Actor Authorization | Mint access tokens; turn on the policy service; set its policy; read its evaluations |
 | S38 | API | With bearer tokens permitted, a bearer request whose opaque token cannot be introspected gets HTTP 503, not 401 `invalid_token` | core: Optional Opaque Access Tokens and Introspection; Error Responses | Mint opaque tokens; permit bearer tokens; make introspection fail |
 | S39 | API | Every challenge to a bearer request uses the `Bearer` scheme: 401 `invalid_token` for an expired token, 400 `invalid_request` for an invalid argument, 403 `insufficient_scope`, 403 `actor_unauthorized`, and a 403 with `realm` and no `error` for any other denial | core: Error Responses (the selected scheme); RFC 6750 Section 3 | Mint access tokens; permit bearer tokens; close the API's actor gate |
+| L01 | API | With access-token status configured, the access token carries `status.status_list` with an integer `idx` and a string `uri`, its Status List Token marks it VALID, and the read is served; after the RAS applies the agent's disablement and the publication interval passes, the list marks it INVALID; once the maximum status age has also passed, so that no list the API may have cached is usable, the read gets 401 `invalid_token`; after the RAS re-enables the agent, both stay so | lifecycle: Common Rules; Access-Token Status | Configure access-token status at the RAS and the API; disable and re-enable the agent at the RAS; advance the clock |
+| L02 | RAS | With grant status configured, the ID-JAG's Status List Token marks it VALID; the IdP disables and then re-enables the agent, which the RAS never observes; after the publication interval, the list marks the grant INVALID, the RAS, which has retrieved no list before, rejects it with `invalid_grant`, and a grant issued after the reactivation is redeemed | lifecycle: Grant Status; Missed Transitions and Reactivation | Configure grant status at the IdP and the RAS; disable and re-enable the agent at the IdP; advance the clock where the publication interval is not zero |
+| L03 | RAS | L02 for a WAG, redeemed under the self-acting registration | lifecycle: Grant Status; Missed Transitions and Reactivation | As L02; the self-acting registration's key |
+| L04 | RAS | Midway between the grant's `exp` and the end of the RAS's permitted clock skew (`clock_skew`, 60 s), less the publication interval, the IdP disables the agent; after the publication interval, a second grant is still redeemed with grant status configured off at the RAS; with it on again, the list marks the first grant INVALID and the RAS rejects it with `invalid_grant` | lifecycle: Common Rules (acceptance period); Grant Status | As L02; configure grant status off and on at the RAS; advance the clock |
+| L05 | RAS | While the IdP's Status Provider answers HTTP 503, and again while it serves a Status List Token older than the RAS's maximum status age, one whose `iat` is an hour ahead, and one whose `nbf` is, the redemption gets HTTP 503 with no error code; once it serves a current one, the same grant is redeemed | lifecycle: Common Rules; Grant Status; core: Redemption Error Precedence; Time, Replay, and Key Validation | As L02; make the IdP's Status Provider fail or serve such a list |
+| L06 | API | The same at the API, which has read nothing before, with the RAS's Status Provider: HTTP 503 without the file's data, then the read is served | lifecycle: Common Rules; Access-Token Status; core: Error Responses; Time, Replay, and Key Validation | Configure access-token status at the RAS and the API; make the RAS's Status Provider fail or serve such a list |
+| L07 | API | With access-token status configured, a minted access token without a `status` claim, which the API served before, gets 401 `invalid_token` | lifecycle: Common Rules | Configure access-token status at the API; mint an access token |
+| L08 | RAS | With grant status configured, a minted grant without a `status` claim fails with `invalid_grant`; configured off again, the same grant is redeemed | lifecycle: Common Rules; Grant Status | Configure grant status at the RAS; mint a grant |
+| L09 | API | Where the API caches (`status_cache`): after a served read, the RAS's Status Provider fails; three quarters of the maximum status age later, the cached list still serves the read; one second past that age, the read gets HTTP 503; once the provider recovers, it is served | lifecycle: Common Rules; TSL Section 13.7 | As L06; advance the clock |
+| L10 | RAS | With the IdP's Status List Token carrying `iat`, `nbf` and `exp` that are not integers, the grant's status reads VALID and the grant is redeemed | lifecycle: Common Rules; TSL Section 8.3; RFC 7519 Section 2 | As L02; have the IdP's Status Provider serve such time claims |
+| L11 | API | The same at the API, with the RAS's Status List Token: the read is served | lifecycle: Common Rules; TSL Section 8.3; RFC 7519 Section 2 | As L06; have the RAS's Status Provider serve such time claims |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -596,6 +609,84 @@ Some cases depend on choices made for the reference:
   authenticating would be refused by the RAS on every introspection, so
   no case could observe it accepting an unauthenticated response.
 
+## Token status lists
+
+The L cases test the lifecycle profile's token status capabilities.
+Access-token status: the RAS publishes the status of its JWT access
+tokens for the resource, and the API checks it on each request (L01,
+L06, L07, L09, L11). Grant status: the IdP publishes the status of the ID-JAGs and
+WAGs it issues to the RAS, and the RAS checks it at redemption (L02 to
+L05, L08, L10). Test control turns each capability on at both ends, since the
+profile makes it configuration the parties agree on.
+
+**The suite as relying party.** The cases also read the issuer's Status
+List Token themselves, from the location `status_list_locations`
+configures for the token's `uri`. They check its `typ`, `sub`, `iat`,
+`exp`, and status list, decompress `lst`, and read the token's entry.
+So L01 is evidence of the RAS's behavior as Status Issuer, and L02 to
+L04 of the IdP's, apart from how the relying party reacted. Like the
+rest of the suite, they do not verify signatures. A Status List Token
+without `exp` or `ttl` is noted, since both are RECOMMENDED.
+
+**Publication and caching.** A Status Issuer reflects a change in the
+lists it issues within its publication interval, and a relying party may
+keep relying on a list it cached until the list expires or exceeds its
+maximum status age (TSL Section 13.7). `status_publication_interval`,
+`status_max_age` and `status_cache` state the deployment's configured
+values, and the cases wait them out, advancing the clock, before they
+require a change to show: the suite reads an issuer's list only after
+the publication interval, and L01 requires the API's rejection only
+once a cached list from before the change is beyond the maximum status
+age. The cases that require a rejection or HTTP 503 at the RAS, and L06
+at the API, have the relying party retrieve no list before the change.
+L09 shows a cached list serving a read while the Status Provider fails,
+and HTTP 503 once that list is too old.
+
+**Stale and failing providers.** L05 and L06 make the Status Provider
+answer HTTP 503, and then serve an unexpired Status List Token issued
+before the relying party's maximum status age, one whose `iat` is an
+hour ahead, and one whose `nbf` is. Each time the relying party has no
+list it may rely on, so the check cannot complete: HTTP 503 with no
+error code, and nothing recorded, so the same grant or token succeeds
+once a current list is served.
+
+**Time claims.** A relying party validates a Status List Token's time
+claims as for any JWT: `iat`, and `nbf` where present, no later than the
+current time plus its permitted clock skew, and `exp`, where present, not
+passed. Each is a NumericDate, which need not be an integer (RFC 7519
+Section 2), so L10 and L11 serve fractional values, which must be
+accepted. The suite applies the same checks when it reads a list.
+
+Some cases depend on choices made for the reference:
+
+* Each issuer keeps one list, with two bits per token so that SUSPENDED
+  fits, and 4096 entries. It allocates indexes at random and never
+  reuses one. It signs a fresh Status List Token for each request, with
+  `exp` 300 s and `ttl` 60 s later, so its publication interval is zero.
+  Each relying party's maximum status age is 120 s. Both fetch only from
+  the configured location, follow no redirect, and validate with the
+  issuer's configured key. Each caches a list until its `ttl`, and when
+  it then cannot retrieve a fresh one, relies on the cached one until it
+  expires or exceeds the maximum status age. `reset` discards the
+  cache.
+* The IdP sets a grant INVALID when it disables the agent, disables the
+  Identity Binding, withdraws the Client Association or the Delegation
+  Authorization, for each grant whose `exp` plus 60 s, the RAS's
+  permitted clock skew, has not passed. Only the agent's disablement is
+  tested. The reference implements neither the withdrawal of an Agent
+  Authorization nor grant revocation, so neither sets a grant INVALID. The RAS sets an access token INVALID when it applies the
+  agent's disablement or removes its correlation.
+* The RAS checks grant status after the other checks on the grant and
+  before replay, so before any deferral. The API checks access-token
+  status after the token, its proof and its applicability, and before
+  routing.
+
+The L cases do not test SUSPENDED for a Local Suspension, which the
+reference does not implement; the IdP's other withdrawals; grant status
+for a grant redeemed with deferral; token revocation (RFC 7009); or the
+rule that a relying party retrieves a Status List Token only from its
+configured location, without following a redirect.
+
 ## What the suite does not cover
 
 The suite tests nothing outside the path above, including:
@@ -651,8 +742,8 @@ The suite tests nothing outside the path above, including:
   cancellation by revoking the deferral code, a change of the user's
   account link while pending, an absolute expiration set before the
   deferral, a grant status change while pending, and `slow_down`;
-* other oversight, lifecycle propagation (including the token status
-  capabilities), and SCIM management.
+* other oversight, lifecycle propagation (the token status capabilities
+  only as L01 to L11 test them), and SCIM management.
 
 ## Running against another implementation
 
@@ -723,6 +814,13 @@ another IdP, RAS or API:
    and an audience the IdP accepts; the IdP also holds the Client
    Association and the user's Delegation Authorization for that agent
    through the shared client. Without it, those cases are not run.
+   The L cases need `status_list_locations`, where the suite retrieves
+   each issuer's Status List Token by its `uri`, and the configured
+   timing: `status_publication_interval`, `status_max_age` and
+   `status_cache`. L04 also needs `clock_skew`, the RAS's permitted
+   clock skew, which the IdP and the RAS configure. L09 runs only where
+   `status_cache` is set. L02 to L05 and L10 are not run in RAS-only
+   mode, which has no IdP to publish grant status.
 2. Implement `suite.Adapter` for the deployment. Every case whose grant
    the IdP issues needs `id_token`; the "Test control" column lists the
    other capabilities. A case whose capability the deployment cannot
@@ -754,7 +852,12 @@ another IdP, RAS or API:
    on it. S32 and S33 ask `Adapter.route_rejection` whether an unknown
    path or an unsupported method was rejected; by default any response
    that does not serve the request counts, and only the reference
-   adapter requires 404 and 405 with `Allow: GET`.
+   adapter requires 404 and 405 with `Allow: GET`. The L cases use
+   `set` on the IdP (`grant_status`, `agent_active`,
+   `status_unavailable`, `status_fractional_times`), on the RAS
+   (`grant_status`, `access_token_status`, `agent_active`,
+   `status_unavailable`, `status_fractional_times`) and on the API
+   (`access_token_status`).
 3. Call `suite.run_case` for each case in `suite.CASES`. It returns
    `None` in place of a pass or failure for a case it did not run.
 
@@ -825,6 +928,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Time claims | `exp` enforced on every JWT; `iat` required on ID Tokens, grants and access tokens; `iat` and `nbf`, where present, rejected beyond the skew | core: Time, Replay, and Key Validation; RFC 7519; RFC 7523 Section 3 |
 | Explicit types | `typ` accepted with or without the `application/` prefix | RFC 7515 Section 4.1.9; RFC 9068 Section 4 |
 | Lifetimes | ID Token 65 min (as the oversight walkthrough uses), grant 300 s, access token 600 s | core: Common Grant Claims |
+| Token status | Off unless test control turns it on. One list for each issuer, served at `/statuslists/1`; 2 bits per token; a fresh Status List Token on each request, `exp` 300 s, `ttl` 60 s; maximum status age 120 s; a relying party caches each list until its `ttl` and falls back to it while usable; the location and key configured at the relying party | lifecycle: Common Rules; TSL Section 13.7 |
 
 ## Draft questions found while implementing
 

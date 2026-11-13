@@ -46,6 +46,11 @@ def reference_config(ras_only=False):
         other_ras_client_id="other-api", other_ras_client_key=keys["other-api"],
         self_acting_client_key=keys["analysis-agent-client"],
         user="alice", scope="files.read", multi_tenant_issuer=True,
+        status_list_locations={
+            reference.IDP_STATUS_URI: transports["idp"] + reference.STATUS_PATH,
+            reference.RAS_STATUS_URI: transports["ras"] + reference.STATUS_PATH},
+        clock_skew=reference.SKEW, status_max_age=reference.STATUS_MAX_AGE,
+        status_cache=True,
         expect={"agent_iss": reference.IDP_ISSUER, "agent": "agent-42",
                 "grant_sub": "alice-ras", "token_sub": "user-108"},
         shared_client=suite.SharedClient(
