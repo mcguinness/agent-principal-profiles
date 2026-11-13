@@ -49,7 +49,8 @@ def reference_config(ras_only=False):
         status_list_locations={
             reference.IDP_STATUS_URI: transports["idp"] + reference.STATUS_PATH,
             reference.RAS_STATUS_URI: transports["ras"] + reference.STATUS_PATH},
-        clock_skew=reference.SKEW,
+        clock_skew=reference.SKEW, status_max_age=reference.STATUS_MAX_AGE,
+        status_cache=True,
         expect={"agent_iss": reference.IDP_ISSUER, "agent": "agent-42",
                 "grant_sub": "alice-ras", "token_sub": "user-108"},
         shared_client=suite.SharedClient(

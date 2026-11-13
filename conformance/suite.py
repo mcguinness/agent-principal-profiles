@@ -152,6 +152,15 @@ class Config:
     # Rules). L04 is not run without some skew.
     status_list_locations: dict = field(default_factory=dict)
     clock_skew: int = 60
+    # The configured timing of token status (lifecycle: Common Rules): the
+    # longest publication interval of the IdP and the RAS as Status Issuers,
+    # the longest maximum status age of the RAS and the API as relying
+    # parties, and whether a relying party caches a Status List Token it
+    # may still rely on (TSL Section 13.7). The L cases wait out these
+    # bounds, advancing the clock, before they require a change to show.
+    status_publication_interval: int = 0
+    status_max_age: int = 120
+    status_cache: bool = False
 
 
 class Response:
@@ -506,7 +515,9 @@ class Adapter:
                                    members; active defaults to true, and a
                                    token minted with active false keeps its
                                    other members in the response
-    reset()                        restore the examples' configuration
+    reset()                        restore the examples' configuration,
+                                   discarding any Status List Token a
+                                   relying party cached
     disable_check(role, name)      reference implementation only (vacuity mode)
     argument_rejection(resp)       whether resp is the API's rejection of an
                                    argument outside the read's declared
@@ -3895,6 +3906,33 @@ def access_token_status(ctx):
     ctx.adapter.set("api", "access_token_status", True)
 
 
+def await_publication(ctx):
+    """Advance past the Status Issuers' publication interval, after which the
+    Status List Token an issuer serves reflects a change (lifecycle: Common
+    Rules); return the seconds advanced."""
+    interval = ctx.cfg.status_publication_interval
+    if interval:
+        ctx.advance(interval)
+    return interval
+
+
+def outlast_cached_lists(ctx, elapsed):
+    """Where a relying party caches, advance until a Status List Token issued
+    before a change elapsed seconds ago is beyond its maximum status age, so it
+    holds none from before the change that it may rely on."""
+    remaining = ctx.cfg.status_max_age + 1 - elapsed
+    if ctx.cfg.status_cache and remaining > 0:
+        ctx.advance(remaining)
+
+
+def still_redeemable(ctx, claims):
+    """A grant case that waited for publication is not run if the grant has expired
+    meanwhile, since its rejection would then show nothing about its status."""
+    if ctx.now() >= claims["exp"]:
+        raise NotRun("the publication interval outlasts the grant "
+                     "(Config.status_publication_interval)")
+
+
 def expect_unfinished(ctx, resp, label, data=None):
     """HTTP 503 without an error code or a token: a check that cannot complete (core:
     Redemption Error Precedence; Error Responses)."""
@@ -3914,9 +3952,13 @@ def expect_unfinished(ctx, resp, label, data=None):
       "disablement, also after the agent is re-enabled",
       "lifecycle: Common Rules; Access-Token Status",
       needs=("set:ras.access_token_status", "set:api.access_token_status",
-             "set:ras.agent_active"),
+             "set:ras.agent_active", "advance_clock"),
       defeats=("api.access_token_status", "ras.access_token_status_revoke"))
 def l01(ctx):
+    # The first read lets the API cache a Status List Token marking the token
+    # VALID, which it may rely on within its maximum status age. The case
+    # waits out the publication interval before reading the RAS's list, and
+    # that age before requiring the API to reject the token.
     access_token_status(ctx)
     token = ctx.access_token()
     _, claims = access_token_jwt(token)
@@ -3925,8 +3967,10 @@ def l01(ctx):
     resp = ctx.client.get(ctx.cfg.read_path, token)
     check(resp.status == 200, f"setup: read failed: {resp}")
     ctx.adapter.set("ras", "agent_active", False)
+    elapsed = await_publication(ctx)
     check(token_status(ctx, claims, "the access token") == INVALID,
           "applying the disablement did not set the access token to INVALID")
+    outlast_cached_lists(ctx, elapsed)
     expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 401, "invalid_token")
     ctx.adapter.set("ras", "agent_active", True)
     check(token_status(ctx, claims, "the access token") == INVALID,
@@ -3937,17 +3981,21 @@ def l01(ctx):
 @case("L02", "RAS", "Rejects with invalid_grant an ID-JAG the IdP set to INVALID on disabling the "
       "agent, after the IdP re-enabled it",
       "lifecycle: Grant Status; Missed Transitions and Reactivation",
-      needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.agent_active"),
+      needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.agent_active",
+             "advance_clock"),
       defeats=("ras.grant_status", "idp.grant_status_final"))
 def l02(ctx):
     # The RAS never observes the disablement, so its agent record stays
-    # active: only the grant's status reaches it. A grant issued after the
-    # reactivation is redeemed.
+    # active: only the grant's status reaches it. It retrieves no Status List
+    # Token before the redemption, so it holds none from before the change.
+    # A grant issued after the reactivation is redeemed.
     grant_status(ctx)
     grant = ctx.grant()
     claims = jws.decode(grant)[1]
     check(token_status(ctx, claims, "the ID-JAG") == VALID, "a new ID-JAG is not VALID")
     ctx.adapter.set("idp", "agent_active", False)
+    await_publication(ctx)
+    still_redeemable(ctx, claims)
     check(token_status(ctx, claims, "the ID-JAG") == INVALID,
           "disabling the agent did not set the ID-JAG to INVALID")
     ctx.adapter.set("idp", "agent_active", True)
@@ -3961,7 +4009,7 @@ def l02(ctx):
       "agent, after the IdP re-enabled it",
       "lifecycle: Grant Status; Missed Transitions and Reactivation",
       needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.agent_active",
-             "self_acting"),
+             "self_acting", "advance_clock"),
       defeats=("ras.grant_status", "idp.grant_status_final"))
 def l03(ctx):
     # Without grant status, nothing in the lifecycle profile reaches such a WAG.
@@ -3971,6 +4019,8 @@ def l03(ctx):
     claims = jws.decode(grant)[1]
     check(token_status(ctx, claims, "the WAG") == VALID, "a new WAG is not VALID")
     ctx.adapter.set("idp", "agent_active", False)
+    await_publication(ctx)
+    still_redeemable(ctx, claims)
     check(token_status(ctx, claims, "the WAG") == INVALID,
           "disabling the agent did not set the WAG to INVALID")
     ctx.adapter.set("idp", "agent_active", True)
@@ -3985,20 +4035,26 @@ def l03(ctx):
       "lifecycle: Common Rules (acceptance period); Grant Status",
       needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.agent_active",
              "advance_clock"),
-      defeats=("idp.grant_status_skew",))
+      defeats=("idp.grant_status_skew", "ras.grant_status"))
 def l04(ctx):
-    # A second grant, redeemed at the same moment, shows that the RAS still
-    # accepts a grant then: the rejection is the disablement's, not the
-    # grant's expiration.
+    # The agent is disabled midway between exp and the end of the skew, less
+    # the publication interval. A second grant, redeemed then with grant
+    # status configured off at the RAS, shows that the RAS still accepts a
+    # grant: the rejection is the disablement's, not the grant's expiration.
+    # The RAS retrieves its first Status List Token after the change.
     grant_status(ctx)
-    skew = ctx.cfg.clock_skew
-    if skew < 2:
-        raise NotRun("the RAS permits no clock skew to test within (Config.clock_skew)")
+    ctx.adapter.set("ras", "grant_status", False)
+    skew, interval = ctx.cfg.clock_skew, ctx.cfg.status_publication_interval
+    if skew - interval < 2:
+        raise NotRun("the RAS's clock skew leaves no time after exp to disable the agent and "
+                     "await publication (Config.clock_skew, status_publication_interval)")
     grant, control = ctx.grant(), ctx.grant()
     claims = jws.decode(grant)[1]
-    ctx.advance(int(claims["exp"]) - ctx.now() + skew // 2)
-    expect_token_response(ctx.client.redeem(control))
+    ctx.advance(int(claims["exp"]) - ctx.now() + (skew - interval) // 2)
     ctx.adapter.set("idp", "agent_active", False)
+    await_publication(ctx)
+    expect_token_response(ctx.client.redeem(control))
+    ctx.adapter.set("ras", "grant_status", True)
     check(token_status(ctx, claims, "the ID-JAG") == INVALID,
           "disabling the agent did not set to INVALID a grant the RAS can still accept")
     expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
@@ -4010,8 +4066,9 @@ def l04(ctx):
       needs=("set:idp.grant_status", "set:ras.grant_status", "set:idp.status_unavailable"),
       defeats=("ras.status_unavailable", "ras.status_max_age"))
 def l05(ctx):
-    # A redemption that gets 503 records nothing, so the grant stays
-    # redeemable.
+    # The RAS retrieves no Status List Token before this redemption, so it
+    # holds none it may rely on. A redemption that gets 503 records nothing,
+    # so the grant stays redeemable.
     grant_status(ctx)
     grant = ctx.grant()
     for mode in ("error", "stale"):
@@ -4028,18 +4085,21 @@ def l05(ctx):
              "set:ras.status_unavailable"),
       defeats=("api.status_unavailable", "api.status_max_age"))
 def l06(ctx):
+    # The API reads nothing before the outage, so it holds no Status List
+    # Token it may rely on. The read that succeeds afterwards supplies the
+    # data the 503 responses must not carry.
     access_token_status(ctx)
     token = ctx.access_token()
-    resp = ctx.client.get(ctx.cfg.read_path, token)
-    check(resp.status == 200 and resp.body, f"setup: read failed: {resp}")
-    data = resp.body
+    responses = []
     for mode in ("error", "stale"):
         ctx.adapter.set("ras", "status_unavailable", mode)
-        expect_unfinished(ctx, ctx.client.get(ctx.cfg.read_path, token),
-                          f"Status Provider {mode}", data)
+        responses.append((mode, ctx.client.get(ctx.cfg.read_path, token)))
     ctx.adapter.set("ras", "status_unavailable", False)
     resp = ctx.client.get(ctx.cfg.read_path, token)
-    check(resp.status == 200, f"read failed once the Status List Token was available: {resp}")
+    check(resp.status == 200 and resp.body,
+          f"read failed once the Status List Token was available: {resp}")
+    for mode, unfinished in responses:
+        expect_unfinished(ctx, unfinished, f"Status Provider {mode}", resp.body)
 
 
 @case("L07", "API", "Rejects an access token for a resource configured for access-token status "
@@ -4068,6 +4128,37 @@ def l08(ctx):
     expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
     ctx.adapter.set("ras", "grant_status", False)
     expect_token_response(ctx.client.redeem(grant))
+
+
+@case("L09", "API", "Serves a request from a cached Status List Token while the Status Provider "
+      "fails, and answers HTTP 503 once that list is older than the maximum status age",
+      "lifecycle: Common Rules; TSL Section 13.7",
+      needs=("set:ras.access_token_status", "set:api.access_token_status",
+             "set:ras.status_unavailable", "advance_clock"),
+      defeats=("api.status_max_age", "api.status_unavailable"))
+def l09(ctx):
+    # Three quarters of the maximum status age after the first read, the
+    # API's cached list is one it may still rely on; one second past that
+    # age, it is not, and the Status Provider still fails.
+    if not ctx.cfg.status_cache:
+        raise NotRun("the relying party caches no Status List Token (Config.status_cache)")
+    access_token_status(ctx)
+    token = ctx.access_token()
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 200 and resp.body, f"setup: read failed: {resp}")
+    data = resp.body
+    ctx.adapter.set("ras", "status_unavailable", "error")
+    max_age = ctx.cfg.status_max_age
+    ctx.advance(max_age * 3 // 4)
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 200, f"a cached Status List Token within the maximum status age "
+          f"did not serve the read while the Status Provider failed: {resp}")
+    ctx.advance(max_age - max_age * 3 // 4 + 1)
+    expect_unfinished(ctx, ctx.client.get(ctx.cfg.read_path, token),
+                      "cached Status List Token beyond the maximum status age", data)
+    ctx.adapter.set("ras", "status_unavailable", False)
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 200, f"read failed once the Status List Token was available: {resp}")
 
 
 def run_case(c, cfg, adapter, disable=()):

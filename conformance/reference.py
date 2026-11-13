@@ -41,8 +41,8 @@ the grants it issues to the RAS, and the RAS the status of its access
 tokens for the resource, each in one Token Status List served at
 GET /statuslists/1. The RAS checks grant status at redemption, and the
 API access-token status on each request, each fetching Status List
-Tokens only from its configured location and validating them with its
-configured key.
+Tokens only from its configured location, validating them with its
+configured key, and caching them until their ttl.
 
 Every check the negative cases exercise has a name (see CHECKS). The
 runner's vacuity mode switches one off to show that the case that cites
@@ -79,7 +79,10 @@ AUTHORIZATION_LIFETIME = 8 * 3600   # absolute authorization expiration, from re
 POLL_INTERVAL = 5
 # Token Status Lists (lifecycle: Token Status Lists). Each issuer keeps one
 # list of 2-bit statuses, so that SUSPENDED fits, and signs a fresh Status
-# List Token for each request: its publication interval is zero.
+# List Token for each request: its publication interval is zero. A relying
+# party caches each Status List Token until its ttl, and while it cannot
+# retrieve a fresh one, keeps relying on it until it expires or exceeds the
+# maximum status age.
 VALID, INVALID, SUSPENDED = 0x00, 0x01, 0x02
 STATUS_BITS = 2
 STATUS_LIST_SIZE = 4096        # Referenced Tokens per list
@@ -453,6 +456,9 @@ class Server:
         # List Token issued before the relying party's maximum status age
         # ("stale").
         self.status_unavailable = False
+        # A relying party's cached Status List Tokens, by uri (TSL Section
+        # 13.7): each with its claims, decompressed list, and retrieval time.
+        self.status_cache = {}
 
     def __call__(self, environ, start_response):
         path = environ.get("PATH_INFO", "")
@@ -516,9 +522,7 @@ class Server:
 
         None for a token without a valid status_list member, or whose index the
         list does not cover: the relying party rejects it. StatusUnavailable where
-        no Status List Token may be relied on: one that cannot be obtained from
-        the configured location, fails validation with the configured key, has
-        expired, or is older than the maximum status age.
+        no Status List Token may be relied on (status_list_token).
         """
         status = claims.get("status")
         ref = status.get("status_list") if isinstance(status, dict) else None
@@ -528,6 +532,39 @@ class Server:
         if not isinstance(idx, int) or isinstance(idx, bool) or idx < 0 or \
                 not isinstance(uri, str) or not uri:
             return None
+        data, bits = self.status_list_token(uri)
+        bit = idx * bits
+        if bit // 8 >= len(data):
+            return None
+        return (data[bit // 8] >> (bit % 8)) & ((1 << bits) - 1)
+
+    def status_list_token(self, uri):
+        """The decompressed list and bits of a Status List Token for uri that the
+        relying party may rely on (lifecycle: Common Rules; TSL Section 13.7).
+
+        A retrieved Status List Token is cached until its ttl. After that the
+        relying party retrieves a fresh one, and if it cannot, keeps relying on
+        the cached one while that has not expired and is within the maximum
+        status age. Without such a list, StatusUnavailable.
+        """
+        now = self.now()
+        cached = self.status_cache.get(uri)
+        if cached is not None and not self.status_usable(cached["claims"], now):
+            cached = None
+        if cached is not None and now < cached["fetched"] + cached["claims"].get("ttl", 0):
+            return cached["data"], cached["claims"]["status_list"]["bits"]
+        try:
+            entry = self.fetch_status_list(uri, now)
+        except StatusUnavailable:
+            if cached is None:
+                raise
+            entry = cached
+        self.status_cache[uri] = entry
+        return entry["data"], entry["claims"]["status_list"]["bits"]
+
+    def fetch_status_list(self, uri, now):
+        """Retrieve and validate a Status List Token for uri: only from the configured
+        location, without following a redirect, signed with the configured key."""
         source = self.status_sources.get(uri)
         if source is None:
             raise StatusUnavailable()
@@ -538,12 +575,10 @@ class Server:
                 header, listed = jws.verify(resp.read().decode("ascii"), key, "RS256")
         except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
             raise StatusUnavailable()
-        now, iat, exp = self.now(), listed.get("iat"), listed.get("exp")
-        lst = listed.get("status_list")
+        iat, ttl, lst = listed.get("iat"), listed.get("ttl", 1), listed.get("status_list")
         if not _typ_is(header, "statuslist+jwt") or listed.get("sub") != uri or \
-                not isinstance(iat, int) or \
-                (exp is not None and (not isinstance(exp, int) or exp + SKEW < now)) or \
-                (iat < now - STATUS_MAX_AGE and self.on(f"{self.role}.status_max_age")) or \
+                not isinstance(iat, int) or not self.status_usable(listed, now) or \
+                not isinstance(ttl, (int, float)) or isinstance(ttl, bool) or ttl <= 0 or \
                 not isinstance(lst, dict) or lst.get("bits") not in (1, 2, 4, 8) or \
                 not isinstance(lst.get("lst"), str):
             raise StatusUnavailable()
@@ -551,10 +586,16 @@ class Server:
             data = zlib.decompress(jws.b64u_decode(lst["lst"]))
         except (zlib.error, ValueError):
             raise StatusUnavailable()
-        bit = idx * lst["bits"]
-        if bit // 8 >= len(data):
-            return None
-        return (data[bit // 8] >> (bit % 8)) & ((1 << lst["bits"]) - 1)
+        return {"claims": listed, "data": data, "fetched": now}
+
+    def status_usable(self, listed, now):
+        """Whether a relying party may still rely on a Status List Token: not expired,
+        and issued within its maximum status age."""
+        exp = listed.get("exp")
+        if exp is not None and (not isinstance(exp, int) or exp + SKEW < now):
+            return False
+        return not (listed["iat"] < now - STATUS_MAX_AGE and
+                    self.on(f"{self.role}.status_max_age"))
 
     def authenticate_client(self, form, clients, audience, check_prefix):
         """RFC 7523 private_key_jwt as the core's Dedicated Client Identity narrows it."""
