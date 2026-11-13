@@ -641,7 +641,8 @@ applies.
     Status List Token can be relied on, because none can be retrieved
     from a configured location or validated, or the one held has
     expired or is older than the maximum status age, unless a failure
-    is established earlier (L05, L06, L09).
+    is established and no unfinished check ranks earlier than it (L05,
+    L06, L09).
 
 A client recovers as the core's [recovery list][implementation-client]
 describes: at most one bounded attempt after `invalid_client`, after an
