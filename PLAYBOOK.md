@@ -177,6 +177,50 @@ one ID-JAG's authority can be revoked without disabling the agent.
   including propagation, token lifetime, and caching, as the lifecycle
   profile recommends ("Resource Enforcement and Delay").
 
+#### Token status lists
+
+Where an API validates JWT access tokens offline, or a grant must fail
+after a change the resource domain may not have applied, publish token
+status ([token status lists][lifecycle-token-status]). The lifecycle
+profile defines two capabilities, configured and claimed separately,
+and neither needs SCIM provisioning:
+
+* **Access-token status.** The RAS marks an access token INVALID when
+  it revokes the token's session, and SUSPENDED or INVALID while a
+  Local Suspension applies; the API checks each request.
+* **Grant status.** The IdP marks a grant INVALID when it disables or
+  deletes the Agent Principal, disables the Identity Binding or
+  withdraws the Client Association the grant was issued under,
+  withdraws the Delegation Authorization or Agent Authorization, or
+  revokes the grant; the RAS checks once, at redemption.
+
+Neither revokes authorization already derived from a grant, and grant
+status does not end a redemption already accepted and deferred for
+approval. Agree the token status configuration that the implementer's
+guide lists under [choices to
+agree](IMPLEMENTERS-GUIDE.md#choices-to-agree).
+
+*Exit checks:*
+* After the RAS applies a disablement, the API rejects a previously
+  accepted access token as invalid within the RAS's publication
+  interval and the API's maximum status age, and still rejects it after
+  the agent is re-enabled.
+* A grant issued before the IdP disabled and re-enabled the agent, a
+  cycle the RAS never observed, fails redemption with `invalid_grant`,
+  including one past its expiration but within the RAS's clock skew; a
+  new grant redeems.
+* A token or grant configured to carry status, but without a
+  `status_list` member, is rejected.
+* With the Status Provider failing, or serving only a list that has
+  expired or is older than the maximum status age, the RAS issues
+  nothing and the API performs no operation; each answers HTTP 503,
+  unless a failure is established and no unfinished check ranks earlier
+  than it. A cached list still within those limits keeps serving.
+* The documented disablement delay includes the publication interval
+  and the maximum status age, which the lifecycle profile requires to
+  be configured consistently with the accepted revocation delay
+  ("Resource Enforcement and Delay").
+
 #### Continuation through gateways
 
 Where agents reach tools through gateways, deploy continuation
