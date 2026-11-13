@@ -787,7 +787,8 @@ to deferral when it asks for `files.write`. The oversight profile's
 ## Vendor evidence
 
 Ask vendors for conformance claims, which name the profile, the role,
-the realization, and the inputs, and then record evidence that the
+the realization, and the inputs; a claim of the lifecycle profile also
+names each capability it covers. Then record evidence that the
 selected products work together. The governed profile URIs identify
 RAS and client processing, one for each realization and protection:
 `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent` and
@@ -826,6 +827,8 @@ are for the evaluator.
 | IdP: SCIM management Service Provider; platform: Provisioning Client | Platforms register agents | Step 2's exit checks | | | |
 | IdP or its connector: lifecycle provisioning of status changes | Keeping agent records current through lifecycle | Step 4's lifecycle checks | | | |
 | RAS: lifecycle Receiver | Keeping agent records current through lifecycle | Step 4's lifecycle checks, and the lifecycle profile's acceptance checklist | | | |
+| RAS (Status Issuer) and API: access-token status | Offline JWT validation at the API, with access-token status | Step 4's token status checks; the conformance suite's L01, L06, L07, L09, and L11 | | | |
+| IdP (Status Issuer) and RAS: grant status for ID-JAGs and WAGs | An unredeemed grant must fail after a change the resource domain has not applied, or a WAG must be stoppable before redemption | Step 4's token status checks; the conformance suite's L02 to L05, L08, and L10 | | | |
 | IdP (transmitter) and RAS: grant-derived revocation of ID-JAGs | Revoking one delegated grant | [Revoke one suspicious grant](#revoke-one-suspicious-grant), including a revocation that arrives before redemption | | | |
 | IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer; the target RAS, with DPoP at its token endpoint and, where policy requires it, path disclosure | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
