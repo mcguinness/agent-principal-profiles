@@ -2742,8 +2742,9 @@ already issued follow "Authorization Changes and Revocation" in
 also has a RAS reject at redemption, within the IdP's publication
 interval and the RAS's maximum status age, an onward grant issued
 before the IdP disabled or deleted the Agent Principal, disabled the
-root's Identity Binding, or withdrew the root's Client Association or
-authorization.<a href="#section-9-3" class="pilcrow">¶</a></p>
+root's Identity Binding, or withdrew the root's Client Association,
+the root's authorization, or the authorization that permitted the
+onward grant.<a href="#section-9-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="conformance">
@@ -4061,6 +4062,11 @@ ICA-02, ID-JAG-06, WAG-02, and the 2026-10-09 revision of
               <td class="text-left" rowspan="1" colspan="1">Chain ending</td>
               <td class="text-left" rowspan="1" colspan="1">Anchor end, revocation, withdrawn permission (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.2" class="relref">Section 6.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>)</td>
               <td class="text-left" rowspan="1" colspan="1">Also governance events (<a href="#chain-ending" class="auto internal xref">Section 9</a>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Grants issued before a chain ends</td>
+              <td class="text-left" rowspan="1" colspan="1">Redeemable for their own lifetime, since redemption is not a continuation (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.2" class="relref">Section 6.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Unchanged, except at a RAS configured for the grant status of <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>, which rejects a grant issued before certain governance events (<a href="#chain-ending" class="auto internal xref">Section 9</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Continuation window</td>

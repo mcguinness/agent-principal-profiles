@@ -869,13 +869,18 @@ Table of Contents
    IdP MUST keep each grant's entry in the Status List Tokens it serves
    until the grant's acceptance period ends.
 
-   For an onward grant ([CONTINUATION]), the Identity Binding, Client
-   Association, and Delegation Authorization or Agent Authorization
-   under which the IdP issued it are those its chain recorded for the
-   root; a Continuation Association is not a Client Association.  Ending
-   a chain for any other reason, such as the end of the session the
-   chain is anchored to, is another withdrawal for the chain's onward
-   grants: the IdP is permitted, but not required, to set them to
+   The IdP issues an onward grant ([CONTINUATION]) under the Identity
+   Binding, Client Association, and Delegation Authorization or Agent
+   Authorization that its chain recorded for the root ("Governed Chain
+   Authorization" in [CONTINUATION]), and also under the Delegation
+   Authorization or Agent Authorization that permitted the onward grant
+   itself ("Validation" in [CONTINUATION]), where that differs from the
+   root's.  The rules above apply to each of them: withdrawing either
+   authorization sets the onward grant to INVALID, and the IdP retains
+   both.  A Continuation Association is not a Client Association.
+   Ending a chain for any other reason, such as the end of the session
+   the chain is anchored to, is another withdrawal for the chain's
+   onward grants: the IdP is permitted, but not required, to set them to
    INVALID, as for the same change to a root grant.
 
    The RAS applies Section 8.1 at each redemption of a grant from a
@@ -1273,6 +1278,13 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               status-list-21>.
 
+   [CONTINUATION]
+              McGuinness, K., "Identity Continuation Profile for Agent
+              Principal Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-continuation,
+              <https://mcguinness.github.io/agent-principal-profiles/
+              draft-mcguinness-oauth-governed-agent-continuation.html>.
+
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
               At the time of writing, this BCP comprises the following:
@@ -1287,13 +1299,6 @@ Table of Contents
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
 15.2.  Informative References
-
-   [CONTINUATION]
-              McGuinness, K., "Identity Continuation Profile for Agent
-              Principal Federation", Work in Progress, Internet-Draft,
-              draft-mcguinness-oauth-governed-agent-continuation,
-              <https://mcguinness.github.io/agent-principal-profiles/
-              draft-mcguinness-oauth-governed-agent-continuation.html>.
 
    [AGENT-MANAGEMENT]
               McGuinness, K., "SCIM Profile for Agent Principal
@@ -1632,94 +1637,114 @@ B.3.  Disable and Re-enable
 
 B.4.  Acceptance Checklist
 
-    +===========================+====================================+
-    | Case                      | Expected result                    |
-    +===========================+====================================+
-    | Equal externalId under a  | Distinct qualified identity; no    |
-    | different IdP context     | automatic correlation              |
-    +---------------------------+------------------------------------+
-    | Create for a pair the RAS | Adopted: one principal, keeping    |
-    | correlated just in time   | its local restrictions and         |
-    |                           | revocation state                   |
-    +---------------------------+------------------------------------+
-    | Two Agents sharing an     | Both provisioned; the connector    |
-    | agentUserName from        | assigns one a destination-unique   |
-    | different IdP-side        | name; each correlates by its own   |
-    | Provisioning Domains      | externalId                         |
-    +---------------------------+------------------------------------+
-    | Stale If-Match            | HTTP 412; retrieve and reconcile   |
-    |                           | before retrying                    |
-    +---------------------------+------------------------------------+
-    | Descriptive edit          | Resource ETag may change; no       |
-    |                           | implicit authorization change      |
-    +---------------------------+------------------------------------+
-    | Applied disablement       | New redemption and refresh denied; |
-    |                           | existing RAS sessions revoked      |
-    +---------------------------+------------------------------------+
-    | Reactivation after        | New decisions allowed; revoked     |
-    | applied disablement       | sessions stay revoked              |
-    +---------------------------+------------------------------------+
-    | Delayed activation notice | Retrieve current source state; do  |
-    |                           | not apply the notice as an         |
-    |                           | activation command                 |
-    +---------------------------+------------------------------------+
-    | Disable and re-enable     | The disablement is delivered, then |
-    | while the Receiver is     | the activation; sessions from      |
-    | unreachable               | before stay revoked                |
-    +---------------------------+------------------------------------+
-    | Disable, re-enable, and   | One disablement is delivered, and  |
-    | disable while the         | no activation                      |
-    | Receiver is unreachable   |                                    |
-    +---------------------------+------------------------------------+
-    | Disablement write retried | The retry invalidates              |
-    | after a lost success      | authorization issued in between;   |
-    | response, once            | new decisions follow the IdP's     |
-    | reconciliation has found  | next delivery                      |
-    | the principal active      |                                    |
-    +---------------------------+------------------------------------+
-    | Grant issued before a     | With grant status, rejected with   |
-    | disablement, first        | invalid_grant; without it, not     |
-    | redeemed after            | invalidated by the disablement,    |
-    | reactivation              | and grant-derived revocation can   |
-    |                           | reach an ID-JAG                    |
-    +---------------------------+------------------------------------+
-    | Grant revocation arrives  | Retain the denial; reject later    |
-    | before redemption         | redemption                         |
-    +---------------------------+------------------------------------+
-    | Grant subject issuer      | Reject; no cross-issuer revocation |
-    | differs from the stream's |                                    |
-    | authorized issuer         |                                    |
-    +---------------------------+------------------------------------+
-    | Direct SCIM provisioning  | No SCIM event subscription or      |
-    | with CAEP revocation only | source GET required                |
-    +---------------------------+------------------------------------+
-    | Reactivation without a    | HTTP 409; retrieve and use the     |
-    | version ETag, including   | current ETag                       |
-    | If-Match: *               |                                    |
-    +---------------------------+------------------------------------+
-    | Feed removal event        | Reconcile coverage; do not infer   |
-    |                           | deletion                           |
-    +---------------------------+------------------------------------+
-    | Source unavailable        | No activation inferred; local      |
-    |                           | stale-state policy applies         |
-    +---------------------------+------------------------------------+
-    | SCIM success or SET       | Does not establish immediate API   |
-    | acknowledgment            | denial                             |
-    +---------------------------+------------------------------------+
-    | Offline JWT               | With access-token status, rejected |
-    |                           | once the API holds a valid Status  |
-    |                           | List Token that marks it;          |
-    |                           | otherwise usable until expiration  |
-    |                           | unless separately restricted       |
-    +---------------------------+------------------------------------+
-    | Token status that cannot  | Grant not accepted, or operation   |
-    | be obtained, or only from | not performed; HTTP 503, unless a  |
-    | an expired Status List    | failure is established and no      |
-    | Token or one older than   | unfinished check ranks earlier     |
-    | the maximum status age    | than it                            |
-    +---------------------------+------------------------------------+
+     +=================================+=============================+
+     | Case                            | Expected result             |
+     +=================================+=============================+
+     | Equal externalId under a        | Distinct qualified          |
+     | different IdP context           | identity; no automatic      |
+     |                                 | correlation                 |
+     +---------------------------------+-----------------------------+
+     | Create for a pair the RAS       | Adopted: one principal,     |
+     | correlated just in time         | keeping its local           |
+     |                                 | restrictions and revocation |
+     |                                 | state                       |
+     +---------------------------------+-----------------------------+
+     | Two Agents sharing an           | Both provisioned; the       |
+     | agentUserName from different    | connector assigns one a     |
+     | IdP-side Provisioning Domains   | destination-unique name;    |
+     |                                 | each correlates by its own  |
+     |                                 | externalId                  |
+     +---------------------------------+-----------------------------+
+     | Stale If-Match                  | HTTP 412; retrieve and      |
+     |                                 | reconcile before retrying   |
+     +---------------------------------+-----------------------------+
+     | Descriptive edit                | Resource ETag may change;   |
+     |                                 | no implicit authorization   |
+     |                                 | change                      |
+     +---------------------------------+-----------------------------+
+     | Applied disablement             | New redemption and refresh  |
+     |                                 | denied; existing RAS        |
+     |                                 | sessions revoked            |
+     +---------------------------------+-----------------------------+
+     | Reactivation after applied      | New decisions allowed;      |
+     | disablement                     | revoked sessions stay       |
+     |                                 | revoked                     |
+     +---------------------------------+-----------------------------+
+     | Delayed activation notice       | Retrieve current source     |
+     |                                 | state; do not apply the     |
+     |                                 | notice as an activation     |
+     |                                 | command                     |
+     +---------------------------------+-----------------------------+
+     | Disable and re-enable while the | The disablement is          |
+     | Receiver is unreachable         | delivered, then the         |
+     |                                 | activation; sessions from   |
+     |                                 | before stay revoked         |
+     +---------------------------------+-----------------------------+
+     | Disable, re-enable, and disable | One disablement is          |
+     | while the Receiver is           | delivered, and no           |
+     | unreachable                     | activation                  |
+     +---------------------------------+-----------------------------+
+     | Disablement write retried after | The retry invalidates       |
+     | a lost success response, once   | authorization issued in     |
+     | reconciliation has found the    | between; new decisions      |
+     | principal active                | follow the IdP's next       |
+     |                                 | delivery                    |
+     +---------------------------------+-----------------------------+
+     | Grant issued before a           | With grant status, rejected |
+     | disablement, first redeemed     | with invalid_grant; without |
+     | after reactivation              | it, not invalidated by the  |
+     |                                 | disablement, and grant-     |
+     |                                 | derived revocation can      |
+     |                                 | reach an ID-JAG             |
+     +---------------------------------+-----------------------------+
+     | Onward grant permitted by a     | With grant status, rejected |
+     | Delegation Authorization or     | with invalid_grant          |
+     | Agent Authorization other than  |                             |
+     | its chain's root authorization; |                             |
+     | that authorization is withdrawn |                             |
+     | while the root authorization    |                             |
+     | and the chain remain active     |                             |
+     +---------------------------------+-----------------------------+
+     | Grant revocation arrives before | Retain the denial; reject   |
+     | redemption                      | later redemption            |
+     +---------------------------------+-----------------------------+
+     | Grant subject issuer differs    | Reject; no cross-issuer     |
+     | from the stream's authorized    | revocation                  |
+     | issuer                          |                             |
+     +---------------------------------+-----------------------------+
+     | Direct SCIM provisioning with   | No SCIM event subscription  |
+     | CAEP revocation only            | or source GET required      |
+     +---------------------------------+-----------------------------+
+     | Reactivation without a version  | HTTP 409; retrieve and use  |
+     | ETag, including If-Match: *     | the current ETag            |
+     +---------------------------------+-----------------------------+
+     | Feed removal event              | Reconcile coverage; do not  |
+     |                                 | infer deletion              |
+     +---------------------------------+-----------------------------+
+     | Source unavailable              | No activation inferred;     |
+     |                                 | local stale-state policy    |
+     |                                 | applies                     |
+     +---------------------------------+-----------------------------+
+     | SCIM success or SET             | Does not establish          |
+     | acknowledgment                  | immediate API denial        |
+     +---------------------------------+-----------------------------+
+     | Offline JWT                     | With access-token status,   |
+     |                                 | rejected once the API holds |
+     |                                 | a valid Status List Token   |
+     |                                 | that marks it; otherwise    |
+     |                                 | usable until expiration     |
+     |                                 | unless separately           |
+     |                                 | restricted                  |
+     +---------------------------------+-----------------------------+
+     | Token status that cannot be     | Grant not accepted, or      |
+     | obtained, or only from an       | operation not performed;    |
+     | expired Status List Token or    | HTTP 503, unless a failure  |
+     | one older than the maximum      | is established and no       |
+     | status age                      | unfinished check ranks      |
+     |                                 | earlier than it             |
+     +---------------------------------+-----------------------------+
 
-                                 Table 9
+                                  Table 9
 
 Appendix C.  Signal Examples
 
