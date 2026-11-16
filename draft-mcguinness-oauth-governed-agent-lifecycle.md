@@ -1156,7 +1156,7 @@ event URI alone does not establish these receiver semantics.
 * A valid event received before redemption MUST retain a denial for that
   grant. The Receiver retains it until neither the grant nor derived
   authorization can be accepted. For an unknown grant, this requires a
-  configured maximum grant acceptance window, including clock leeway;
+  configured maximum grant acceptance period, including clock leeway;
   receipt before redemption MUST NOT be treated as a no-op.
 
 This identifies the same grant at both parties without registration of a

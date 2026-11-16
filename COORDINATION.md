@@ -1343,7 +1343,7 @@ code. It narrows AROP in five places:
   the same grant and key (`redemption-approval`,
   `redemption-recovery`);
 * the grant is accepted once, and its replay record is kept until the
-  grant's acceptance window has passed, not only until the request
+  grant's acceptance period has ended, not only until the request
   ends;
 * a DPoP proof is required, so the deferral code has a sender
   constraint when the grant has no `cnf`; and
