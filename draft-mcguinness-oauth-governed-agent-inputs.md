@@ -130,13 +130,17 @@ configured as {{Section 6 of SPIFFE-OAUTH}} describes, or, for one
 client only, that client's Client ID Metadata Document
 ({{client-metadata-bundles}}).
 
-An exact SPIFFE ID matches under the case rules of Section 2.4 of
-{{SPIFFE-ID}}. When a server matches a validated SPIFFE ID to an
-approved trust domain, or the IdP matches one to an Identity Binding, it
-MUST compare the scheme and the trust domain name without regard to case
-and the path exactly, and MUST NOT otherwise normalize either value. A
-valid SPIFFE ID has no percent-encoded characters or dot segments to
-normalize (Sections 2.1 and 2.2 of {{SPIFFE-ID}}).
+SPIFFE comparisons follow Section 2.4 of {{SPIFFE-ID}}: the scheme and
+the trust domain name are case-insensitive, and the path is
+case-sensitive. A server finds a validated SPIFFE ID's approved trust
+domain by comparing the SPIFFE ID's trust domain name with each
+configured trust domain name; it MUST compare them without regard to
+case. The IdP matches an exact SPIFFE ID to an Identity Binding by
+comparing complete SPIFFE IDs; it MUST compare the scheme and the trust
+domain name without regard to case and the path exactly. A server MUST
+NOT apply any other normalization in either comparison. A valid SPIFFE
+ID has no percent-encoded characters or dot segments to normalize
+(Sections 2.1 and 2.2 of {{SPIFFE-ID}}).
 
 ## Trust Bundles from Client Metadata {#client-metadata-bundles}
 
