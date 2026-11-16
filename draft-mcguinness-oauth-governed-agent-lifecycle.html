@@ -2911,7 +2911,10 @@ agent's sessions (<span>[<a href="#CAEP" class="cite xref">CAEP</a>]</span>).<a 
           <li class="normal" id="appendix-A.3-2.5">
             <p id="appendix-A.3-2.5.1"><strong>Effect:</strong> An event informs IdP policy and monitoring. It does not
 change the Agent's administrative state, which changes only through
-<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>.<a href="#appendix-A.3-2.5.1" class="pilcrow">¶</a></p>
+<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>. Where the IdP trusts the platform as the
+authority for a credential, <code>credential-revoked</code> and
+<code>credential-compromised</code> also end that credential's use for agent
+resolution ("Time, Replay, and Key Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>).<a href="#appendix-A.3-2.5.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="appendix-A.3-3">A platform's own <code>workload-disabled</code>, <code>workload-enabled</code>, or

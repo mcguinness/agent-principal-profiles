@@ -1380,6 +1380,16 @@ input; at a RAS, for JWT-SVID client authentication
 configured as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-03#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> describes, or, for one
 client only, that client's Client ID Metadata Document
 (<a href="#client-metadata-bundles" class="auto internal xref">Section 3.2</a>).<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-4">SPIFFE comparisons follow Section 2.4 of <span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span>: the scheme and
+the trust domain name are case-insensitive, and the path is
+case-sensitive. A server finds a validated SPIFFE ID's approved trust
+domain by comparing the SPIFFE ID's trust domain name with each
+configured trust domain name; it <span class="bcp14">MUST</span> compare them without regard to
+case. The IdP matches an exact SPIFFE ID to an Identity Binding by
+comparing complete SPIFFE IDs; it <span class="bcp14">MUST</span> compare the scheme and the trust
+domain name without regard to case and the path exactly. A server <span class="bcp14">MUST NOT</span> apply any other normalization in either comparison. A valid SPIFFE
+ID has no percent-encoded characters or dot segments to normalize
+(Sections 2.1 and 2.2 of <span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span>).<a href="#section-3.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="client-metadata-bundles">
@@ -1812,6 +1822,10 @@ identifiers are scoped per receiver under <span><a href="https://datatracker.iet
 <dt id="WIT">[WIT]</dt>
         <dd>
 <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Sheffer, Y.</span>, and <span class="refAuthor">Y. Rosomakho</span>, <span class="refTitle">"WIMSE Workload Credentials"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-workload-creds-03</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-03">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-03</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SPIFFE-ID">[SPIFFE-ID]</dt>
+        <dd>
+<span class="refAuthor">SPIFFE Project</span>, <span class="refTitle">"The SPIFFE Identity and Verifiable Identity Document"</span>, <span>&lt;<a href="https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md">https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
       <dd>

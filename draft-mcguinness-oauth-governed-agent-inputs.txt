@@ -187,6 +187,18 @@ Table of Contents
    [SPIFFE-OAUTH] describes, or, for one client only, that client's
    Client ID Metadata Document (Section 3.2).
 
+   SPIFFE comparisons follow Section 2.4 of [SPIFFE-ID]: the scheme and
+   the trust domain name are case-insensitive, and the path is case-
+   sensitive.  A server finds a validated SPIFFE ID's approved trust
+   domain by comparing the SPIFFE ID's trust domain name with each
+   configured trust domain name; it MUST compare them without regard to
+   case.  The IdP matches an exact SPIFFE ID to an Identity Binding by
+   comparing complete SPIFFE IDs; it MUST compare the scheme and the
+   trust domain name without regard to case and the path exactly.  A
+   server MUST NOT apply any other normalization in either comparison.
+   A valid SPIFFE ID has no percent-encoded characters or dot segments
+   to normalize (Sections 2.1 and 2.2 of [SPIFFE-ID]).
+
 3.2.  Trust Bundles from Client Metadata
 
    A server selects the bundle that validates SVIDs from a client whose
@@ -529,6 +541,12 @@ Table of Contents
               ietf-wimse-workload-creds-03, 30 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
               workload-creds-03>.
+
+   [SPIFFE-ID]
+              SPIFFE Project, "The SPIFFE Identity and Verifiable
+              Identity Document",
+              <https://github.com/spiffe/spiffe/blob/main/standards/
+              SPIFFE-ID.md>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.

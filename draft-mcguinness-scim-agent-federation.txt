@@ -599,9 +599,23 @@ Table of Contents
 
    A trust domain name is the authority component of the SPIFFE ID; for
    example, platform.example for spiffe://platform.example/agents/a7.
-   The Service Provider MUST require it to match the subject's trust
-   domain.  For client-attestation, the attester identifier references
-   preconfigured trust; it need not be an iss claim in the credential.
+   The Service Provider MUST require it to equal the subject's trust
+   domain name.  For client-attestation, the attester identifier
+   references preconfigured trust; it need not be an iss claim in the
+   credential.
+
+   For the SPIFFE classes, the Service Provider MUST reject a
+   sourceSubject that is not a valid SPIFFE ID (Section 2 of
+   [SPIFFE-ID]), including one whose trust domain name is not lowercase.
+   This profile also stores one spelling of each SPIFFE ID: although
+   Section 2.4 of [SPIFFE-ID] makes the scheme case-insensitive, the
+   Service Provider MUST reject a sourceSubject whose scheme is not the
+   lowercase spiffe.  With sourceAuthority equal to the trust domain
+   name, the case-exact values of two bindings are then equal exactly
+   when the IdP's comparison of SPIFFE IDs ("Qualified Identities" in
+   [INPUTS]) finds the same SPIFFE ID, and a validated SPIFFE ID whose
+   scheme differs from the stored one only in case still matches the
+   binding.
 
    The Service Provider MUST resolve these values and the Governance
    Tenant to one approved validation configuration, including applicable
@@ -1209,6 +1223,12 @@ Table of Contents
               profiles/draft-mcguinness-oauth-governed-agent-
               inputs.html>.
 
+   [SPIFFE-ID]
+              SPIFFE Project, "The SPIFFE Identity and Verifiable
+              Identity Document",
+              <https://github.com/spiffe/spiffe/blob/main/standards/
+              SPIFFE-ID.md>.
+
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
               At the time of writing, this BCP comprises the following:
@@ -1323,8 +1343,8 @@ A.2.  Create an Inactive Agent
      },
      "meta": {
        "resourceType": "Agent",
-       "created": "2026-09-18T12:00:00Z",
-       "lastModified": "2026-09-18T12:00:00Z",
+       "created": "2026-09-16T09:05:00Z",
+       "lastModified": "2026-09-16T09:05:00Z",
        "version": "W/\"a1\"",
        "location": "https://idp.example/scim/acme/Agents/a17"
      }
@@ -1446,60 +1466,86 @@ A.8.  Disable One Binding
 
 A.9.  Rejection and Boundary Examples
 
-         +===========================+===========================+
-         | Operation                 | Result                    |
-         +===========================+===========================+
-         | Retry Agent POST with the | 409, uniqueness; query    |
-         | same externalId in the    | and compare               |
-         | same Provisioning Domain  |                           |
-         +---------------------------+---------------------------+
-         | Add a binding to an       | Rejected; no trust or     |
-         | unapproved issuer or      | cross-tenant attachment   |
-         | another tenant's Agent    |                           |
-         +---------------------------+---------------------------+
-         | Create another binding    | 409, uniqueness, even if  |
-         | for the same source key   | disabled                  |
-         | and selector set          |                           |
-         +---------------------------+---------------------------+
-         | Supply both client and    | 400, invalidValue; the    |
-         | sourceSubject on a        | client reference supplies |
-         | dedicated-client binding  | the resolution identity   |
-         +---------------------------+---------------------------+
-         | Create an association for | 400, invalidValue; its    |
-         | a dedicated-client        | permission is carried by  |
-         | binding                   | the binding               |
-         +---------------------------+---------------------------+
-         | Change a binding's Agent  | 400, mutability; create a |
-         | or source subject         | separately authorized     |
-         |                           | replacement               |
-         +---------------------------+---------------------------+
-         | Enable an association     | Permission can be         |
-         | while its binding is      | recorded but cannot       |
-         | disabled                  | authorize issuance        |
-         +---------------------------+---------------------------+
-         | Change displayName with a | Descriptive change can    |
-         | connector lacking enable  | succeed; eligibility is   |
-         | permission                | unchanged                 |
-         +---------------------------+---------------------------+
-         | PUT would reactivate      | 409; retrieve and use the |
-         | without a version ETag,   | current ETag              |
-         | including If-Match: *     |                           |
-         +---------------------------+---------------------------+
-         | PATCH with a stale        | 412; reconcile before     |
-         | version                   | retrying                  |
-         +---------------------------+---------------------------+
-         | Delete a binding and      | New id; old association   |
-         | create another with the   | does not attach to the    |
-         | same externalId           | replacement               |
-         +---------------------------+---------------------------+
-         | Delete a CIMD OAuthClient | New SCIM id; prior        |
-         | and readmit the same URL  | bindings and associations |
-         |                           | remain unusable           |
-         +---------------------------+---------------------------+
-         | Disable the Agent         | All new issuance paths    |
-         |                           | for that principal are    |
-         |                           | blocked                   |
-         +---------------------------+---------------------------+
+    +========================================+========================+
+    | Operation                              | Result                 |
+    +========================================+========================+
+    | Retry Agent POST with the same         | 409, uniqueness; query |
+    | externalId in the same Provisioning    | and compare            |
+    | Domain                                 |                        |
+    +----------------------------------------+------------------------+
+    | Add a binding to an unapproved issuer  | Rejected; no trust or  |
+    | or another tenant's Agent              | cross-tenant           |
+    |                                        | attachment             |
+    +----------------------------------------+------------------------+
+    | Create another binding for the same    | 409, uniqueness, even  |
+    | source key and selector set            | if disabled            |
+    +----------------------------------------+------------------------+
+    | Supply both client and sourceSubject   | 400, invalidValue; the |
+    | on a dedicated-client binding          | client reference       |
+    |                                        | supplies the           |
+    |                                        | resolution identity    |
+    +----------------------------------------+------------------------+
+    | Supply                                 | 400, invalidValue; not |
+    | spiffe://Platform.example/agents/a7 as | a valid SPIFFE ID,     |
+    | sourceSubject for a SPIFFE class       | since its trust domain |
+    |                                        | name is not lowercase  |
+    +----------------------------------------+------------------------+
+    | Supply                                 | 400, invalidValue; a   |
+    | SPIFFE://platform.example/agents/a7 as | valid SPIFFE ID, but   |
+    | sourceSubject for a SPIFFE class       | not the spelling this  |
+    |                                        | profile stores         |
+    +----------------------------------------+------------------------+
+    | Supply Platform.example as             | 400, invalidValue; it  |
+    | sourceAuthority for a SPIFFE class     | does not equal the     |
+    | whose sourceSubject is                 | trust domain name      |
+    | spiffe://platform.example/agents/a7    |                        |
+    +----------------------------------------+------------------------+
+    | With a spiffe-jwt binding for          | Resolves through that  |
+    | spiffe://platform.example/agents/a7,   | binding; the scheme is |
+    | the IdP validates a JWT-SVID whose sub | case-insensitive       |
+    | is SPIFFE://platform.example/agents/a7 |                        |
+    +----------------------------------------+------------------------+
+    | With the same binding, the IdP         | Does not resolve       |
+    | validates a JWT-SVID whose sub is      | through that binding;  |
+    | spiffe://platform.example/agents/A7    | the path is case-      |
+    |                                        | sensitive              |
+    +----------------------------------------+------------------------+
+    | Create an association for a dedicated- | 400, invalidValue; its |
+    | client binding                         | permission is carried  |
+    |                                        | by the binding         |
+    +----------------------------------------+------------------------+
+    | Change a binding's Agent or source     | 400, mutability;       |
+    | subject                                | create a separately    |
+    |                                        | authorized replacement |
+    +----------------------------------------+------------------------+
+    | Enable an association while its        | Permission can be      |
+    | binding is disabled                    | recorded but cannot    |
+    |                                        | authorize issuance     |
+    +----------------------------------------+------------------------+
+    | Change displayName with a connector    | Descriptive change can |
+    | lacking enable permission              | succeed; eligibility   |
+    |                                        | is unchanged           |
+    +----------------------------------------+------------------------+
+    | PUT would reactivate without a version | 409; retrieve and use  |
+    | ETag, including If-Match: *            | the current ETag       |
+    +----------------------------------------+------------------------+
+    | PATCH with a stale version             | 412; reconcile before  |
+    |                                        | retrying               |
+    +----------------------------------------+------------------------+
+    | Delete a binding and create another    | New id; old            |
+    | with the same externalId               | association does not   |
+    |                                        | attach to the          |
+    |                                        | replacement            |
+    +----------------------------------------+------------------------+
+    | Delete a CIMD OAuthClient and readmit  | New SCIM id; prior     |
+    | the same URL                           | bindings and           |
+    |                                        | associations remain    |
+    |                                        | unusable               |
+    +----------------------------------------+------------------------+
+    | Disable the Agent                      | All new issuance paths |
+    |                                        | for that principal are |
+    |                                        | blocked                |
+    +----------------------------------------+------------------------+
 
                                   Table 12
 

@@ -1452,7 +1452,7 @@ stored values; supplied different values receive <code>400</code> with
         <li class="normal" id="section-3-2.6">
           <p id="section-3-2.6.1"><strong>Incremental reads:</strong> The Service Provider <span class="bcp14">MUST</span> support <code>gt</code> and <code>ge</code>
 filters on <code>meta.lastModified</code>, combinable with the required equality
-filters. For example, <code>meta.lastModified ge "2026-09-18T12:00:00Z"</code>
+filters. For example, <code>meta.lastModified ge "2026-09-16T09:00:00Z"</code>
 selects records changed since a checkpoint. A client <span class="bcp14">SHOULD</span> overlap
 successive windows and deduplicate by <code>id</code> and <code>meta.version</code>;
 timestamps are not unique sequence numbers. Incremental queries cannot
@@ -2328,8 +2328,8 @@ Content-Type: application/scim+json
     "resourceType": "OAuthClient",
     "version": "W/\"c1\"",
     "location": "https://idp.example/scim/acme/OAuthClients/oc7",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z"
+    "created": "2026-09-16T09:00:00Z",
+    "lastModified": "2026-09-16T09:00:00Z"
   },
   "clientId": "platform-client-7",
   "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient": {
@@ -2426,8 +2426,8 @@ Content-Type: application/scim+json
     "resourceType": "OAuthClient",
     "version": "W/\"c1\"",
     "location": "https://idp.example/scim/acme/OAuthClients/oc8",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z"
+    "created": "2026-09-16T09:00:00Z",
+    "lastModified": "2026-09-16T09:00:00Z"
   },
   "clientId": "https://platform.example/oauth/client.json"
 }

@@ -1959,15 +1959,27 @@ and subject both identify the referenced OAuthClient's <code>clientId</code>.
 The reference does not replace those authentication checks.<a href="#section-4.3.1-3" class="pilcrow">¶</a></p>
 <p id="section-4.3.1-4">A trust domain name is the authority component of the SPIFFE ID; for
 example, <code>platform.example</code> for <code>spiffe://platform.example/agents/a7</code>.
-The Service Provider <span class="bcp14">MUST</span> require it to match the subject's trust
-domain. For <code>client-attestation</code>, the attester identifier references
+The Service Provider <span class="bcp14">MUST</span> require it to equal the subject's trust domain
+name. For <code>client-attestation</code>, the attester identifier references
 preconfigured trust; it need not be an <code>iss</code> claim in the credential.<a href="#section-4.3.1-4" class="pilcrow">¶</a></p>
-<p id="section-4.3.1-5">The Service Provider <span class="bcp14">MUST</span> resolve these values and the Governance Tenant
+<p id="section-4.3.1-5">For the SPIFFE classes, the Service Provider <span class="bcp14">MUST</span> reject a
+<code>sourceSubject</code> that is not a valid SPIFFE ID (Section 2 of
+<span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span>), including one whose trust domain name is not lowercase.
+This profile also stores one spelling of each SPIFFE ID: although
+Section 2.4 of <span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span> makes the scheme case-insensitive, the
+Service Provider <span class="bcp14">MUST</span> reject a <code>sourceSubject</code> whose scheme is not the
+lowercase <code>spiffe</code>. With <code>sourceAuthority</code> equal to the trust domain
+name, the case-exact values of two bindings are then equal exactly when
+the IdP's comparison of SPIFFE IDs ("Qualified Identities" in
+<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>) finds the same SPIFFE ID, and a validated SPIFFE ID whose
+scheme differs from the stored one only in case still matches the
+binding.<a href="#section-4.3.1-5" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-6">The Service Provider <span class="bcp14">MUST</span> resolve these values and the Governance Tenant
 to one approved validation configuration, including applicable
 client-registration context. Unknown, unsupported, or ambiguous
 configurations <span class="bcp14">MUST</span> be rejected. This interface does not create them. A
 signing-key identifier, URL, or possession of a credential is not
-administrative permission to establish a binding.<a href="#section-4.3.1-5" class="pilcrow">¶</a></p>
+administrative permission to establish a binding.<a href="#section-4.3.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="binding-uniqueness-and-changes">
@@ -2725,6 +2737,10 @@ registered. Credential-class names are local to this profile's schema.<a href="#
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Resolution Inputs for Agent Principal Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-inputs</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html">https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="SPIFFE-ID">[SPIFFE-ID]</dt>
+        <dd>
+<span class="refAuthor">SPIFFE Project</span>, <span class="refTitle">"The SPIFFE Identity and Verifiable Identity Document"</span>, <span>&lt;<a href="https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md">https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
       <dd>
 <div class="refInstance">Best Current Practice 14, <span>&lt;<a href="https://www.rfc-editor.org/info/bcp14">https://www.rfc-editor.org/info/bcp14</a>&gt;</span>.<br><span>At the time of writing, this BCP comprises the following:</span>
@@ -2875,8 +2891,8 @@ Content-Type: application/scim+json
   },
   "meta": {
     "resourceType": "Agent",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z",
+    "created": "2026-09-16T09:05:00Z",
+    "lastModified": "2026-09-16T09:05:00Z",
     "version": "W/\"a1\"",
     "location": "https://idp.example/scim/acme/Agents/a17"
   }
@@ -3068,6 +3084,32 @@ SCIM operation.<a href="#appendix-A.8-2" class="pilcrow">¶</a></p>
               <td class="text-left" rowspan="1" colspan="1">Supply both <code>client</code> and <code>sourceSubject</code> on a dedicated-client binding</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>400</code>, <code>invalidValue</code>; the client reference supplies the resolution identity</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Supply <code>spiffe://Platform.example/agents/a7</code> as <code>sourceSubject</code> for a SPIFFE class</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>; not a valid SPIFFE ID, since its trust domain name is not lowercase</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Supply <code>SPIFFE://platform.example/agents/a7</code> as <code>sourceSubject</code> for a SPIFFE class</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>; a valid SPIFFE ID, but not the spelling this profile stores</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Supply <code>Platform.example</code> as <code>sourceAuthority</code> for a SPIFFE class whose <code>sourceSubject</code> is <code>spiffe://platform.example/agents/a7</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>; it does not equal the trust domain name</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">With a <code>spiffe-jwt</code> binding for <code>spiffe://platform.example/agents/a7</code>, the IdP validates a JWT-SVID whose <code>sub</code> is <code>SPIFFE://platform.example/agents/a7</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Resolves through that binding; the scheme is case-insensitive</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">With the same binding, the IdP validates a JWT-SVID whose <code>sub</code> is <code>spiffe://platform.example/agents/A7</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Does not resolve through that binding; the path is case-sensitive</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Create an association for a dedicated-client binding</td>
