@@ -1219,6 +1219,12 @@ Table of Contents
    [FEDERATION] (Section 11.1).  Grants and access tokens already issued
    follow "Authorization Changes and Revocation" in [FEDERATION], which
    the grant-derived revocation of [AGENT-LIFECYCLE] can propagate.
+   Where configured, its grant status also has a RAS reject at
+   redemption, within the IdP's publication interval and the RAS's
+   maximum status age, an onward grant issued before the IdP disabled or
+   deleted the Agent Principal, disabled the root's Identity Binding, or
+   withdrew the root's Client Association, the root's authorization, or
+   the authorization that permitted the onward grant.
 
 10.  Conformance and Capability Advertisement
 
@@ -2396,6 +2402,15 @@ B.1.  Changes to ICA
    |Chain ending |Anchor end, revocation,        |Also governance     |
    |             |withdrawn permission           |events (Section 9)  |
    |             |(Section 6.2 of [ICA])         |                    |
+   +-------------+-------------------------------+--------------------+
+   |Grants issued|Redeemable for their own       |Unchanged, except at|
+   |before a     |lifetime, since redemption is  |a RAS configured for|
+   |chain ends   |not a continuation (Section 6.2|the grant status of |
+   |             |of [ICA])                      |[AGENT-LIFECYCLE],  |
+   |             |                               |which rejects a     |
+   |             |                               |grant issued before |
+   |             |                               |certain governance  |
+   |             |                               |events (Section 9)  |
    +-------------+-------------------------------+--------------------+
    |Continuation |None                           |A required, finite  |
    |window       |                               |per-hop window,     |
