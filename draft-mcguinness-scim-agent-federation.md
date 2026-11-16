@@ -1014,8 +1014,8 @@ Content-Type: application/scim+json
   },
   "meta": {
     "resourceType": "Agent",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z",
+    "created": "2026-09-16T09:05:00Z",
+    "lastModified": "2026-09-16T09:05:00Z",
     "version": "W/\"a1\"",
     "location": "https://idp.example/scim/acme/Agents/a17"
   }

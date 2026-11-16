@@ -206,7 +206,7 @@ their own narrowings.
   `mutability`.
 * **Incremental reads:** The Service Provider MUST support `gt` and `ge`
   filters on `meta.lastModified`, combinable with the required equality
-  filters. For example, `meta.lastModified ge "2026-09-18T12:00:00Z"`
+  filters. For example, `meta.lastModified ge "2026-09-16T09:00:00Z"`
   selects records changed since a checkpoint. A client SHOULD overlap
   successive windows and deduplicate by `id` and `meta.version`;
   timestamps are not unique sequence numbers. Incremental queries cannot
@@ -684,8 +684,8 @@ Content-Type: application/scim+json
     "resourceType": "OAuthClient",
     "version": "W/\"c1\"",
     "location": "https://idp.example/scim/acme/OAuthClients/oc7",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z"
+    "created": "2026-09-16T09:00:00Z",
+    "lastModified": "2026-09-16T09:00:00Z"
   },
   "clientId": "platform-client-7",
   "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient": {
@@ -771,8 +771,8 @@ Content-Type: application/scim+json
     "resourceType": "OAuthClient",
     "version": "W/\"c1\"",
     "location": "https://idp.example/scim/acme/OAuthClients/oc8",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z"
+    "created": "2026-09-16T09:00:00Z",
+    "lastModified": "2026-09-16T09:00:00Z"
   },
   "clientId": "https://platform.example/oauth/client.json"
 }
