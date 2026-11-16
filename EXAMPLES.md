@@ -1416,9 +1416,11 @@ If-Match: W/"a2"
 }
 ```
 
-Or the IdP's provisioning source, where the agent is
-`/Agents/source-42`, sends a change notice that carries no state
-([lifecycle, Provisioning Change Notice][life-change-notice]):
+Or the IdP's provisioning source sends a change notice that carries
+no state ([lifecycle, Provisioning Change Notice][life-change-notice]).
+That source is the SCIM service the stream's configuration names for
+retrieval, not the management service that holds `a17`, so it
+identifies the same agent by its own resource, `/Agents/source-42`:
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-lifecycle.md -->
 ```json
