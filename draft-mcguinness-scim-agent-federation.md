@@ -53,6 +53,12 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
+  SPIFFE-ID:
+    title: "The SPIFFE Identity and Verifiable Identity Document"
+    author:
+      - org: SPIFFE Project
+    date: false
+    target: https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md
 informative:
   LIFECYCLE:
     title: "Agent Principal Lifecycle Profile"
@@ -464,9 +470,22 @@ The reference does not replace those authentication checks.
 
 A trust domain name is the authority component of the SPIFFE ID; for
 example, `platform.example` for `spiffe://platform.example/agents/a7`.
-The Service Provider MUST require it to match the subject's trust
-domain. For `client-attestation`, the attester identifier references
+The Service Provider MUST require it to equal the subject's trust domain
+name. For `client-attestation`, the attester identifier references
 preconfigured trust; it need not be an `iss` claim in the credential.
+
+For the SPIFFE classes, the Service Provider MUST reject a
+`sourceSubject` that is not a valid SPIFFE ID (Section 2 of
+{{SPIFFE-ID}}), including one whose trust domain name is not lowercase.
+This profile also stores one spelling of each SPIFFE ID: although
+Section 2.4 of {{SPIFFE-ID}} makes the scheme case-insensitive, the
+Service Provider MUST reject a `sourceSubject` whose scheme is not the
+lowercase `spiffe`. With `sourceAuthority` equal to the trust domain
+name, the case-exact values of two bindings are then equal exactly when
+the IdP's comparison of SPIFFE IDs ("Qualified Identities" in
+{{INPUTS}}) finds the same SPIFFE ID, and a validated SPIFFE ID whose
+scheme differs from the stored one only in case still matches the
+binding.
 
 The Service Provider MUST resolve these values and the Governance Tenant
 to one approved validation configuration, including applicable
@@ -1014,8 +1033,8 @@ Content-Type: application/scim+json
   },
   "meta": {
     "resourceType": "Agent",
-    "created": "2026-09-18T12:00:00Z",
-    "lastModified": "2026-09-18T12:00:00Z",
+    "created": "2026-09-16T09:05:00Z",
+    "lastModified": "2026-09-16T09:05:00Z",
     "version": "W/\"a1\"",
     "location": "https://idp.example/scim/acme/Agents/a17"
   }
@@ -1154,6 +1173,11 @@ SCIM operation.
 | Add a binding to an unapproved issuer or another tenant's Agent | Rejected; no trust or cross-tenant attachment |
 | Create another binding for the same source key and selector set | `409`, `uniqueness`, even if disabled |
 | Supply both `client` and `sourceSubject` on a dedicated-client binding | `400`, `invalidValue`; the client reference supplies the resolution identity |
+| Supply `spiffe://Platform.example/agents/a7` as `sourceSubject` for a SPIFFE class | `400`, `invalidValue`; not a valid SPIFFE ID, since its trust domain name is not lowercase |
+| Supply `SPIFFE://platform.example/agents/a7` as `sourceSubject` for a SPIFFE class | `400`, `invalidValue`; a valid SPIFFE ID, but not the spelling this profile stores |
+| Supply `Platform.example` as `sourceAuthority` for a SPIFFE class whose `sourceSubject` is `spiffe://platform.example/agents/a7` | `400`, `invalidValue`; it does not equal the trust domain name |
+| With a `spiffe-jwt` binding for `spiffe://platform.example/agents/a7`, the IdP validates a JWT-SVID whose `sub` is `SPIFFE://platform.example/agents/a7` | Resolves through that binding; the scheme is case-insensitive |
+| With the same binding, the IdP validates a JWT-SVID whose `sub` is `spiffe://platform.example/agents/A7` | Does not resolve through that binding; the path is case-sensitive |
 | Create an association for a dedicated-client binding | `400`, `invalidValue`; its permission is carried by the binding |
 | Change a binding's Agent or source subject | `400`, `mutability`; create a separately authorized replacement |
 | Enable an association while its binding is disabled | Permission can be recorded but cannot authorize issuance |

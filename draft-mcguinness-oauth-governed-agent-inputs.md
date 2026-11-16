@@ -41,6 +41,12 @@ normative:
   RFC9449:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth-03
   WIT: I-D.ietf-wimse-workload-creds-03
+  SPIFFE-ID:
+    title: "The SPIFFE Identity and Verifiable Identity Document"
+    author:
+      - org: SPIFFE Project
+    date: false
+    target: https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md
 informative:
   WIMSE-ID: I-D.ietf-wimse-identifier-04
 
@@ -123,6 +129,18 @@ input; at a RAS, for JWT-SVID client authentication
 configured as {{Section 6 of SPIFFE-OAUTH}} describes, or, for one
 client only, that client's Client ID Metadata Document
 ({{client-metadata-bundles}}).
+
+SPIFFE comparisons follow Section 2.4 of {{SPIFFE-ID}}: the scheme and
+the trust domain name are case-insensitive, and the path is
+case-sensitive. A server finds a validated SPIFFE ID's approved trust
+domain by comparing the SPIFFE ID's trust domain name with each
+configured trust domain name; it MUST compare them without regard to
+case. The IdP matches an exact SPIFFE ID to an Identity Binding by
+comparing complete SPIFFE IDs; it MUST compare the scheme and the trust
+domain name without regard to case and the path exactly. A server MUST
+NOT apply any other normalization in either comparison. A valid SPIFFE
+ID has no percent-encoded characters or dot segments to normalize
+(Sections 2.1 and 2.2 of {{SPIFFE-ID}}).
 
 ## Trust Bundles from Client Metadata {#client-metadata-bundles}
 

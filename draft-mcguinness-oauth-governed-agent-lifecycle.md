@@ -1136,7 +1136,10 @@ registered, and the IdP MUST reject an event about any other agent.
   agent's sessions ({{CAEP}}).
 * **Effect:** An event informs IdP policy and monitoring. It does not
   change the Agent's administrative state, which changes only through
-  {{AGENT-MANAGEMENT}}.
+  {{AGENT-MANAGEMENT}}. Where the IdP trusts the platform as the
+  authority for a credential, `credential-revoked` and
+  `credential-compromised` also end that credential's use for agent
+  resolution ("Time, Replay, and Key Validation" in {{FEDERATION}}).
 
 A platform's own `workload-disabled`, `workload-enabled`, or
 `workload-purged` reports its local control of the agent. It does not

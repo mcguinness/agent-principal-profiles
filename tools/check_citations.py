@@ -109,16 +109,23 @@ def fetch(document):
 
 
 def headings(text):
-    """Section number -> the first line of its heading, from rendered text."""
+    """Section number -> its heading, from rendered text."""
     found = {}
-    for line in text.splitlines():
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
         if not line or line[0] == " ":
             continue
         # Table-of-contents lines are indented, so only headings, page
         # headers and footers start at column 0.
         match = HEADING.match(line.rstrip())
         if match:
-            found.setdefault(match.group(1), match.group(2).strip())
+            # A long heading wraps onto lines indented to its title.
+            title, column = [match.group(2).strip()], match.start(2)
+            for more in lines[i + 1:]:
+                if not more.strip() or len(more) - len(more.lstrip(" ")) != column:
+                    break
+                title.append(more.strip())
+            found.setdefault(match.group(1), " ".join(title))
     return found
 
 

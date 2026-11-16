@@ -707,27 +707,29 @@ only, and "does not replace may_act".
 
 #### Workload Identifiers and General WIMSE Inputs
 
-The input profiles companion resolves an "exact SPIFFE ID" without
-defining the comparison. `draft-ietf-wimse-identifier-04` (WIMSE WG,
-Standards Track) defines one in Section 4.3: "consumers MUST apply the
-syntax-based normalization specified in Section 6.2.2 of [URI] and then
-compare the complete normalized URIs byte-for-byte". For valid SPIFFE
-IDs the two readings differ only in the letter case of the scheme. The
-SPIFFE ID specification makes the scheme case-insensitive, and requires
-a lowercase trust domain with no percent-encoding or dot segments.
-The comparison is deferred as an interoperability follow-up (ruling on
-PR #104). It is to be defined by the SPIFFE ID specification's own
-syntax and case rules, whose Section 2.4 says "The scheme and trust
-domain name of the SPIFFE ID are case-insensitive. The path is
-case-sensitive.", not by adopting the general normalization of Section
-4.3 for this purpose alone. It is to be defined together with the SCIM
-agent management profile, whose `sourceAuthority` and `sourceSubject`
-binding attributes are case-exact, so that resolution at the IdP and
-the comparison of bindings agree. A general WIT input, whose
+The input profiles companion resolves an "exact SPIFFE ID".
+`draft-ietf-wimse-identifier-04` (WIMSE WG, Standards Track) defines a
+comparison in Section 4.3: "consumers MUST apply the syntax-based
+normalization specified in Section 6.2.2 of [URI] and then compare the
+complete normalized URIs byte-for-byte". For valid SPIFFE IDs the two
+readings differ only in the letter case of the scheme. The SPIFFE ID
+specification makes the scheme case-insensitive, and requires a
+lowercase trust domain with no percent-encoding or dot segments.
+Following the ruling on PR #104, the companion's Qualified Identities
+section now defines trust-domain lookup and complete-ID matching by the
+SPIFFE ID specification's own case rules, whose Section 2.4 says "The
+scheme and trust domain name of the SPIFFE ID are case-insensitive. The
+path is case-sensitive.", and forbids any other normalization; it does
+not adopt Section 4.3 for this purpose alone. The SCIM agent management
+profile keeps its `sourceAuthority` and `sourceSubject` binding
+attributes case-exact and rejects a `sourceSubject` that is not a valid
+SPIFFE ID or whose scheme is not the lowercase `spiffe`, a storage rule
+of its own, so that resolution at the IdP and the comparison of bindings
+agree. Both cite the SPIFFE ID specification at its `main` branch, as
+read on 2026-11-16, as `SPIFFE-OAUTH` does. A general WIT input, whose
 identifiers can use the `wimse` scheme, would need Section 4.3 in any
-case. Section 4.5
-of the same draft, on reassignment, is cited informatively from the
-companion's Security Considerations.
+case. Section 4.5 of the same draft, on reassignment, is cited
+informatively from the companion's Security Considerations.
 
 Current drafts do not supply what a general WIT input lacks.
 `draft-ietf-wimse-wpt-02` proves possession of a WIT's key, but
