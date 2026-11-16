@@ -836,9 +836,13 @@ continuation](EXAMPLES.md#approved-continuation) shows every message.
   authorization as eligible ([Refresh and
   Continuation][ov-redemption-refresh]). Whether a later revision could
   permit it is an [open item][ov-open-items] of the profile.
-* **Revoking one WAG.** Revoking a single WAG is deployment-specific, so
-  supervised self-acting issuance rests on withdrawing the Agent
-  Authorization, a Local Suspension, or disabling the agent.
+* **Revoking one WAG.** Where the RAS is configured for [grant
+  status][lc-grant-status], a WAG the IdP revokes fails at redemption,
+  within the IdP's publication interval and the RAS's maximum status
+  age. Revoking access already derived from one WAG is
+  deployment-specific, so supervised self-acting issuance rests on
+  withdrawing the Agent Authorization, a Local Suspension, or disabling
+  the agent.
 * **The approval channel.** The profile defines no approval channel,
   overseer notice format, or multi-party approval. The channel's
   authentication of the approver is what keeps an agent from approving
@@ -1641,9 +1645,11 @@ agent cannot use the token directly.
     grant authorized, where both parties support it.
   * For the agent as a whole, applied disablement or a Local Suspension
     in the resource domain stops it there.
-  * For an individual WAG-derived access token, revocation or expiry is
-    deployment-specific. These profiles define no selective WAG
-    revocation.
+  * For an individual WAG, the lifecycle profile's optional [grant
+    status][lc-grant-status] makes its redemption fail once the IdP
+    revokes it. Revocation or expiry of an access token derived from it
+    is deployment-specific; these profiles define no selective
+    revocation of what one WAG authorized.
 
 [core]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [INPUTS]: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html

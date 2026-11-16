@@ -663,8 +663,10 @@ registration for the client's self-acting grants.
   target are then refused with `invalid_target`, and tokens
   already issued run until they expire; Alice's delegation is
   unaffected. Restore the authorization to restore access.
-* **Stop one grant:** revoking a single WAG is deployment-specific;
-  grant-derived revocation covers ID-JAGs only.
+* **Stop one grant:** at a RAS configured for grant status ([token
+  status lists][lifecycle-token-status]), a WAG the IdP revokes fails at
+  redemption. Revoking access already derived from one WAG is
+  deployment-specific; grant-derived revocation covers ID-JAGs only.
 * **Verify:** restoration is complete when a new WAG is redeemed and
   the job's API call succeeds.
 
