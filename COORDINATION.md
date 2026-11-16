@@ -1174,11 +1174,13 @@ rule that stays local to the profile:
   not a continuation". At a RAS configured for the lifecycle profile's
   grant status, an onward grant follows the same triggers as a root
   grant, read through the relationships its chain recorded for the root
-  (`grant-status`): disabling or deleting the Agent Principal, disabling
-  the root's Identity Binding, or withdrawing the root's Client
-  Association or authorization sets it to INVALID. Ending a chain for
-  any other reason, such as the end of its session anchor, permits but
-  does not require that, as the same change does for a root grant.
+  (`grant-status`), and also through the authorization that permitted
+  the onward grant itself: disabling or deleting the Agent Principal,
+  disabling the root's Identity Binding, or withdrawing the root's
+  Client Association, the root's authorization, or the onward grant's
+  own authorization sets it to INVALID. Ending a chain for any other
+  reason, such as the end of its session anchor, permits but does not
+  require that, as the same change does for a root grant.
 
 ### WAG
 

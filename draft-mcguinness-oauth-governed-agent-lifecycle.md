@@ -757,14 +757,19 @@ relationship does not return a grant to VALID ({{status-common}}). The
 IdP MUST keep each grant's entry in the Status List Tokens it serves
 until the grant's acceptance period ends.
 
-For an onward grant ({{CONTINUATION}}), the Identity Binding, Client
-Association, and Delegation Authorization or Agent Authorization under
-which the IdP issued it are those its chain recorded for the root; a
-Continuation Association is not a Client Association. Ending a chain for
-any other reason, such as the end of the session the chain is anchored
-to, is another withdrawal for the chain's onward grants: the IdP is
-permitted, but not required, to set them to INVALID, as for the same
-change to a root grant.
+The IdP issues an onward grant ({{CONTINUATION}}) under the Identity
+Binding, Client Association, and Delegation Authorization or Agent
+Authorization that its chain recorded for the root ("Governed Chain
+Authorization" in {{CONTINUATION}}), and also under the Delegation
+Authorization or Agent Authorization that permitted the onward grant
+itself ("Validation" in {{CONTINUATION}}), where that differs from the
+root's. The rules above apply to each of them: withdrawing either
+authorization sets the onward grant to INVALID, and the IdP retains
+both. A Continuation Association is not a Client Association. Ending a
+chain for any other reason, such as the end of the session the chain is
+anchored to, is another withdrawal for the chain's onward grants: the
+IdP is permitted, but not required, to set them to INVALID, as for the
+same change to a root grant.
 
 The RAS applies {{status-common}} at each redemption of a grant from a
 configured issuer, as part of the grant's validation, the second step
@@ -1303,6 +1308,7 @@ validation, not a new lifecycle cutoff.
 | Disable, re-enable, and disable while the Receiver is unreachable | One disablement is delivered, and no activation |
 | Disablement write retried after a lost success response, once reconciliation has found the principal active | The retry invalidates authorization issued in between; new decisions follow the IdP's next delivery |
 | Grant issued before a disablement, first redeemed after reactivation | With grant status, rejected with `invalid_grant`; without it, not invalidated by the disablement, and grant-derived revocation can reach an ID-JAG |
+| Onward grant permitted by a Delegation Authorization or Agent Authorization other than its chain's root authorization; that authorization is withdrawn while the root authorization and the chain remain active | With grant status, rejected with `invalid_grant` |
 | Grant revocation arrives before redemption | Retain the denial; reject later redemption |
 | Grant subject issuer differs from the stream's authorized issuer | Reject; no cross-issuer revocation |
 | Direct SCIM provisioning with CAEP revocation only | No SCIM event subscription or source GET required |

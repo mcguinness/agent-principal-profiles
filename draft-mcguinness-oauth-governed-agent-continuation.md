@@ -980,8 +980,9 @@ already issued follow "Authorization Changes and Revocation" in
 also has a RAS reject at redemption, within the IdP's publication
 interval and the RAS's maximum status age, an onward grant issued
 before the IdP disabled or deleted the Agent Principal, disabled the
-root's Identity Binding, or withdrew the root's Client Association or
-authorization.
+root's Identity Binding, or withdrew the root's Client Association,
+the root's authorization, or the authorization that permitted the
+onward grant.
 
 # Conformance and Capability Advertisement {#conformance}
 
