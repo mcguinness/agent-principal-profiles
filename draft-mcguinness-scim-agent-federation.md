@@ -53,6 +53,12 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
+  SPIFFE-ID:
+    title: "The SPIFFE Identity and Verifiable Identity Document"
+    author:
+      - org: SPIFFE Project
+    date: false
+    target: https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE-ID.md
 informative:
   LIFECYCLE:
     title: "Agent Principal Lifecycle Profile"
@@ -464,9 +470,16 @@ The reference does not replace those authentication checks.
 
 A trust domain name is the authority component of the SPIFFE ID; for
 example, `platform.example` for `spiffe://platform.example/agents/a7`.
-The Service Provider MUST require it to match the subject's trust
-domain. For `client-attestation`, the attester identifier references
+The Service Provider MUST require it to equal the subject's trust domain
+name. For `client-attestation`, the attester identifier references
 preconfigured trust; it need not be an `iss` claim in the credential.
+
+For the SPIFFE classes, the Service Provider MUST reject a
+`sourceSubject` that is not a valid SPIFFE ID (Section 2 of
+{{SPIFFE-ID}}), whose scheme and trust domain name are lowercase. With
+`sourceAuthority` equal to that trust domain name, the case-exact values
+of two bindings are equal exactly when the IdP's comparison of SPIFFE
+IDs ("Qualified Identities" in {{INPUTS}}) finds the same SPIFFE ID.
 
 The Service Provider MUST resolve these values and the Governance Tenant
 to one approved validation configuration, including applicable
@@ -1154,6 +1167,8 @@ SCIM operation.
 | Add a binding to an unapproved issuer or another tenant's Agent | Rejected; no trust or cross-tenant attachment |
 | Create another binding for the same source key and selector set | `409`, `uniqueness`, even if disabled |
 | Supply both `client` and `sourceSubject` on a dedicated-client binding | `400`, `invalidValue`; the client reference supplies the resolution identity |
+| Supply a `sourceSubject` with an uppercase scheme or trust domain name, such as `spiffe://Platform.example/agents/a7`, for a SPIFFE class | `400`, `invalidValue`; not a valid SPIFFE ID |
+| Supply `Platform.example` as `sourceAuthority` for a SPIFFE class whose `sourceSubject` is `spiffe://platform.example/agents/a7` | `400`, `invalidValue`; it does not equal the trust domain name |
 | Create an association for a dedicated-client binding | `400`, `invalidValue`; its permission is carried by the binding |
 | Change a binding's Agent or source subject | `400`, `mutability`; create a separately authorized replacement |
 | Enable an association while its binding is disabled | Permission can be recorded but cannot authorize issuance |
