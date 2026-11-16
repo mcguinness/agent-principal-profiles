@@ -1294,7 +1294,7 @@ validation, not a new lifecycle cutoff.
 | Source unavailable | No activation inferred; local stale-state policy applies |
 | SCIM success or SET acknowledgment | Does not establish immediate API denial |
 | Offline JWT | With access-token status, rejected once the API holds a valid Status List Token that marks it; otherwise usable until expiration unless separately restricted |
-| Token status that cannot be obtained, or only from an expired Status List Token or one older than the maximum status age | No redemption or operation; HTTP 503 unless an earlier failure is established |
+| Token status that cannot be obtained, or only from an expired Status List Token or one older than the maximum status age | Grant not accepted, or operation not performed; HTTP 503, unless a failure is established and no unfinished check ranks earlier than it |
 
 # Signal Examples {#signal-examples}
 
