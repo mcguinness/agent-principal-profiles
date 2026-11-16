@@ -1964,10 +1964,16 @@ name. For <code>client-attestation</code>, the attester identifier references
 preconfigured trust; it need not be an <code>iss</code> claim in the credential.<a href="#section-4.3.1-4" class="pilcrow">¶</a></p>
 <p id="section-4.3.1-5">For the SPIFFE classes, the Service Provider <span class="bcp14">MUST</span> reject a
 <code>sourceSubject</code> that is not a valid SPIFFE ID (Section 2 of
-<span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span>), whose scheme and trust domain name are lowercase. With
-<code>sourceAuthority</code> equal to that trust domain name, the case-exact values
-of two bindings are equal exactly when the IdP's comparison of SPIFFE
-IDs ("Qualified Identities" in <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>) finds the same SPIFFE ID.<a href="#section-4.3.1-5" class="pilcrow">¶</a></p>
+<span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span>), including one whose trust domain name is not lowercase.
+This profile also stores one spelling of each SPIFFE ID: although
+Section 2.4 of <span>[<a href="#SPIFFE-ID" class="cite xref">SPIFFE-ID</a>]</span> makes the scheme case-insensitive, the
+Service Provider <span class="bcp14">MUST</span> reject a <code>sourceSubject</code> whose scheme is not the
+lowercase <code>spiffe</code>. With <code>sourceAuthority</code> equal to the trust domain
+name, the case-exact values of two bindings are then equal exactly when
+the IdP's comparison of SPIFFE IDs ("Qualified Identities" in
+<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>) finds the same SPIFFE ID, and a validated SPIFFE ID whose
+scheme differs from the stored one only in case still matches the
+binding.<a href="#section-4.3.1-5" class="pilcrow">¶</a></p>
 <p id="section-4.3.1-6">The Service Provider <span class="bcp14">MUST</span> resolve these values and the Governance Tenant
 to one approved validation configuration, including applicable
 client-registration context. Unknown, unsupported, or ambiguous
@@ -3080,15 +3086,30 @@ SCIM operation.<a href="#appendix-A.8-2" class="pilcrow">¶</a></p>
                 <code>400</code>, <code>invalidValue</code>; the client reference supplies the resolution identity</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Supply a <code>sourceSubject</code> with an uppercase scheme or trust domain name, such as <code>spiffe://Platform.example/agents/a7</code>, for a SPIFFE class</td>
+              <td class="text-left" rowspan="1" colspan="1">Supply <code>spiffe://Platform.example/agents/a7</code> as <code>sourceSubject</code> for a SPIFFE class</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>400</code>, <code>invalidValue</code>; not a valid SPIFFE ID</td>
+                <code>400</code>, <code>invalidValue</code>; not a valid SPIFFE ID, since its trust domain name is not lowercase</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Supply <code>SPIFFE://platform.example/agents/a7</code> as <code>sourceSubject</code> for a SPIFFE class</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>; a valid SPIFFE ID, but not the spelling this profile stores</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Supply <code>Platform.example</code> as <code>sourceAuthority</code> for a SPIFFE class whose <code>sourceSubject</code> is <code>spiffe://platform.example/agents/a7</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>400</code>, <code>invalidValue</code>; it does not equal the trust domain name</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">With a <code>spiffe-jwt</code> binding for <code>spiffe://platform.example/agents/a7</code>, the IdP validates a JWT-SVID whose <code>sub</code> is <code>SPIFFE://platform.example/agents/a7</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Resolves through that binding; the scheme is case-insensitive</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">With the same binding, the IdP validates a JWT-SVID whose <code>sub</code> is <code>spiffe://platform.example/agents/A7</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Does not resolve through that binding; the path is case-sensitive</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Create an association for a dedicated-client binding</td>
