@@ -219,7 +219,7 @@
   },
   "RFC8725": {
     "3.8": "Validate Issuer and Subject",
-    "3.12": "Use Mutually Exclusive Validation Rules for Different Kinds of"
+    "3.12": "Use Mutually Exclusive Validation Rules for Different Kinds of JWTs"
   },
   "RFC9110": {
     "10.2.3": "Retry-After",
