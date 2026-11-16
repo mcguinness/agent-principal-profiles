@@ -206,9 +206,14 @@ agree](IMPLEMENTERS-GUIDE.md#choices-to-agree).
   interval and the API's maximum status age, and still rejects it after
   the agent is re-enabled.
 * A grant issued before the IdP disabled and re-enabled the agent, a
-  cycle the RAS never observed, fails redemption with `invalid_grant`,
-  including one past its expiration but within the RAS's clock skew; a
-  new grant redeems.
+  cycle the RAS never observed, fails redemption with `invalid_grant`
+  once the IdP's publication interval and the RAS's maximum status age
+  have passed since the disablement, or sooner where the RAS holds only
+  a Status List Token issued after it. The grant is otherwise
+  acceptable, so only its status can reject it: it passes every other
+  redemption check and its acceptance period has not ended. One such
+  grant is past its expiration but within the RAS's clock skew. A new
+  grant redeems.
 * A token or grant configured to carry status, but without a
   `status_list` member, is rejected.
 * With the Status Provider failing, or serving only a list that has
