@@ -3524,11 +3524,21 @@ the issuance details of {{wag-issuance}} need no change to WAG. The open
 item with WAG is DPoP binding ({{grant-protection}}).
 
 Two items are open in this family: self-acting Client Associations
-({{AGENT-MANAGEMENT}}), and a WAG lifecycle composition, since
-{{AGENT-LIFECYCLE}} defines no WAG wire composition and revoking one WAG
-is deployment-specific. Until these close, a self-acting claim has no
-management path for client use or lifecycle composition in this family
-to be tested against.
+({{AGENT-MANAGEMENT}}), and selective revocation, from the IdP to the
+RAS, of the authorization derived from an individual WAG. Self-acting
+access is otherwise within {{AGENT-LIFECYCLE}}: its provisioning covers
+WAG subjects, applied disablement and Local Suspension cover the agent's
+sessions, and access-token status covers the JWT access tokens a WAG's
+redemption obtains. That profile adds no claim to WAG beyond the
+`status` claim of its grant status ("Grant Status" in
+{{AGENT-LIFECYCLE}}), with which a RAS rejects a WAG at redemption after
+the IdP disables or deletes the agent, withdraws a relationship the WAG
+was issued under, or revokes it, within the IdP's publication interval
+and the RAS's maximum status age. Grant-derived revocation names ID-JAGs
+only, so revoking what one redeemed WAG authorized is
+deployment-specific. Until these close, a self-acting claim has no
+management path for client use, and no selective revocation of one WAG's
+derived authorization, in this family to be tested against.
 
 ## Excluded Compositions {#excluded-compositions}
 

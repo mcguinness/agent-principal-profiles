@@ -136,8 +136,10 @@ proposes DPoP binding at issuance and redemption under
 Open in this family, with no change to WAG: `AGENT-MANAGEMENT`
 administers Client Associations for delegated issuance only, so
 self-acting permission needs a flow dimension there; and
-`AGENT-LIFECYCLE` defines no WAG wire composition, so revoking one WAG
-is deployment-specific (`wag-gaps`).
+`AGENT-LIFECYCLE` defines no WAG wire composition beyond the `status`
+claim of its grant status, so a RAS configured for it rejects a revoked
+WAG at redemption, but revoking authorization already derived from one
+WAG is deployment-specific (`wag-gaps`).
 
 Recorded differences, which need no change to WAG:
 

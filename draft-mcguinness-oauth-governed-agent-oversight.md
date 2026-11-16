@@ -951,8 +951,11 @@ supervised issuance for a target only where both hold:
   * a Local Suspension at the target; or
   * disabling the agent, once the target applies it.
 
-Revoking one WAG is deployment-specific ({{AGENT-LIFECYCLE}}), so
-supervised self-acting issuance rests on the other interventions.
+Revoking authorization already derived from one WAG is
+deployment-specific ({{AGENT-LIFECYCLE}}): grant-derived revocation
+names ID-JAGs only, and grant status, where configured, stops a WAG only
+before its redemption. Supervised self-acting issuance therefore rests
+on the other interventions.
 
 The intervention bound includes what an intervention leaves usable:
 grants issued and not yet redeemed, the tokens a later redemption
