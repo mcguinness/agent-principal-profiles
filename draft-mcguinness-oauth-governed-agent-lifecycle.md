@@ -74,7 +74,6 @@ normative:
   RFC7662:
   RFC9068:
   STATUS-LIST: I-D.ietf-oauth-status-list-21
-informative:
   CONTINUATION:
     title: "Identity Continuation Profile for Agent Principal Federation"
     author:
@@ -83,6 +82,7 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
     target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+informative:
   AGENT-MANAGEMENT:
     title: "SCIM Profile for Agent Principal Management"
     author:
