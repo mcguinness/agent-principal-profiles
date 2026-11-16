@@ -976,7 +976,12 @@ changes within the freshness limit of "Issuance Authorization" in
 {{FEDERATION}} ({{implementation-idp}}). Grants and access tokens
 already issued follow "Authorization Changes and Revocation" in
 {{FEDERATION}}, which the grant-derived revocation of
-{{AGENT-LIFECYCLE}} can propagate.
+{{AGENT-LIFECYCLE}} can propagate. Where configured, its grant status
+also has a RAS reject at redemption, within the IdP's publication
+interval and the RAS's maximum status age, an onward grant issued
+before the IdP disabled or deleted the Agent Principal, disabled the
+root's Identity Binding, or withdrew the root's Client Association or
+authorization.
 
 # Conformance and Capability Advertisement {#conformance}
 

@@ -75,6 +75,14 @@ normative:
   RFC9068:
   STATUS-LIST: I-D.ietf-oauth-status-list-21
 informative:
+  CONTINUATION:
+    title: "Identity Continuation Profile for Agent Principal Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   AGENT-MANAGEMENT:
     title: "SCIM Profile for Agent Principal Management"
     author:
@@ -748,6 +756,15 @@ withdrawal of its authority. Reactivating the principal or restoring a
 relationship does not return a grant to VALID ({{status-common}}). The
 IdP MUST keep each grant's entry in the Status List Tokens it serves
 until the grant's acceptance period ends.
+
+For an onward grant ({{CONTINUATION}}), the Identity Binding, Client
+Association, and Delegation Authorization or Agent Authorization under
+which the IdP issued it are those its chain recorded for the root; a
+Continuation Association is not a Client Association. Ending a chain for
+any other reason, such as the end of the session the chain is anchored
+to, is another withdrawal for the chain's onward grants: the IdP is
+permitted, but not required, to set them to INVALID, as for the same
+change to a root grant.
 
 The RAS applies {{status-common}} at each redemption of a grant from a
 configured issuer, as part of the grant's validation, the second step

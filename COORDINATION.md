@@ -1169,12 +1169,16 @@ rule that stays local to the profile:
   hop records, an authenticated way for a continuing client or CAI to
   request narrowing, and rules for what a child hop inherits from its
   parent. Deferred until a deployment needs it.
-* **Grant status:** ICA-02 Section 6 says that revocation "does not
-  invalidate an already-issued ID-JAG". An IdP that claims the
-  lifecycle profile's grant status can set an onward ID-JAG to INVALID
-  when it ends the chain; that profile permits it ("any other
-  withdrawal of its authority"), and neither document requires it.
-  Whether ending a chain should require it is open.
+* **Grant status:** ICA-02 Section 6.2 says that an ID-JAG already
+  issued "remains redeemable for its own lifetime, since redemption is
+  not a continuation". At a RAS configured for the lifecycle profile's
+  grant status, an onward grant follows the same triggers as a root
+  grant, read through the relationships its chain recorded for the root
+  (`grant-status`): disabling or deleting the Agent Principal, disabling
+  the root's Identity Binding, or withdrawing the root's Client
+  Association or authorization sets it to INVALID. Ending a chain for
+  any other reason, such as the end of its session anchor, permits but
+  does not require that, as the same change does for a root grant.
 
 ### WAG
 
