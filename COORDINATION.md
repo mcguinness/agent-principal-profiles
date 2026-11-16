@@ -716,19 +716,20 @@ readings differ only in the letter case of the scheme. The SPIFFE ID
 specification makes the scheme case-insensitive, and requires a
 lowercase trust domain with no percent-encoding or dot segments.
 Following the ruling on PR #104, the companion's Qualified Identities
-section now defines the comparison by the SPIFFE ID specification's own
-case rules, whose Section 2.4 says "The scheme and trust domain name of
-the SPIFFE ID are case-insensitive. The path is case-sensitive.", and
-forbids any other normalization; it does not adopt Section 4.3 for this
-purpose alone. The SCIM agent management profile keeps its
-`sourceAuthority` and `sourceSubject` binding attributes case-exact and
-rejects a `sourceSubject` that is not a valid SPIFFE ID, so that
-resolution at the IdP and the comparison of bindings agree. Both cite
-the SPIFFE ID specification at its `main` branch, as read on 2026-11-16,
-as `SPIFFE-OAUTH` does. A general WIT input, whose identifiers can use
-the `wimse` scheme, would need Section 4.3 in any case. Section 4.5 of
-the same draft, on reassignment, is cited informatively from the
-companion's Security Considerations.
+section now defines trust-domain lookup and complete-ID matching by the
+SPIFFE ID specification's own case rules, whose Section 2.4 says "The
+scheme and trust domain name of the SPIFFE ID are case-insensitive. The
+path is case-sensitive.", and forbids any other normalization; it does
+not adopt Section 4.3 for this purpose alone. The SCIM agent management
+profile keeps its `sourceAuthority` and `sourceSubject` binding
+attributes case-exact and rejects a `sourceSubject` that is not a valid
+SPIFFE ID or whose scheme is not the lowercase `spiffe`, a storage rule
+of its own, so that resolution at the IdP and the comparison of bindings
+agree. Both cite the SPIFFE ID specification at its `main` branch, as
+read on 2026-11-16, as `SPIFFE-OAUTH` does. A general WIT input, whose
+identifiers can use the `wimse` scheme, would need Section 4.3 in any
+case. Section 4.5 of the same draft, on reassignment, is cited
+informatively from the companion's Security Considerations.
 
 Current drafts do not supply what a general WIT input lacks.
 `draft-ietf-wimse-wpt-02` proves possession of a WIT's key, but
