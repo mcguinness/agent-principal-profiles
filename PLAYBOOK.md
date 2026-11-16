@@ -217,10 +217,14 @@ agree](IMPLEMENTERS-GUIDE.md#choices-to-agree).
 * A token or grant configured to carry status, but without a
   `status_list` member, is rejected.
 * With the Status Provider failing, or serving only a list that has
-  expired or is older than the maximum status age, the RAS issues
-  nothing and the API performs no operation; each answers HTTP 503,
-  unless a failure is established and no unfinished check ranks earlier
-  than it. A cached list still within those limits keeps serving.
+  expired or is older than the maximum status age, the RAS accepts no
+  grant configured to carry status, and the API performs no operation
+  for a request whose access token is configured to carry status. Each
+  answers HTTP 503, unless a failure is established and no unfinished
+  check ranks earlier than it. A cached list still within those limits
+  keeps serving. The outage does not block refresh, or the resolution
+  of a deferred redemption the RAS accepted before it, since neither
+  checks grant status.
 * The documented disablement delay includes the publication interval
   and the maximum status age, which the lifecycle profile requires to
   be configured consistently with the accepted revocation delay
