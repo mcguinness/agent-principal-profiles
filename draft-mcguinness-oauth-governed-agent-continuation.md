@@ -976,7 +976,13 @@ changes within the freshness limit of "Issuance Authorization" in
 {{FEDERATION}} ({{implementation-idp}}). Grants and access tokens
 already issued follow "Authorization Changes and Revocation" in
 {{FEDERATION}}, which the grant-derived revocation of
-{{AGENT-LIFECYCLE}} can propagate.
+{{AGENT-LIFECYCLE}} can propagate. Where configured, its grant status
+also has a RAS reject at redemption, within the IdP's publication
+interval and the RAS's maximum status age, an onward grant issued
+before the IdP disabled or deleted the Agent Principal, disabled the
+root's Identity Binding, or withdrew the root's Client Association,
+the root's authorization, or the authorization that permitted the
+onward grant.
 
 # Conformance and Capability Advertisement {#conformance}
 
@@ -1800,6 +1806,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
 | Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, with `jwt-dpop` as for any RAS that accepts grants containing `cnf`; the IdP flag only for delegated continuation ({{metadata}}) |
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
+| Grants issued before a chain ends | Redeemable for their own lifetime, since redemption is not a continuation ({{Section 6.2 of ICA}}) | Unchanged, except at a RAS configured for the grant status of {{AGENT-LIFECYCLE}}, which rejects a grant issued before certain governance events ({{chain-ending}}) |
 | Continuation window | None | A required, finite per-hop window, checked when a request is received ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
 

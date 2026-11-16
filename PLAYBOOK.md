@@ -899,7 +899,7 @@ happened:
 | One ID-JAG is suspected stolen | The grant, by issuer and `jti` | Its redemption, and the sessions derived from it, at participating RASs | Onward grants already continued from it | [Revoke one suspicious grant](#revoke-one-suspicious-grant) |
 | The agent must stop in one application | A Local Suspension, or the authorization for that target | The agent there; its other access continues | Tokens already issued there | [Cut one agent off from one application](#cut-one-agent-off-from-one-application) |
 | The agent is compromised and must stop everywhere | The Agent Principal, at the IdP | Every binding, client, and continuation chain; each resource domain revokes the agent's sessions once it applies the change | Access at a domain that has not applied it; tokens accepted offline or from a cache | [Disable an agent everywhere](#disable-an-agent-everywhere) |
-| A user leaves | The user, at the IdP and in each resource domain | The user's delegations; the agents' self-acting access continues | Grants issued before the disablement, until stopped or past their acceptance window | [Offboard a user](#offboard-a-user) |
+| A user leaves | The user, at the IdP and in each resource domain | The user's delegations; the agents' self-acting access continues | Grants issued before the disablement, until stopped or past their acceptance period | [Offboard a user](#offboard-a-user) |
 
 A narrow trigger reaches a wider stop in one of two ways:
 
@@ -1254,7 +1254,7 @@ ended.
 * **Scope:** that user's delegations; agents' self-acting authority is
   unaffected.
 * **Prerequisites:** the IdP's own user lifecycle; the IdP's maximum
-  grant acceptance window, including clock leeway; and, for each
+  grant acceptance period, including clock leeway; and, for each
   resource domain where the user's agents held delegated access, a way
   to stop new redemption for the user (the product's own user
   deprovisioning, since a RAS rejects redemption for a disabled user;
@@ -1281,7 +1281,7 @@ ended.
      RAS defers redemptions, also disable the user's account there,
      send grant-derived revocation, or deny those pending requests.
      Where none of these is available, wait until every grant issued
-     before step 1 is past the acceptance window.
+     before step 1 is past its acceptance period.
   3. Then end existing sessions there: through that deprovisioning, or
      with CAEP user-and-tenant revocation. That event revokes existing
      sessions only; it does not stop a grant that has not yet been
@@ -1291,12 +1291,12 @@ ended.
   | Checkpoint | Evidence |
   |---|---|
   | The IdP applied the disablement | A new delegated exchange for that user fails with `invalid_grant`, and the user's delegated chains end; agents still obtain grants for their own access |
-  | Each resource domain stopped new redemption | Redemption of a grant issued for the user before step 1 fails there, or the acceptance window of every such grant has passed |
+  | Each resource domain stopped new redemption | Redemption of a grant issued for the user before step 1 fails there, or the acceptance period of every such grant has ended |
   | Each resource domain ended existing sessions | Refresh of the user's delegated authorization fails there, and a previously accepted token is rejected within the domain's agreed delay |
   | A domain has not completed both | Recorded as pending, with its owner and the residual window |
 
 * **Residual access:** at a domain that has not completed both steps,
-  grants issued before the disablement until their acceptance window
+  grants issued before the disablement until their acceptance period
   ends, and authorization already issued until it expires.
 * **Recovery:** re-enabling the user permits new delegations; ended
   chains stay ended. Where a domain disabled the user's account, its
@@ -1378,7 +1378,7 @@ ended.
      them INVALID when it disabled the agent. Elsewhere, if the
      recovery must exclude those too, revoke the known ID-JAGs through
      grant-derived revocation, or keep the containment until their
-     acceptance window closes.
+     acceptance period ends.
 * **Verification:** each agent's applied state matches the source; no
   reconciliation remains pending; each resent revocation is recorded by
   the receiver; and where step 4 ran, each domain confirmed its

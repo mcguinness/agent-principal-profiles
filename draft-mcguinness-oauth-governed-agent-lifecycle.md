@@ -74,6 +74,14 @@ normative:
   RFC7662:
   RFC9068:
   STATUS-LIST: I-D.ietf-oauth-status-list-21
+  CONTINUATION:
+    title: "Identity Continuation Profile for Agent Principal Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
+    target: https://mcguinness.github.io/agent-principal-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 informative:
   AGENT-MANAGEMENT:
     title: "SCIM Profile for Agent Principal Management"
@@ -749,6 +757,20 @@ relationship does not return a grant to VALID ({{status-common}}). The
 IdP MUST keep each grant's entry in the Status List Tokens it serves
 until the grant's acceptance period ends.
 
+The IdP issues an onward grant ({{CONTINUATION}}) under the Identity
+Binding, Client Association, and Delegation Authorization or Agent
+Authorization that its chain recorded for the root ("Governed Chain
+Authorization" in {{CONTINUATION}}), and also under the Delegation
+Authorization or Agent Authorization that permitted the onward grant
+itself ("Validation" in {{CONTINUATION}}), where that differs from the
+root's. The rules above apply to each of them: withdrawing either
+authorization sets the onward grant to INVALID, and the IdP retains
+both. A Continuation Association is not a Client Association. Ending a
+chain for any other reason, such as the end of the session the chain is
+anchored to, is another withdrawal for the chain's onward grants: the
+IdP is permitted, but not required, to set them to INVALID, as for the
+same change to a root grant.
+
 The RAS applies {{status-common}} at each redemption of a grant from a
 configured issuer, as part of the grant's validation, the second step
 of "Redemption Error Precedence" in {{FEDERATION}}, and before it
@@ -1156,7 +1178,7 @@ event URI alone does not establish these receiver semantics.
 * A valid event received before redemption MUST retain a denial for that
   grant. The Receiver retains it until neither the grant nor derived
   authorization can be accepted. For an unknown grant, this requires a
-  configured maximum grant acceptance window, including clock leeway;
+  configured maximum grant acceptance period, including clock leeway;
   receipt before redemption MUST NOT be treated as a no-op.
 
 This identifies the same grant at both parties without registration of a
@@ -1286,6 +1308,7 @@ validation, not a new lifecycle cutoff.
 | Disable, re-enable, and disable while the Receiver is unreachable | One disablement is delivered, and no activation |
 | Disablement write retried after a lost success response, once reconciliation has found the principal active | The retry invalidates authorization issued in between; new decisions follow the IdP's next delivery |
 | Grant issued before a disablement, first redeemed after reactivation | With grant status, rejected with `invalid_grant`; without it, not invalidated by the disablement, and grant-derived revocation can reach an ID-JAG |
+| Onward grant permitted by a Delegation Authorization or Agent Authorization other than its chain's root authorization; that authorization is withdrawn while the root authorization and the chain remain active | With grant status, rejected with `invalid_grant` |
 | Grant revocation arrives before redemption | Retain the denial; reject later redemption |
 | Grant subject issuer differs from the stream's authorized issuer | Reject; no cross-issuer revocation |
 | Direct SCIM provisioning with CAEP revocation only | No SCIM event subscription or source GET required |
@@ -1294,7 +1317,7 @@ validation, not a new lifecycle cutoff.
 | Source unavailable | No activation inferred; local stale-state policy applies |
 | SCIM success or SET acknowledgment | Does not establish immediate API denial |
 | Offline JWT | With access-token status, rejected once the API holds a valid Status List Token that marks it; otherwise usable until expiration unless separately restricted |
-| Token status that cannot be obtained, or only from an expired Status List Token or one older than the maximum status age | No redemption or operation; HTTP 503 unless an earlier failure is established |
+| Token status that cannot be obtained, or only from an expired Status List Token or one older than the maximum status age | Grant not accepted, or operation not performed; HTTP 503, unless a failure is established and no unfinished check ranks earlier than it |
 
 # Signal Examples {#signal-examples}
 

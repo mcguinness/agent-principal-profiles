@@ -1852,7 +1852,7 @@ class RAS(Server):
             host = self.issuer.split("://", 1)[1].rstrip("/")
             pending["interaction_uri"] = f"https://{host}/interact/{secrets.token_urlsafe(16)}"
         # The replay record lasts until the later of the request's end and
-        # the grant's acceptance window plus skew.
+        # the grant's acceptance period, its expiration plus skew.
         self.accepted_grants[grant_key] = max(claims["exp"] + SKEW, pending["deadline"])
         self.deferred_grants.add(grant_key)
         pending["task"] = self.open_task(pending)
